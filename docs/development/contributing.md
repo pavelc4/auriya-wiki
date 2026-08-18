@@ -1,68 +1,37 @@
 # Contributing
 
-Guidelines for changing Auriya. These mirror the repository's `AGENTS.md`
-(Repository Guidelines) — that file is the canonical short form; this page adds
-the doc-site cross-links.
+Thank you for your interest in contributing to Auriya! Contributions of all kinds are welcome — from fixing bugs and optimizing code to improving documentation or adding game profile presets.
 
-## Before you start
+## How to Contribute
 
-- Read [Project structure](project-structure) and [Components](../architecture/components)
-  so a change lands in the right module. Keep platform-specific behavior in its
-  existing module; don't duplicate config or shell-handling helpers.
-- For daemon changes, trace the real flow first — [Profile scheduler](../internals/profile-scheduler),
-  [IPC protocol](../internals/ipc-protocol), and the relevant internals page.
+1. **Fork & Branch**: Fork the [Auriya repository](https://github.com/pavelc4/auriya) and create your feature branch:
+   ```bash
+   git checkout -b feat/my-new-feature
+   ```
+2. **Make Changes**: Implement your changes cleanly and write tests if applicable.
+3. **Validate**: Make sure tests and linter checks pass locally.
+4. **Submit a PR**: Open a Pull Request on GitHub with a clear description of your changes.
 
-## Validate before submitting
+## Validate Before Submitting
 
-Run the checks that match what you touched:
+Run the checks corresponding to what you modified:
 
 ```bash
-# Rust  (note: cargo cross-compiles by default here — see Building)
+# Rust Daemon & CLI
 cargo fmt --all -- --check
 cargo clippy --all-targets --all-features -- -D warnings
 cargo test
 
-# Android
+# Android Manager & Companion
 cd android && ./gradlew test
 ```
 
-The clippy configuration is **deny-level** for correctness/perf/complexity groups
-([Building → lints](building#lints-and-formatting)). CI runs the full build; see
-[CI/CD workflows](ci-cd). Mind the [cargo cross-compile gotcha](building#cargo-is-pinned-to-cross-compile-for-android)
-when running tests locally.
+## Coding Conventions
 
-## Coding style
+- **Rust**: Default `rustfmt` formatting (4-space indentation), `snake_case` for functions/modules, `CamelCase` for types, `SCREAMING_SNAKE_CASE` for constants.
+- **Kotlin**: 4-space indentation, `PascalCase` for composables/classes, `camelCase` for functions/members.
+- **Commits**: Clear and concise commit messages, optionally following Conventional Commits (e.g. `feat(daemon): ...`, `fix(app): ...`, `docs: ...`).
 
-- **Rust**: `rustfmt` defaults, four-space indent. `snake_case` functions/modules,
-  `CamelCase` types, `SCREAMING_SNAKE_CASE` constants.
-- **Kotlin**: four-space indent, `PascalCase` types/composables, `camelCase`
-  members.
+## Security & Privacy
 
-## Testing
-
-Put focused Rust tests beside the code they exercise (or under `tests/` for
-integration behavior), named after the behavior they verify — e.g.
-`parses_invalid_game_profile`. Android changes should include Gradle tests when
-the behavior is testable off-device. Note some Rust tests are **device tests**
-(they run over adb via the configured `runner`) — see
-[Building](building#cargo-is-pinned-to-cross-compile-for-android).
-
-## Commits and pull requests
-
-- Use imperative, concise **Conventional Commit** subjects with a scope when
-  useful: `fix(daemon): …`, `feat(app): …`, `chore(deps): …`.
-- PRs should explain the behavior change, list the validation commands you ran,
-  link the issue when applicable, and include screenshots or device details for
-  UI/Android-runtime changes.
-- Keep generated artifacts and unrelated formatting churn out of the diff.
-- **If you change config schema, IPC, CLI, or system nodes, update the matching
-  wiki page** — the reference and internals pages are source-traced and cite line
-  numbers; each carries a "Likely to drift first" note listing what to re-verify.
-
-## Security and trust boundaries
-
-Treat root permissions, `/proc` and `/sys` writes, the Unix socket, `mount`
-operations ([vendor lock](../internals/system-tweaks#vendor-lock--stopping-vendor-services-from-fighting-back)),
-and shell commands as **trust boundaries**. Validate inputs and preserve
-least-privilege behavior. Never commit signing keys, device-specific paths, or
-real credentials — use `android/signing.properties.example` as the template.
+Treat root permissions, sysfs nodes, and shell operations as trust boundaries. Never commit private credentials, personal signing keys, or device-specific sensitive paths.

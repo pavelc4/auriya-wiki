@@ -103,5 +103,4 @@ installed device. See [Command reference](../reference/commands#restart-is-local
 Capture: the command and its response, the active package, root manager, ROM,
 kernel version, and the relevant `settings.toml` / `gamelist.toml` — **without**
 publishing private device identifiers. Root, `/proc`/`/sys` writes, the socket,
-and shell commands are trust boundaries; scrub logs accordingly (`AGENTS.md`,
-Security & Configuration).
+and shell commands are trust boundaries; scrub sensitive identifiers and logs accordingly.
