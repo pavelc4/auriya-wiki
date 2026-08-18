@@ -10,6 +10,7 @@ import type {Props} from '@theme/NavbarItem/LocaleDropdownNavbarItem';
 
 function useLocaleDropdownUtils() {
   const {
+    siteConfig: {baseUrl = '/'},
     i18n: {defaultLocale, localeConfigs, locales},
   } = useDocusaurusContext();
   const location = useLocation();
@@ -24,36 +25,38 @@ function useLocaleDropdownUtils() {
     return localeConfig;
   };
 
-  const getCanonicalPath = () => {
+  const getTargetURL = (locale: string, options: {queryString: string | undefined}) => {
     let pathname = location.pathname || '/';
-    // Strip any repetitive or stacked locale prefixes (e.g. /id/id/ -> /)
-    let stripped = true;
-    while (stripped) {
-      stripped = false;
-      for (const loc of locales) {
-        if (loc !== defaultLocale) {
-          const prefix = `/${loc}`;
-          if (pathname === prefix) {
-            pathname = '/';
-            stripped = true;
-          } else if (pathname.startsWith(`${prefix}/`)) {
-            pathname = pathname.substring(prefix.length);
-            stripped = true;
-          }
-        }
+
+    // 1. Strip baseUrl from start of pathname
+    const normalizedBaseUrl = baseUrl.endsWith('/') ? baseUrl : `${baseUrl}/`;
+    if (pathname.startsWith(normalizedBaseUrl)) {
+      pathname = pathname.substring(normalizedBaseUrl.length);
+    } else if (pathname.startsWith('/')) {
+      pathname = pathname.substring(1);
+    }
+
+    // 2. Strip any existing locale prefixes (e.g. "id/", "en/")
+    for (const loc of locales) {
+      if (pathname === loc) {
+        pathname = '';
+        break;
+      } else if (pathname.startsWith(`${loc}/`)) {
+        pathname = pathname.substring(loc.length + 1);
+        break;
       }
     }
-    return pathname.startsWith('/') ? pathname : `/${pathname}`;
-  };
 
-  const getTargetURL = (locale: string, options: {queryString: string | undefined}) => {
-    const canonicalPath = getCanonicalPath();
+    // 3. Build target path with baseUrl and target locale
     let targetPath = '';
     if (locale === defaultLocale) {
-      targetPath = canonicalPath;
+      targetPath = `${normalizedBaseUrl}${pathname}`;
     } else {
-      targetPath = canonicalPath === '/' ? `/${locale}/` : `/${locale}${canonicalPath}`;
+      targetPath = `${normalizedBaseUrl}${locale}/${pathname}`;
     }
+
+    // Ensure leading slash and clean double slashes
+    targetPath = targetPath.replace(/\/+/g, '/');
 
     const finalSearch = mergeSearchStrings(
       [location.search, options.queryString],
@@ -89,7 +92,7 @@ export default function LocaleDropdownNavbarItem({
   let activeLocale = defaultLocale;
   const currentPath = location.pathname || '/';
   for (const loc of locales) {
-    if (loc !== defaultLocale && (currentPath === `/${loc}` || currentPath.startsWith(`/${loc}/`))) {
+    if (loc !== defaultLocale && (currentPath === `/${loc}` || currentPath.startsWith(`/${loc}/`) || currentPath.includes(`/${loc}/`))) {
       activeLocale = loc;
       break;
     }

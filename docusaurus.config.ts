@@ -12,7 +12,7 @@ const config: Config = {
   title: 'Auriya Wiki',
   tagline: 'Technical documentation for Auriya',
   url: 'https://auriya-wiki.pages.dev',
-  baseUrl: '/auriya-wiki/',
+  baseUrl: '/',
   organizationName: 'pavelc4',
   projectName: 'auriya',
   onBrokenLinks: 'throw',
