@@ -78,6 +78,8 @@ const config: Config = {
   ],
   themeConfig: {
     colorMode: {respectPrefersColorScheme: true},
+    image: 'gif/kurukuru.gif',
+    favicon: 'gif/kurukuru.gif',
     navbar: {
       title: 'Auriya Wiki',
       hideOnScroll: true,
