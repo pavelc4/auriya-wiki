@@ -1,0 +1,202 @@
+/* Features Section */
+.features-section {
+  padding: 4rem 1.5rem 5rem;
+  max-width: 1120px;
+  margin: 0 auto;
+  position: relative;
+}
+
+.features-header {
+  text-align: center;
+  margin-bottom: 3.5rem;
+}
+
+.features-tag {
+  display: inline-block;
+  font-size: 0.82rem;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+  color: var(--ifm-color-primary);
+  margin-bottom: 0.6rem;
+  padding: 0.25rem 0.75rem;
+  background: rgba(243, 210, 210, 0.1);
+  border-radius: 9999px;
+  border: 1px solid rgba(243, 210, 210, 0.2);
+}
+
+.features-title {
+  font-size: 2.2rem;
+  font-weight: 800;
+  letter-spacing: -0.02em;
+  color: var(--ifm-heading-color);
+  margin-bottom: 0.75rem;
+}
+
+.features-subtitle {
+  font-size: 1.05rem;
+  color: var(--ifm-color-emphasis-700);
+  max-width: 580px;
+  margin: 0 auto;
+  line-height: 1.5;
+}
+
+.features-grid {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 1.5rem;
+}
+
+.feature-card {
+  background: var(--ifm-card-background-color, #161822);
+  border: 1px solid var(--ifm-toc-border-color);
+  border-radius: 16px;
+  padding: 1.75rem 1.5rem;
+  display: flex;
+  flex-direction: column;
+  transition: transform 0.25s cubic-bezier(0.16, 1, 0.3, 1),
+              border-color 0.25s ease,
+              box-shadow 0.25s ease;
+  position: relative;
+  overflow: hidden;
+}
+
+.feature-card:hover {
+  transform: translateY(-4px);
+  border-color: var(--ifm-color-primary);
+  box-shadow: 0 12px 30px rgba(0, 0, 0, 0.15);
+}
+
+.feature-icon-wrapper {
+  width: 44px;
+  height: 44px;
+  border-radius: 12px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: rgba(243, 210, 210, 0.12);
+  color: var(--ifm-color-primary);
+  margin-bottom: 1.25rem;
+  flex-shrink: 0;
+}
+
+.feature-icon-wrapper svg {
+  width: 22px;
+  height: 22px;
+  fill: currentColor;
+}
+
+.feature-title {
+  font-size: 1.15rem;
+  font-weight: 700;
+  margin-bottom: 0.5rem;
+  color: var(--ifm-heading-color);
+  letter-spacing: -0.01em;
+}
+
+.feature-desc {
+  font-size: 0.92rem;
+  line-height: 1.55;
+  color: var(--ifm-color-emphasis-700);
+  margin: 0;
+}
+
+/* Quick Nav Section */
+.quicknav-section {
+  padding: 2rem 1.5rem 5rem;
+  max-width: 1120px;
+  margin: 0 auto;
+}
+
+.quicknav-grid {
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  gap: 1.25rem;
+}
+
+.quicknav-card {
+  background: var(--ifm-card-background-color, #161822);
+  border: 1px solid var(--ifm-toc-border-color);
+  border-radius: 14px;
+  padding: 1.4rem 1.25rem;
+  text-decoration: none !important;
+  color: inherit !important;
+  display: flex;
+  flex-direction: column;
+  justify-content: space-between;
+  transition: all 0.2s ease;
+}
+
+.quicknav-card:hover {
+  transform: translateY(-3px);
+  border-color: var(--ifm-color-primary);
+  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.12);
+  color: inherit !important;
+}
+
+.quicknav-card-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 0.75rem;
+}
+
+.quicknav-card-title {
+  font-size: 1.05rem;
+  font-weight: 700;
+  color: var(--ifm-heading-color);
+  margin: 0;
+}
+
+.quicknav-card-arrow {
+  color: var(--ifm-color-primary);
+  font-size: 1.1rem;
+  transition: transform 0.2s ease;
+}
+
+.quicknav-card:hover .quicknav-card-arrow {
+  transform: translateX(4px);
+}
+
+.quicknav-card-desc {
+  font-size: 0.85rem;
+  color: var(--ifm-color-emphasis-700);
+  line-height: 1.45;
+  margin: 0;
+}
+
+/* Responsive Breakpoints */
+@media (max-width: 996px) {
+  .features-grid {
+    grid-template-columns: repeat(2, 1fr);
+  }
+  .quicknav-grid {
+    grid-template-columns: repeat(2, 1fr);
+  }
+}
+
+@media (max-width: 640px) {
+  .features-section {
+    padding: 2.5rem 1.25rem 3.5rem;
+  }
+  .features-header {
+    margin-bottom: 2.25rem;
+  }
+  .features-title {
+    font-size: 1.75rem;
+  }
+  .features-subtitle {
+    font-size: 0.95rem;
+  }
+  .features-grid {
+    grid-template-columns: 1fr;
+    gap: 1.1rem;
+  }
+  .quicknav-section {
+    padding: 1rem 1.25rem 4rem;
+  }
+  .quicknav-grid {
+    grid-template-columns: 1fr;
+    gap: 0.9rem;
+  }
+}

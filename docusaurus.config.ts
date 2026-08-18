@@ -85,6 +85,22 @@ const config: Config = {
       hideOnScroll: true,
       items: [
         {
+          type: 'docSidebar',
+          sidebarId: 'docs',
+          position: 'left',
+          label: 'Documentation',
+        },
+        {
+          to: '/docs/getting-started/installation',
+          label: 'Getting Started',
+          position: 'left',
+        },
+        {
+          to: '/docs/architecture/overview',
+          label: 'Architecture',
+          position: 'left',
+        },
+        {
           type: 'search',
           position: 'right',
         },

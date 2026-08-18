@@ -3,7 +3,6 @@ import Link from '@docusaurus/Link';
 import useBaseUrl from '@docusaurus/useBaseUrl';
 import useDocusaurusContext from '@docusaurus/useDocusaurusContext';
 import Layout from '@theme/Layout';
-
 import Translate from '@docusaurus/Translate';
 
 function HeroSection(): ReactNode {
@@ -65,6 +64,118 @@ function HeroSection(): ReactNode {
   );
 }
 
+function FeaturesSection(): ReactNode {
+  const features = [
+    {
+      icon: (
+        <svg viewBox="0 0 24 24"><path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm1 14h-2v-2h2v2zm0-4h-2V7h2v5z"/></svg>
+      ),
+      title: 'Frame-Aware Scheduling',
+      desc: 'Real-time frame latency measurement via Kala eBPF uprobes and sysfs fallback for adaptive CPU/GPU power budgeting.',
+    },
+    {
+      icon: (
+        <svg viewBox="0 0 24 24"><path d="M4 6h16v12H4z M2 4v16h20V4H2zm9 4h2v6h-2z"/></svg>
+      ),
+      title: 'Per-App Refresh Rate',
+      desc: 'Dynamically adapts display panel refresh rates (60Hz, 90Hz, 120Hz, 144Hz) per foreground application stack.',
+    },
+    {
+      icon: (
+        <svg viewBox="0 0 24 24"><path d="M21 6H3c-1.1 0-2 .9-2 2v8c0 1.1.9 2 2 2h18c1.1 0 2-.9 2-2V8c0-1.1-.9-2-2-2zm-10 7H8v3H6v-3H3v-2h3V8h2v3h3v2zm4.5 2c-.83 0-1.5-.67-1.5-1.5s.67-1.5 1.5-1.5 1.5.67 1.5 1.5-.67 1.5-1.5 1.5zm4-3c-.83 0-1.5-.67-1.5-1.5S18.67 9 19.5 9s1.5.67 1.5 1.5-.67 1.5-1.5 1.5z"/></svg>
+      ),
+      title: 'Per-Game Custom Profiles',
+      desc: 'Configure custom FPS targets, dedicated governor overrides, and automated Do Not Disturb mode for individual titles.',
+    },
+    {
+      icon: (
+        <svg viewBox="0 0 24 24"><path d="M12 1L3 5v6c0 5.55 3.84 10.74 9 12 5.16-1.26 9-6.45 9-12V5l-9-4zm0 10.99h7c-.53 4.12-3.28 7.79-7 8.94V12H5V6.3l7-3.11v8.8z"/></svg>
+      ),
+      title: 'Kernel & System Tweaks',
+      desc: 'CPU core online management, GPU power governor control, memory swap optimizations, and vendor lock mitigation.',
+    },
+    {
+      icon: (
+        <svg viewBox="0 0 24 24"><path d="M17 1.01L7 1c-1.1 0-2 .9-2 2v18c0 1.1.9 2 2 2h10c1.1 0 2-.9 2-2V3c0-1.1-.9-1.99-2-1.99zM17 19H7V5h10v14z"/></svg>
+      ),
+      title: 'Material Expressive UI',
+      desc: 'Native Android management app built with Jetpack Compose, featuring real-time telemetry cards and quick settings tiles.',
+    },
+    {
+      icon: (
+        <svg viewBox="0 0 24 24"><path d="M12 2l3.09 6.26L22 9.27l-5 4.87 1.18 6.88L12 17.77l-6.18 3.25L7 14.14 2 9.27l6.91-1.01L12 2z"/></svg>
+      ),
+      title: 'Pure Rust Daemon',
+      desc: 'Zero-overhead asynchronous background service built on Tokio, Unix domain sockets, and safe kernel interfaces.',
+    },
+  ];
+
+  return (
+    <section className="features-section">
+      <div className="features-header">
+        <span className="features-tag">Capabilities</span>
+        <h2 className="features-title">Engineered for Performance</h2>
+        <p className="features-subtitle">
+          A modular optimization suite connecting kernel-level tracing with userspace control.
+        </p>
+      </div>
+
+      <div className="features-grid">
+        {features.map((item, idx) => (
+          <div key={idx} className="feature-card">
+            <div className="feature-icon-wrapper">
+              {item.icon}
+            </div>
+            <h3 className="feature-title">{item.title}</h3>
+            <p className="feature-desc">{item.desc}</p>
+          </div>
+        ))}
+      </div>
+    </section>
+  );
+}
+
+function QuickNavSection(): ReactNode {
+  const sections = [
+    {
+      title: 'Getting Started',
+      desc: 'Installation steps, system requirements, and first-run verification.',
+      to: '/docs/getting-started/installation',
+    },
+    {
+      title: 'Architecture',
+      desc: 'System component layout, execution flow, and module lifecycle.',
+      to: '/docs/architecture/overview',
+    },
+    {
+      title: 'Internals',
+      desc: 'eBPF Kala frame probe, profile scheduler, and IPC protocol.',
+      to: '/docs/internals/fps-detection',
+    },
+    {
+      title: 'Reference',
+      desc: 'Command line interface (auriyactl), configuration TOML, and Stats API.',
+      to: '/docs/reference/settings',
+    },
+  ];
+
+  return (
+    <section className="quicknav-section">
+      <div className="quicknav-grid">
+        {sections.map((sec, idx) => (
+          <Link key={idx} to={sec.to} className="quicknav-card">
+            <div className="quicknav-card-header">
+              <h4 className="quicknav-card-title">{sec.title}</h4>
+              <span className="quicknav-card-arrow">→</span>
+            </div>
+            <p className="quicknav-card-desc">{sec.desc}</p>
+          </Link>
+        ))}
+      </div>
+    </section>
+  );
+}
+
 export default function Home(): ReactNode {
   const {siteConfig} = useDocusaurusContext();
   return (
@@ -73,6 +184,8 @@ export default function Home(): ReactNode {
       description="Technical documentation for Auriya Android root daemon, companion service, and manager app.">
       <main>
         <HeroSection />
+        <FeaturesSection />
+        <QuickNavSection />
       </main>
     </Layout>
   );

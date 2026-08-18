@@ -1,16 +1,6 @@
-/* Non-Scrollable Desktop Hero */
-@media (min-width: 900px) {
-  html:has(.hero-section),
-  body:has(.hero-section) {
-    overflow: hidden;
-    height: 100vh;
-    height: 100dvh;
-  }
-}
-
 /* Hero Section Container */
 .hero-section {
-  min-height: calc(100dvh - var(--ifm-navbar-height) - 130px);
+  min-height: calc(85vh - var(--ifm-navbar-height));
   display: flex;
   align-items: center;
   justify-content: center;

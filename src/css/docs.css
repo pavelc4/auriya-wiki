@@ -12,14 +12,40 @@
 }
 
 .markdown h1 {
-  font-size: 2.4rem;
-  letter-spacing: 0;
+  font-size: 2.3rem;
+  letter-spacing: -0.02em;
+  font-weight: 800;
+  margin-bottom: 1.25rem;
 }
 
 .markdown h2 {
+  font-size: 1.6rem;
+  font-weight: 750;
   padding-top: 1.5rem;
-  margin-top: 2.5rem;
+  margin-top: 2.2rem;
   border-top: 1px solid var(--ifm-toc-border-color);
+  letter-spacing: -0.01em;
+}
+
+.markdown h3 {
+  font-size: 1.25rem;
+  font-weight: 700;
+  margin-top: 1.5rem;
+}
+
+.markdown ul,
+.markdown ol {
+  padding-left: 1.4rem;
+  margin-bottom: 1.2rem;
+}
+
+.markdown li {
+  margin-bottom: 0.35rem;
+  line-height: 1.6;
+}
+
+.markdown p {
+  line-height: 1.68;
 }
 
 code {
@@ -54,5 +80,26 @@ pre code {
 @media (max-width: 768px) {
   .responsive-container > div {
     width: 100%;
+  }
+
+  .markdown h1 {
+    font-size: 1.85rem;
+    line-height: 1.25;
+    margin-bottom: 1rem;
+  }
+
+  .markdown h2 {
+    font-size: 1.35rem;
+    padding-top: 1.2rem;
+    margin-top: 1.75rem;
+  }
+
+  .markdown h3 {
+    font-size: 1.15rem;
+  }
+
+  .markdown ul,
+  .markdown ol {
+    padding-left: 1.2rem;
   }
 }
