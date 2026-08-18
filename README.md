@@ -1,12 +1,20 @@
 <p align="center">
 <img src="https://img.shields.io/badge/Docusaurus-3.10.2-34CA40?style=for-the-badge&logo=docusaurus&logoColor=white" alt="Docusaurus">
 <img src="https://img.shields.io/badge/Bun-runtime-FCD34D?style=for-the-badge&logo=bun&logoColor=black" alt="Bun">
+<<<<<<< Updated upstream
 <img src="https://img.shields.io/badge/TypeScript-7.0-3178C6?style=for-the-badge&logo=typescript&logoColor=white" alt="TypeScript">
 <a href="LICENSE"><img src="https://img.shields.io/badge/GPLv3-white?style=for-the-badge&logo=gnu&logoColor=white&label=License&labelColor=222" alt="License"></a>
 </p>
 
 ## About Auriya Wiki
 
+=======
+<img src="https://img.shields.io/badge/TypeScript-6.0-3178C6?style=for-the-badge&logo=typescript&logoColor=white" alt="TypeScript">
+<a href="LICENSE"><img src="https://img.shields.io/badge/MIT-white?style=for-the-badge&logo=opensourceinitiative&logoColor=white&label=License&labelColor=222" alt="License"></a>
+</p>
+
+## About Auriya Wiki
+>>>>>>> Stashed changes
 **Auriya Wiki** is the official technical documentation for the [Auriya](https://github.com/pavelc4/auriya) Magisk/KernelSU module. Built with Docusaurus, Bun, and Tailwind CSS.
 
 ## Tech Stack
@@ -34,11 +42,11 @@ bun run build
 
 | Section | Description |
 |---------|-------------|
-| [Getting Started](https://auriya-wiki.pages.dev/docs/getting-started/installation) | Installation, requirements, first run |
-| [Architecture](https://auriya-wiki.pages.dev/docs/architecture/overview) | System design, components, data flow |
-| [Development](https://auriya-wiki.pages.dev/docs/development/building) | Build process, CI/CD, contributing |
-| [Internals](https://auriya-wiki.pages.dev/docs/internals/fps-detection) | FPS detection, IPC, game detection |
-| [Reference](https://auriya-wiki.pages.dev/docs/reference/settings) | Commands, settings, filesystem |
+| [Getting Started](/docs/getting-started/installation) | Installation, requirements, first run |
+| [Architecture](/docs/architecture/overview) | System design, components, data flow |
+| [Development](/docs/development/building) | Build process, CI/CD, contributing |
+| [Internals](/docs/internals/fps-detection) | FPS detection, IPC, game detection |
+| [Reference](/docs/reference/settings) | Commands, settings, filesystem |
 
 ## i18n Support
 
@@ -48,5 +56,9 @@ Currently available in:
 - Bahasa Indonesia
 
 ## License
+<<<<<<< Updated upstream
 
 Auriya Wiki is open-sourced software licensed under the [GNU General Public License v3.0](LICENSE).
+=======
+Auriya Wiki is open-sourced software licensed under the [MIT License](LICENSE).
+>>>>>>> Stashed changes
