@@ -1,0 +1,7 @@
+@import "tailwindcss";
+@import "./fonts.css";
+@import "./variables.css";
+@import "./navbar.css";
+@import "./hero.css";
+@import "./footer.css";
+@import "./docs.css";
