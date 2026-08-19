@@ -66,15 +66,18 @@ export default defineConfig({
             type: 'module',
           },
           content: `
-            import mermaid from 'https://cdn.jsdelivr.net/npm/mermaid@11/dist/mermaid.esm.min.mjs';
-            function initMermaid() {
+            async function initMermaid() {
+              const nodes = document.querySelectorAll('pre[data-language="mermaid"], .language-mermaid, pre.mermaid');
+              if (!nodes || nodes.length === 0) return;
+
+              const { default: mermaid } = await import('https://cdn.jsdelivr.net/npm/mermaid@11/dist/mermaid.esm.min.mjs');
               const isDark = document.documentElement.dataset.theme !== 'light';
               mermaid.initialize({
                 startOnLoad: false,
                 theme: isDark ? 'dark' : 'default',
                 fontFamily: 'inherit',
               });
-              document.querySelectorAll('pre[data-language="mermaid"], .language-mermaid, pre.mermaid').forEach((el) => {
+              nodes.forEach((el) => {
                 const code = el.textContent || '';
                 const graphDiv = document.createElement('div');
                 graphDiv.className = 'mermaid';
@@ -83,12 +86,16 @@ export default defineConfig({
               });
               mermaid.run();
             }
+
             function enhanceTables() {
-              document.querySelectorAll('.sl-markdown-content table').forEach((table) => {
-                if (!table.parentElement.classList.contains('table-wrapper')) {
+              const tables = document.querySelectorAll('.sl-markdown-content table');
+              if (!tables || tables.length === 0) return;
+              tables.forEach((table) => {
+                const parent = table.parentElement;
+                if (parent && !parent.classList.contains('table-wrapper')) {
                   const wrapper = document.createElement('div');
                   wrapper.className = 'table-wrapper';
-                  table.parentNode.insertBefore(wrapper, table);
+                  parent.insertBefore(wrapper, table);
                   wrapper.appendChild(table);
                 }
               });
