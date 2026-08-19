@@ -1,0 +1,43 @@
+---
+title: Auriya
+description: Dokumentasi teknis tentang Auriya dan hasil eksperimen saya.
+template: splash
+hero:
+  tagline: Dokumentasi teknis tentang Auriya dan hasil eksperimen saya.
+  image:
+    file: ../../../assets/kurukuru.gif
+    alt: Maskot Kurukuru
+  actions:
+    - text: Baca Dokumentasi
+      link: /id/getting-started/installation/
+      icon: right-arrow
+      variant: primary
+    - text: Repositori GitHub
+      link: https://github.com/pavelc4/auriya
+      variant: secondary
+---
+
+import { Card, CardGrid } from '@astrojs/starlight/components';
+
+## Fitur Utama
+
+<CardGrid>
+  <Card title="Rust" icon="seti:rust">
+    Berjalan sebagai proses latar belakang di userspace untuk mengelola status sistem, evaluasi loop tick, dan penulisan node hardware.
+  </Card>
+  <Card title="Kala" icon="seti:c">
+    Membaca langsung timing frame dari buffer grafis dan surface compositor untuk mendeteksi FPS serta frame drop secara akurat.
+  </Card>
+  <Card title="Dynamic Governor" icon="seti:config">
+    Menyesuaikan frekuensi cluster CPU dan GPU secara dinamis berdasarkan beban render dan target frame pacing game.
+  </Card>
+  <Card title="Profil Otomatis Per-Aplikasi" icon="seti:json">
+    Menerapkan konfigurasi penjadwalan, batasan refresh rate, dan tweak sistem secara otomatis saat game target dibuka.
+  </Card>
+  <Card title="CLI Tools" icon="linux">
+    Menyediakan socket Unix domain untuk query metrik sistem serta CLI `auriyactl` untuk kontrol dan scripting via terminal.
+  </Card>
+  <Card title="Aplikasi Manajer Kotlin" icon="seti:kotlin">
+    Aplikasi Android berbasis Kotlin & Jetpack Compose untuk mengedit konfigurasi, memantau telemetri live, dan mengontrol daemon.
+  </Card>
+</CardGrid>

@@ -1,0 +1,346 @@
+
+/* ==========================================================================
+   Header Navbar, Search, Theme & Language Selectors
+   ========================================================================== */
+
+header.header {
+  background-color: var(--m3-surface-container-low) !important;
+  border-bottom: 1px solid var(--m3-outline-variant) !important;
+  backdrop-filter: blur(16px);
+  -webkit-backdrop-filter: blur(16px);
+  height: 64px !important;
+  display: flex !important;
+  align-items: center !important;
+  padding: 0 1.5rem !important;
+}
+
+.header.astro-nczgtkxc,
+header .header {
+  display: flex !important;
+  align-items: center !important;
+  justify-content: space-between !important;
+  width: 100% !important;
+  height: 100% !important;
+  margin: 0 !important;
+  padding: 0 !important;
+  gap: 1.25rem !important;
+}
+
+/* Site Title / Brand (Far Left) */
+.title-wrapper {
+  display: flex !important;
+  align-items: center !important;
+  flex-shrink: 0 !important;
+}
+
+.site-title {
+  font-family: 'Geist', sans-serif !important;
+  font-weight: 800 !important;
+  letter-spacing: -0.03em !important;
+  font-size: 1.3rem !important;
+  color: var(--m3-on-surface) !important;
+  text-decoration: none !important;
+  transition: color 0.15s ease !important;
+  display: flex !important;
+  align-items: center !important;
+  gap: 0.5rem !important;
+}
+
+.site-title:hover {
+  color: var(--m3-primary) !important;
+}
+
+/* Search Container (Desktop: Centered, Mobile: Icon only on the right) */
+.header > div:nth-child(2),
+site-search {
+  display: flex !important;
+  align-items: center !important;
+  max-width: 420px !important;
+  width: 100% !important;
+}
+
+.site-search button {
+  background-color: var(--m3-surface-container) !important;
+  border: 1px solid var(--m3-outline-variant) !important;
+  border-radius: 10px !important;
+  height: 38px !important;
+  width: 100% !important;
+  min-width: 260px !important;
+  max-width: 420px !important;
+  padding: 0 0.85rem !important;
+  color: var(--m3-on-surface-variant) !important;
+  font-family: 'Geist', sans-serif !important;
+  font-size: 0.85rem !important;
+  display: flex !important;
+  align-items: center !important;
+  justify-content: space-between !important;
+  gap: 0.5rem !important;
+  transition: all 0.2s ease !important;
+}
+
+.site-search button:hover {
+  background-color: var(--m3-surface-container-high) !important;
+  border-color: var(--m3-primary) !important;
+  color: var(--m3-on-surface) !important;
+}
+
+.site-search kbd {
+  background-color: var(--m3-surface-container-high) !important;
+  border: 1px solid var(--m3-outline-variant) !important;
+  border-radius: 5px !important;
+  padding: 1px 5px !important;
+  font-family: 'Geist', monospace !important;
+  font-size: 0.72rem !important;
+  color: var(--m3-outline) !important;
+}
+
+/* Right Controls Group (Far Right on Desktop) */
+@media (min-width: 50rem) {
+  .right-group {
+    display: flex !important;
+    align-items: center !important;
+    justify-content: flex-end !important;
+    flex-shrink: 0 !important;
+    margin-left: auto !important;
+    gap: 0.75rem !important;
+  }
+}
+
+@media (max-width: 49.99rem) {
+  header.header {
+    padding: 0 1rem !important;
+  }
+
+  .title-wrapper {
+    margin-right: auto !important;
+  }
+
+  .header > div:nth-child(2),
+  site-search {
+    width: auto !important;
+    max-width: none !important;
+    margin: 0 !important;
+  }
+
+  .site-search button {
+    width: 38px !important;
+    min-width: 38px !important;
+    max-width: 38px !important;
+    height: 38px !important;
+    padding: 0 !important;
+    justify-content: center !important;
+  }
+
+  .site-search button span,
+  .site-search button kbd {
+    display: none !important;
+  }
+
+  .right-group {
+    display: none !important;
+  }
+}
+
+/* Mobile Menu / Drawer Toggle Button */
+starlight-menu-button {
+  display: flex !important;
+  align-items: center !important;
+}
+
+starlight-menu-button button {
+  width: 38px !important;
+  height: 38px !important;
+  border-radius: 10px !important;
+  border: 1px solid var(--m3-outline-variant) !important;
+  background-color: var(--m3-surface-container) !important;
+  color: var(--m3-on-surface) !important;
+  display: flex !important;
+  align-items: center !important;
+  justify-content: center !important;
+  padding: 0 !important;
+  cursor: pointer !important;
+  transition: all 0.2s ease !important;
+}
+
+starlight-menu-button button:hover {
+  background-color: var(--m3-surface-container-high) !important;
+  border-color: var(--m3-primary) !important;
+}
+
+/* ==========================================================================
+   Theme Selector — Dynamic Sun/Moon Toggle Icon
+   ========================================================================== */
+starlight-theme-select {
+  display: inline-flex !important;
+  align-items: center !important;
+  flex-shrink: 0 !important;
+}
+
+starlight-theme-select label {
+  all: unset !important;
+  position: relative !important;
+  display: inline-flex !important;
+  align-items: center !important;
+  justify-content: center !important;
+  width: 38px !important;
+  height: 38px !important;
+  border-radius: 10px !important;
+  border: 1px solid var(--m3-outline-variant) !important;
+  background-color: var(--m3-surface-container) !important;
+  color: var(--m3-on-surface) !important;
+  cursor: pointer !important;
+  padding: 0 !important;
+  margin: 0 !important;
+  box-sizing: border-box !important;
+  transition: all 0.2s ease !important;
+}
+
+starlight-theme-select label:hover {
+  background-color: var(--m3-surface-container-high) !important;
+  border-color: var(--m3-primary) !important;
+  color: var(--m3-primary) !important;
+}
+
+/* Hide Starlight's default static monitor icon & caret */
+starlight-theme-select svg.label-icon,
+starlight-theme-select svg.caret {
+  display: none !important;
+}
+
+/* Dynamic Moon icon in Dark theme */
+:root[data-theme='dark'] starlight-theme-select label::before,
+:root:not([data-theme='light']) starlight-theme-select label::before {
+  content: "" !important;
+  display: block !important;
+  width: 18px !important;
+  height: 18px !important;
+  background-color: currentColor !important;
+  -webkit-mask: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='currentColor'%3E%3Cpath d='M12 3a6 6 0 0 0 9 9 9 9 0 1 1-9-9Z'/%3E%3C/svg%3E") no-repeat center / contain !important;
+  mask: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='currentColor'%3E%3Cpath d='M12 3a6 6 0 0 0 9 9 9 9 0 1 1-9-9Z'/%3E%3C/svg%3E") no-repeat center / contain !important;
+  pointer-events: none !important;
+}
+
+/* Dynamic Sun icon in Light theme */
+:root[data-theme='light'] starlight-theme-select label::before {
+  content: "" !important;
+  display: block !important;
+  width: 18px !important;
+  height: 18px !important;
+  background-color: currentColor !important;
+  -webkit-mask: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='black' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3E%3Ccircle cx='12' cy='12' r='4'/%3E%3Cpath d='M12 2v2M12 20v2M4.93 4.93l1.41 1.41M17.66 17.66l1.41 1.41M2 12h2M20 12h2M6.34 17.66l-1.41 1.41M19.07 4.93l-1.41 1.41'/%3E%3C/svg%3E") no-repeat center / contain !important;
+  mask: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='black' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3E%3Ccircle cx='12' cy='12' r='4'/%3E%3Cpath d='M12 2v2M12 20v2M4.93 4.93l1.41 1.41M17.66 17.66l1.41 1.41M2 12h2M20 12h2M6.34 17.66l-1.41 1.41M19.07 4.93l-1.41 1.41'/%3E%3C/svg%3E") no-repeat center / contain !important;
+  pointer-events: none !important;
+}
+
+/* 1-click transparent native dropdown */
+starlight-theme-select select {
+  position: absolute !important;
+  inset: 0 !important;
+  width: 100% !important;
+  height: 100% !important;
+  opacity: 0 !important;
+  cursor: pointer !important;
+  z-index: 5 !important;
+  appearance: none !important;
+  -webkit-appearance: none !important;
+}
+
+/* ==========================================================================
+   Language Selector — Custom Dropdown Pill (No Text Truncation!)
+   ========================================================================== */
+starlight-lang-select {
+  display: inline-flex !important;
+  align-items: center !important;
+  flex-shrink: 0 !important;
+}
+
+starlight-lang-select label {
+  all: unset !important;
+  position: relative !important;
+  display: inline-flex !important;
+  align-items: center !important;
+  height: 38px !important;
+  width: auto !important;
+  min-width: 180px !important;
+  border-radius: 10px !important;
+  border: 1px solid var(--m3-outline-variant) !important;
+  background-color: var(--m3-surface-container) !important;
+  color: var(--m3-on-surface) !important;
+  padding: 0 2rem 0 2.25rem !important;
+  margin: 0 !important;
+  cursor: pointer !important;
+  transition: all 0.2s ease !important;
+  box-sizing: border-box !important;
+}
+
+starlight-lang-select label:hover {
+  background-color: var(--m3-surface-container-high) !important;
+  border-color: var(--m3-primary) !important;
+}
+
+starlight-lang-select svg.label-icon {
+  position: absolute !important;
+  left: 10px !important;
+  top: 50% !important;
+  transform: translateY(-50%) !important;
+  width: 16px !important;
+  height: 16px !important;
+  color: var(--m3-primary) !important;
+  pointer-events: none !important;
+}
+
+starlight-lang-select select,
+starlight-lang-select select:where(.astro-r2p65idu),
+select:where(.astro-r2p65idu) {
+  all: unset !important;
+  appearance: none !important;
+  -webkit-appearance: none !important;
+  background: transparent !important;
+  border: none !important;
+  color: var(--m3-on-surface) !important;
+  font-family: 'Geist', sans-serif !important;
+  font-size: 0.84rem !important;
+  font-weight: 600 !important;
+  cursor: pointer !important;
+  width: auto !important;
+  min-width: 135px !important;
+  max-width: none !important;
+  padding: 0 !important;
+  margin: 0 !important;
+  outline: none !important;
+  overflow: visible !important;
+  text-overflow: clip !important;
+  white-space: nowrap !important;
+  line-height: 36px !important;
+  display: inline-block !important;
+  box-sizing: border-box !important;
+}
+
+starlight-lang-select select option {
+  background-color: var(--m3-surface-container-high) !important;
+  color: var(--m3-on-surface) !important;
+  font-family: 'Geist', sans-serif !important;
+  font-size: 0.85rem !important;
+  padding: 0.5rem 1rem !important;
+}
+
+starlight-lang-select svg.caret {
+  position: absolute !important;
+  right: 8px !important;
+  top: 50% !important;
+  transform: translateY(-50%) !important;
+  width: 14px !important;
+  height: 14px !important;
+  color: var(--m3-on-surface-variant) !important;
+  pointer-events: none !important;
+}
+
+/* Social icons */
+.social-icons a {
+  color: var(--m3-on-surface-variant) !important;
+  transition: color 0.2s ease !important;
+}
+
+.social-icons a:hover {
+  color: var(--m3-primary) !important;
+}

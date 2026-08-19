@@ -1,0 +1,184 @@
+/* ==========================================================================
+   Expressive Code & Syntax Highlighting (macOS Window Style)
+   ========================================================================== */
+
+.expressive-code {
+  margin: 1.5rem 0 !important;
+}
+
+.expressive-code figure.frame {
+  border-radius: 16px !important;
+  overflow: hidden !important;
+  border: 1px solid var(--m3-outline-variant) !important;
+  box-shadow: 0 10px 32px rgba(0, 0, 0, 0.2) !important;
+  background-color: var(--m3-surface-container) !important;
+  margin: 0 !important;
+  padding: 0 !important;
+  position: relative !important;
+  display: block !important;
+}
+
+/* Force header / titlebar to ALWAYS be visible on EVERY frame (terminal, editor, plain) */
+.expressive-code .frame .header,
+.expressive-code .frame figcaption.header,
+.expressive-code .header {
+  display: flex !important;
+  align-items: center !important;
+  justify-content: center !important;
+  min-height: 42px !important;
+  height: 42px !important;
+  background: var(--m3-surface-container-high) !important;
+  border-bottom: 1px solid var(--m3-outline-variant) !important;
+  position: relative !important;
+  padding: 0 4rem 0 5.25rem !important;
+  box-sizing: border-box !important;
+  border-top-left-radius: 15px !important;
+  border-top-right-radius: 15px !important;
+  z-index: 5 !important;
+}
+
+/* Authentic macOS 3-Dot Traffic Light Controls */
+.expressive-code .frame.is-terminal .header::before,
+.expressive-code .frame.has-title .header::before,
+.expressive-code .frame .header::before,
+.expressive-code figcaption.header::before {
+  all: unset !important;
+  content: "" !important;
+  position: absolute !important;
+  left: 16px !important;
+  top: 50% !important;
+  transform: translateY(-50%) !important;
+  width: 12px !important;
+  height: 12px !important;
+  border-radius: 50% !important;
+  background-color: #ff5f56 !important;
+  box-shadow: 20px 0 0 0 #ffbd2e, 40px 0 0 0 #27c93f !important;
+  border: 0.5px solid rgba(0, 0, 0, 0.2) !important;
+  -webkit-mask-image: none !important;
+  mask-image: none !important;
+  opacity: 1 !important;
+  display: block !important;
+  z-index: 10 !important;
+  pointer-events: none !important;
+}
+
+.expressive-code .frame.is-terminal .header::after,
+.expressive-code .frame.has-title .header::after,
+.expressive-code .frame .header::after,
+.expressive-code figcaption.header::after {
+  display: none !important;
+  content: none !important;
+}
+
+/* Code pre area */
+.expressive-code .frame pre {
+  background-color: var(--m3-surface-container) !important;
+  padding: 1rem 0 !important;
+  margin: 0 !important;
+  border-radius: 0 0 15px 15px !important;
+  border-top: none !important;
+}
+
+.expressive-code pre code {
+  font-family: 'Geist', 'JetBrains Mono', 'Fira Code', monospace !important;
+  font-size: 0.86rem !important;
+  line-height: 1.65 !important;
+}
+
+.expressive-code .ec-line {
+  padding-left: 1.25rem !important;
+  padding-right: 1.25rem !important;
+}
+
+/* Title / Tab styling inside macOS titlebar */
+.expressive-code .title:empty,
+.expressive-code .header .tab:empty {
+  display: none !important;
+}
+
+/* Subtle macOS Terminal prompt title when no file title is specified */
+.expressive-code .frame.is-terminal .header:not(:has(.title:not(:empty)))::after,
+.expressive-code .frame:not(.has-title) .header:not(:has(.title:not(:empty)))::after {
+  content: "auriya ~ zsh" !important;
+  position: absolute !important;
+  left: 50% !important;
+  transform: translateX(-50%) !important;
+  font-family: 'Geist', 'JetBrains Mono', monospace !important;
+  font-size: 0.76rem !important;
+  font-weight: 500 !important;
+  color: var(--m3-outline) !important;
+  opacity: 0.65 !important;
+  letter-spacing: 0.04em !important;
+  pointer-events: none !important;
+}
+
+.expressive-code .title:not(:empty),
+.expressive-code .header .tab:not(:empty),
+.expressive-code .header [data-active-tab]:not(:empty),
+.expressive-code .header .active:not(:empty) {
+  font-family: 'Geist', 'JetBrains Mono', monospace !important;
+  font-size: 0.8rem !important;
+  font-weight: 600 !important;
+  color: var(--m3-on-surface) !important;
+  letter-spacing: 0.02em !important;
+  text-align: center !important;
+  border: 1px solid var(--m3-outline-variant) !important;
+  background: rgba(255, 255, 255, 0.05) !important;
+  padding: 3px 12px !important;
+  border-radius: 6px !important;
+  box-shadow: none !important;
+  outline: none !important;
+  margin: 0 auto !important;
+  display: inline-block !important;
+  max-width: calc(100% - 2rem) !important;
+  overflow: hidden !important;
+  text-overflow: ellipsis !important;
+  white-space: nowrap !important;
+}
+
+.expressive-code .header .tab::before,
+.expressive-code .header .tab::after,
+.expressive-code .header [data-active-tab]::before,
+.expressive-code .header [data-active-tab]::after,
+.expressive-code .header .active::before,
+.expressive-code .header .active::after {
+  display: none !important;
+  content: none !important;
+  border: none !important;
+  height: 0 !important;
+  box-shadow: none !important;
+}
+
+/* Copy Button in macOS titlebar */
+.expressive-code figure.frame .copy {
+  position: absolute !important;
+  top: 5px !important;
+  right: 10px !important;
+  bottom: auto !important;
+  left: auto !important;
+  margin: 0 !important;
+  z-index: 20 !important;
+  display: flex !important;
+  align-items: center !important;
+}
+
+.expressive-code figure.frame .copy button {
+  background-color: transparent !important;
+  border: 1px solid transparent !important;
+  border-radius: 6px !important;
+  padding: 6px !important;
+  color: var(--m3-on-surface-variant) !important;
+  cursor: pointer !important;
+  display: flex !important;
+  align-items: center !important;
+  justify-content: center !important;
+  transition: var(--m3-motion-spring) !important;
+  width: 32px !important;
+  height: 32px !important;
+}
+
+.expressive-code figure.frame .copy button:hover {
+  background-color: rgba(255, 255, 255, 0.08) !important;
+  border-color: var(--m3-outline-variant) !important;
+  color: var(--m3-on-surface) !important;
+}

@@ -1,0 +1,229 @@
+/* ==========================================================================
+   Sidebar Navigation & Table of Contents (TOC)
+   ========================================================================== */
+
+nav.sidebar {
+  background-color: var(--m3-surface-container-low) !important;
+  border-right: 1px solid var(--m3-outline-variant) !important;
+}
+
+.sidebar-content {
+  padding: 1.25rem 0.5rem !important;
+}
+
+/* Category Summaries */
+.sidebar-content summary {
+  padding: 0.45rem 0.75rem !important;
+  border-radius: var(--m3-shape-small) !important;
+  cursor: pointer !important;
+  transition: var(--m3-motion-spring) !important;
+}
+
+.sidebar-content summary:hover {
+  background-color: var(--m3-surface-container) !important;
+}
+
+.sidebar-content summary .group-label {
+  font-weight: 800 !important;
+  letter-spacing: 0.01em;
+  font-size: 0.94rem !important;
+  color: var(--m3-on-surface) !important;
+}
+
+.sidebar-content ul {
+  padding-left: 0 !important;
+  padding-inline-start: 0 !important;
+  margin-left: 0 !important;
+  margin-inline-start: 0 !important;
+  list-style: none !important;
+}
+
+/* Tree Connector Lines for Sub-items */
+.sidebar-content details > ul {
+  position: relative !important;
+  margin-left: 1.25rem !important;
+  padding-left: 0 !important;
+  padding-inline-start: 0 !important;
+  margin-top: 0.35rem !important;
+  margin-bottom: 0.65rem !important;
+  border-left: 2px solid var(--m3-outline-variant) !important;
+  list-style: none !important;
+}
+
+.sidebar-content details > ul > li {
+  position: relative !important;
+  padding-left: 1.1rem !important;
+  padding-inline-start: 1.1rem !important;
+  margin-left: 0 !important;
+  margin-inline-start: 0 !important;
+  margin-bottom: 0.2rem !important;
+  list-style: none !important;
+}
+
+.sidebar-content details > ul > li::before {
+  content: "" !important;
+  position: absolute !important;
+  top: 50% !important;
+  left: 0 !important;
+  width: 0.85rem !important;
+  height: 2px !important;
+  background-color: var(--m3-outline-variant) !important;
+  transform: translateY(-50%) !important;
+}
+
+.sidebar-content a {
+  border-radius: var(--m3-shape-pill) !important;
+  padding: 0.42rem 0.85rem !important;
+  font-size: 0.86rem !important;
+  font-weight: 600 !important;
+  transition: var(--m3-motion-spring) !important;
+  color: var(--m3-on-surface-variant) !important;
+  display: block !important;
+  border: none !important;
+  text-decoration: none !important;
+}
+
+.sidebar-content a:hover {
+  background-color: var(--m3-surface-container-high) !important;
+  color: var(--m3-on-surface) !important;
+}
+
+/* Active Page Pill Indicator */
+.sidebar-content a[aria-current='page'] {
+  background-color: var(--m3-secondary-container) !important;
+  color: var(--m3-on-secondary-container) !important;
+  font-weight: 700 !important;
+}
+
+/* Table of Contents (Right Sidebar) */
+starlight-toc {
+  display: block !important;
+  padding-left: 0.5rem !important;
+}
+
+starlight-toc h2 {
+  font-family: 'Geist', sans-serif !important;
+  font-size: 1.1rem !important;
+  font-weight: 700 !important;
+  letter-spacing: -0.02em !important;
+  color: var(--m3-on-surface) !important;
+  margin-bottom: 0.85rem !important;
+}
+
+starlight-toc ul {
+  list-style: none !important;
+  padding: 0 !important;
+  margin: 0 !important;
+  position: relative !important;
+}
+
+starlight-toc > ul {
+  border-left: 1.5px solid var(--m3-outline-variant) !important;
+}
+
+starlight-toc ul ul {
+  margin-left: 0.85rem !important;
+  border-left: 1.5px solid var(--m3-outline-variant) !important;
+}
+
+starlight-toc a {
+  display: block !important;
+  padding: 0.35rem 0.75rem !important;
+  font-family: 'Geist', sans-serif !important;
+  font-size: 0.84rem !important;
+  font-weight: 500 !important;
+  color: var(--m3-on-surface-variant) !important;
+  text-decoration: none !important;
+  border-left: 2px solid transparent !important;
+  margin-left: -1.5px !important;
+  transition: all 0.15s ease !important;
+}
+
+starlight-toc a:hover {
+  color: var(--m3-on-surface) !important;
+}
+
+starlight-toc a[aria-current='true'],
+starlight-toc a[aria-current='page'] {
+  color: var(--m3-primary) !important;
+  font-weight: 700 !important;
+  border-left-color: var(--m3-primary) !important;
+}
+
+/* Mobile Table of Contents Bar ("Di halaman ini > ...") */
+mobile-starlight-toc {
+  display: block !important;
+  margin: 0.25rem 0 0.75rem !important;
+}
+
+mobile-starlight-toc nav {
+  background: transparent !important;
+  border: none !important;
+  padding: 0 !important;
+}
+
+mobile-starlight-toc details {
+  border: none !important;
+  outline: none !important;
+}
+
+mobile-starlight-toc summary {
+  display: flex !important;
+  align-items: center !important;
+  gap: 0.75rem !important;
+  background-color: var(--m3-surface-container) !important;
+  border: 1px solid var(--m3-outline-variant) !important;
+  border-radius: 10px !important;
+  padding: 0.55rem 0.85rem !important;
+  color: var(--m3-on-surface) !important;
+  font-family: 'Geist', sans-serif !important;
+  font-size: 0.84rem !important;
+  font-weight: 500 !important;
+  cursor: pointer !important;
+  outline: none !important;
+  box-shadow: none !important;
+  transition: all 0.15s ease !important;
+  user-select: none !important;
+}
+
+mobile-starlight-toc summary:hover {
+  background-color: var(--m3-surface-container-high) !important;
+  border-color: var(--m3-primary) !important;
+}
+
+mobile-starlight-toc summary:focus,
+mobile-starlight-toc summary:focus-visible {
+  outline: none !important;
+  box-shadow: none !important;
+  border-color: var(--m3-outline) !important;
+}
+
+/* Reset inner .toggle inside summary so no nested pill box exists */
+mobile-starlight-toc .toggle {
+  background: transparent !important;
+  border: none !important;
+  padding: 0 !important;
+  margin: 0 !important;
+  font-weight: 600 !important;
+  color: var(--m3-primary) !important;
+  display: inline-flex !important;
+  align-items: center !important;
+  gap: 0.35rem !important;
+}
+
+mobile-starlight-toc .display-current {
+  color: var(--m3-on-surface-variant) !important;
+  font-size: 0.82rem !important;
+  overflow: hidden !important;
+  text-overflow: ellipsis !important;
+  white-space: nowrap !important;
+}
+
+mobile-starlight-toc .dropdown {
+  background-color: var(--m3-surface-container-low) !important;
+  border: 1px solid var(--m3-outline-variant) !important;
+  border-radius: 12px !important;
+  margin-top: 0.5rem !important;
+  padding: 0.75rem !important;
+  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.25) !important;
+}

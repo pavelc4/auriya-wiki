@@ -1,0 +1,176 @@
+html {
+  scroll-behavior: smooth;
+}
+
+body {
+  font-family: 'Geist', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif !important;
+  background-color: var(--m3-surface);
+  color: var(--m3-on-surface);
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+  text-rendering: optimizeLegibility;
+}
+
+.sl-container {
+  max-width: 86rem !important;
+  width: 100% !important;
+}
+
+.main-pane {
+  max-width: 100% !important;
+  min-width: 0 !important;
+  padding-top: 0 !important;
+  margin-top: 0 !important;
+}
+
+.content-panel {
+  max-width: 100% !important;
+  min-width: 0 !important;
+  padding-top: 1.5rem !important;
+  padding-bottom: 2.5rem !important;
+}
+
+.content-panel:first-of-type {
+  padding-top: 1.5rem !important;
+}
+
+.sl-container > * + * {
+  margin-top: 0.85rem !important;
+}
+
+[data-has-hero] .sl-container {
+  max-width: 86rem !important;
+  padding: 0 2rem !important;
+}
+
+[data-has-hero] .main-pane {
+  max-width: 100% !important;
+}
+
+@media (min-width: 72rem) {
+  .main-pane {
+    padding-right: 2.5rem !important;
+  }
+}
+
+/* Bold Typography on All Headings */
+h1, h2, h3, h4, h5, h6, .site-title, .title {
+  font-family: 'Geist', sans-serif !important;
+  font-weight: 700 !important;
+  letter-spacing: -0.025em !important;
+}
+
+h1 {
+  font-size: 2.25rem !important;
+  font-weight: 800 !important;
+  line-height: 1.25 !important;
+}
+
+/* Clean, balanced gap above h1 page title */
+h1#_top,
+.content-panel h1:first-child,
+.sl-container > h1:first-child {
+  margin-top: 0.35rem !important;
+  margin-bottom: 0rem !important;
+  padding-top: 0 !important;
+}
+
+h2 {
+  font-size: 1.65rem !important;
+  font-weight: 800 !important;
+  line-height: 1.3 !important;
+}
+
+h3 {
+  font-size: 1.3rem !important;
+  font-weight: 700 !important;
+  line-height: 1.35 !important;
+}
+
+h4 {
+  font-size: 1.1rem !important;
+  font-weight: 700 !important;
+  line-height: 1.4 !important;
+}
+
+/* Document Typography & Spacing Rhythm */
+.sl-markdown-content > * + * {
+  margin-top: 1.30rem !important;
+}
+
+.sl-markdown-content h1 {
+  margin-top: 1.25rem !important;
+  margin-bottom: 0.85rem !important;
+}
+
+.sl-markdown-content h2 {
+  margin-top: 2rem !important;
+  margin-bottom: 0.75rem !important;
+  padding-top: 0.25rem !important;
+}
+
+.sl-markdown-content h3 {
+  margin-top: 1.75rem !important;
+  margin-bottom: 0.5rem !important;
+}
+
+.sl-markdown-content p {
+  line-height: 1.75 !important;
+  margin-bottom: 0.85rem !important;
+  font-size: 0.95rem !important;
+}
+
+.sl-markdown-content ul,
+.sl-markdown-content ol {
+  margin-bottom: 1rem !important;
+  line-height: 1.7 !important;
+  padding-left: 1.5rem !important;
+}
+
+.sl-markdown-content li {
+  margin-top: 0.35rem !important;
+  margin-bottom: 0.35rem !important;
+}
+
+.sl-markdown-content li > p {
+  margin-bottom: 0.25rem !important;
+}
+
+.sl-markdown-content a {
+  color: var(--m3-primary);
+  text-decoration: underline;
+  text-decoration-thickness: 1.5px;
+  text-underline-offset: 3px;
+  transition: opacity 0.2s ease;
+}
+
+.sl-markdown-content a:hover {
+  opacity: 0.85;
+}
+
+.sl-markdown-content blockquote {
+  border-left: 4px solid var(--m3-primary) !important;
+  padding: 0.6rem 1.25rem !important;
+  margin: 1.25rem 0 !important;
+  background-color: var(--m3-surface-container) !important;
+  border-radius: 0 var(--m3-shape-medium) var(--m3-shape-medium) 0 !important;
+  color: var(--m3-on-surface-variant) !important;
+}
+
+/* Inline Code & Monospace Elements */
+code, pre, kbd, samp {
+  font-family: 'Geist', 'JetBrains Mono', monospace !important;
+}
+
+.sl-markdown-content :not(pre) > code {
+  background-color: var(--m3-surface-container-high) !important;
+  color: var(--m3-primary) !important;
+  padding: 0.15rem 0.4rem !important;
+  border-radius: 6px !important;
+  font-size: 0.86em !important;
+  border: 1px solid var(--m3-outline-variant) !important;
+}
+
+button, .action {
+  font-family: 'Google Sans Flex', sans-serif !important;
+}

@@ -1,0 +1,243 @@
+/* ==========================================================================
+   Mobile & Responsive Enhancements
+   ========================================================================== */
+
+/* Wide Viewports */
+@media (min-width: 50rem) {
+  starlight-menu-button,
+  button[aria-controls="starlight__sidebar"] {
+    display: none !important;
+  }
+}
+
+/* Tablet & Mobile Screens (<= 50rem / 800px) */
+@media (max-width: 50rem) {
+  starlight-menu-button {
+    display: inline-flex !important;
+  }
+
+  starlight-menu-button button,
+  button[aria-controls="starlight__sidebar"] {
+    background-color: var(--m3-surface-container-high) !important;
+    color: var(--m3-on-surface) !important;
+    border: 1px solid var(--m3-outline-variant) !important;
+    border-radius: var(--m3-shape-small) !important;
+    padding: 0.5rem !important;
+    display: inline-flex !important;
+    align-items: center !important;
+    justify-content: center !important;
+    transition: var(--m3-motion-spring) !important;
+    min-width: 40px !important;
+    min-height: 40px !important;
+  }
+
+  .sidebar-pane,
+  [aria-expanded="true"] .sidebar-pane,
+  dialog.mobile-preferences {
+    background-color: var(--m3-surface-container-low) !important;
+  }
+  
+  nav.sidebar {
+    background-color: var(--m3-surface-container-low) !important;
+    padding-bottom: 3rem !important;
+  }
+
+  .sidebar-content a {
+    padding: 0.55rem 0.85rem !important;
+    font-size: 0.9rem !important;
+  }
+
+  /* Reset top padding and eliminate huge gap on mobile */
+  .main-frame {
+    padding-top: 0 !important;
+  }
+
+  .right-sidebar {
+    padding-top: 0 !important;
+  }
+
+  /* Ensure content wrapper doesn't cause overflow and has balanced spacing */
+  .main-pane,
+  .sl-container,
+  .content-panel,
+  main,
+  .sl-markdown-content {
+    min-width: 0 !important;
+    max-width: 100% !important;
+    padding-left: 0.75rem !important;
+    padding-right: 0.75rem !important;
+  }
+
+  .content-panel {
+    padding-top: 1.15rem !important;
+  }
+
+  [data-has-hero] .sl-container {
+    padding: 0 1rem !important;
+  }
+}
+
+/* Medium Tablets (<= 1080px) */
+@media (max-width: 1080px) {
+  .card-grid {
+    grid-template-columns: repeat(2, minmax(0, 1fr)) !important;
+    gap: 1.25rem !important;
+  }
+
+  .hero img {
+    width: clamp(200px, 30vw, 280px) !important;
+    max-width: 280px !important;
+  }
+}
+
+/* Small Screens & Mobile (<= 640px) */
+@media (max-width: 640px) {
+  .card-grid {
+    grid-template-columns: 1fr !important;
+    gap: 1rem !important;
+    margin-top: 1.75rem !important;
+  }
+
+  .card {
+    padding: 1.35rem !important;
+    border-radius: var(--m3-shape-large) !important;
+  }
+
+  .hero {
+    padding: 2rem 0.5rem 1.5rem !important;
+  }
+
+  .hero h1 {
+    font-size: clamp(2.1rem, 9vw, 2.8rem) !important;
+  }
+
+  .hero .tagline {
+    font-size: 0.98rem !important;
+  }
+
+  .hero img {
+    width: clamp(160px, 50vw, 220px) !important;
+    max-width: 220px !important;
+    margin: 1rem auto 0 !important;
+  }
+
+  .hero .actions {
+    flex-direction: column !important;
+    width: 100% !important;
+  }
+
+  .hero a.action,
+  .hero .action,
+  .hero .sl-link-button {
+    width: 100% !important;
+    justify-content: center !important;
+    padding: 0.75rem 1.5rem !important;
+  }
+
+  .hero-note-inline {
+    padding: 0.75rem 1rem !important;
+    margin-top: 0.75rem !important;
+  }
+
+  .hero-note-inline .hero-note-header {
+    font-size: 0.88rem !important;
+  }
+
+  .hero-note-inline .hero-note-content p {
+    font-size: 0.82rem !important;
+  }
+
+  /* Code Block Header on Mobile */
+  .expressive-code .frame .header,
+  .expressive-code .frame figcaption.header,
+  .expressive-code .header {
+    padding: 0 2.5rem 0 3.75rem !important;
+    min-height: 38px !important;
+    height: 38px !important;
+  }
+
+  .expressive-code .frame.is-terminal .header::before,
+  .expressive-code .frame.has-title .header::before,
+  .expressive-code .frame .header::before,
+  .expressive-code figcaption.header::before {
+    left: 12px !important;
+    width: 10px !important;
+    height: 10px !important;
+    box-shadow: 16px 0 0 0 #ffbd2e, 32px 0 0 0 #27c93f !important;
+  }
+
+  .expressive-code figure.frame .copy {
+    right: 6px !important;
+    top: 3px !important;
+  }
+
+  .expressive-code pre code {
+    font-size: 0.82rem !important;
+  }
+
+  .expressive-code .ec-line {
+    padding-left: 0.85rem !important;
+    padding-right: 0.85rem !important;
+  }
+
+  /* Table Mobile Scroll Wrapper */
+  .table-wrapper {
+    margin: 1.25rem 0 !important;
+    border-radius: var(--m3-shape-medium) !important;
+    width: 100% !important;
+    max-width: 100% !important;
+  }
+
+  .table-wrapper table {
+    min-width: 480px !important;
+  }
+
+  .sl-markdown-content th,
+  .sl-markdown-content td {
+    padding: 0.55rem 0.75rem !important;
+    font-size: 0.8rem !important;
+  }
+
+  /* Mermaid Diagram on Mobile (macOS Terminal Style) */
+  .mermaid,
+  div.mermaid {
+    padding: 3.4rem 0.85rem 1.25rem !important;
+    margin: 1.5rem 0 !important;
+    border-radius: 14px !important;
+  }
+
+  .mermaid::before {
+    border-top-left-radius: 13px !important;
+    border-top-right-radius: 13px !important;
+    height: 38px !important;
+    background-image: radial-gradient(circle 5px at 16px 19px, #ff5f56 4.5px, transparent 5px),
+                      radial-gradient(circle 5px at 32px 19px, #ffbd2e 4.5px, transparent 5px),
+                      radial-gradient(circle 5px at 48px 19px, #27c93f 4.5px, transparent 5px) !important;
+  }
+
+  div.mermaid::after,
+  .mermaid::after {
+    display: none !important;
+    content: none !important;
+  }
+
+  /* Header adjustments for small screens */
+  .site-title {
+    font-size: 1.15rem !important;
+  }
+}
+
+/* Extra Small Phones (<= 380px) */
+@media (max-width: 380px) {
+  .site-title {
+    font-size: 1.05rem !important;
+  }
+
+  .hero h1 {
+    font-size: 1.9rem !important;
+  }
+
+  .hero-note-inline {
+    padding: 0.65rem 0.8rem !important;
+  }
+}

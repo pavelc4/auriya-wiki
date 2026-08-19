@@ -1,0 +1,26 @@
+{
+  "name": "auriya",
+  "type": "module",
+  "version": "0.0.1",
+  "scripts": {
+    "dev": "astro dev --port 3000 --host",
+    "start": "astro dev --port 3000 --host",
+    "build": "astro build",
+    "preview": "astro preview --port 3000 --host",
+    "astro": "astro",
+    "deploy": "wrangler pages deploy dist"
+  },
+  "dependencies": {
+    "@astrojs/starlight": "^0.41.7",
+    "@tailwindcss/vite": "^4.3.3",
+    "astro": "^7.2.3",
+    "astro-mermaid": "^2.1.0",
+    "mermaid": "^11.16.1",
+    "tailwindcss": "^4.3.3"
+  },
+  "devDependencies": {
+    "@astrojs/check": "^0.9.10",
+    "typescript": "7.0.2",
+    "wrangler": "^4.124.0"
+  }
+}

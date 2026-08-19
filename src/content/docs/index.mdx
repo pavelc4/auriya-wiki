@@ -1,0 +1,43 @@
+---
+title: Auriya
+description: Technical documentation for Auriya and personal optimization experiments.
+template: splash
+hero:
+  tagline: Technical documentation for Auriya and personal optimization experiments.
+  image:
+    file: ../../assets/kurukuru.gif
+    alt: Kurukuru Mascot
+  actions:
+    - text: Explore Docs
+      link: /getting-started/installation/
+      icon: right-arrow
+      variant: primary
+    - text: GitHub Repository
+      link: https://github.com/pavelc4/auriya
+      variant: secondary
+---
+
+import { Card, CardGrid } from '@astrojs/starlight/components';
+
+## Core Features
+
+<CardGrid>
+  <Card title="Rust" icon="seti:rust">
+    Runs as a background userspace process to handle system state, periodic tick evaluation, and hardware node writes.
+  </Card>
+  <Card title="Kala" icon="seti:c">
+    Directly taps into surface frame timings and rendering buffers to extract real-time FPS and frame drops.
+  </Card>
+  <Card title="Dynamic Governor" icon="seti:config">
+    Dynamically adjusts CPU and GPU frequency clusters based on active render headroom and target frame pacing.
+  </Card>
+  <Card title="Per-Package Profiling" icon="seti:json">
+    Applies distinct scheduling profiles, refresh rate locks, and system tweaks automatically when configured games open.
+  </Card>
+  <Card title="CLI Tools" icon="linux">
+    Exposes an IPC socket for live status queries and includes `auriyactl` for terminal-based scripting and diagnostics.
+  </Card>
+  <Card title="Kotlin Companion App" icon="seti:kotlin">
+    Android manager application for adjusting configuration files, monitoring live telemetry, and managing module state.
+  </Card>
+</CardGrid>
