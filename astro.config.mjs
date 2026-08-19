@@ -12,7 +12,7 @@ export default defineConfig({
     mermaid(),
     starlight({
       title: 'Auriya',
-      favicon: '/gif/kurukuru.gif',
+      favicon: '/kurukuru.gif',
       expressiveCode: {
         themes: ['catppuccin-mocha', 'catppuccin-latte'],
         styleOverrides: {
@@ -42,6 +42,14 @@ export default defineConfig({
         },
       },
       head: [
+        {
+          tag: 'link',
+          attrs: {
+            rel: 'icon',
+            type: 'image/gif',
+            href: '/kurukuru.gif',
+          },
+        },
         {
           tag: 'link',
           attrs: {
@@ -87,6 +95,9 @@ export default defineConfig({
             }
 
             function initEnhancements() {
+              if (document.title.includes('Auriya | Auriya') || document.title.includes('Auriya Wiki | Auriya')) {
+                document.title = 'Auriya Wiki';
+              }
               initMermaid();
               enhanceTables();
             }
