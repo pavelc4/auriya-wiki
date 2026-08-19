@@ -44,4 +44,4 @@ jobs:
         with:
           apiToken: ${{ secrets.CLOUDFLARE_API_TOKEN }}
           accountId: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
-          command: pages deploy dist --project-name=auriya-wiki ${{ github.event_name == 'pull_request' && '--branch=preview' || '--branch=main' }}
+          command: pages deploy dist --project-name=auriya ${{ github.event_name == 'pull_request' && '--branch=preview' || '--branch=main' }}

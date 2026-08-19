@@ -4,7 +4,7 @@ import mermaid from 'astro-mermaid';
 import tailwindcss from '@tailwindcss/vite';
 
 export default defineConfig({
-  site: 'https://wiki.auriya.org',
+  site: 'https://auriya.pages.dev',
   vite: {
     plugins: [tailwindcss()],
   },
