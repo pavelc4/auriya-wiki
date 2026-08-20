@@ -88,29 +88,29 @@ On the Games screen, each whitelisted game can override:
 | --- | --- | --- |
 | `target_fps` | FAS target; single (`120`) or steps (`[60,90,120]`) | your game's cap, e.g. `120` |
 | `cpu_governor` | governor while this game runs | `performance` or `walt` |
-| `mode` | static profile: `performance` / `balance` / `powersave` | `performance` for demanding games |
+| `mode` | static profile: `powersave` / `balance` / `performance` / `fast` | `performance` or `fast` for demanding games |
 | `refresh_rate` | requested display Hz | match `target_fps` |
 | `ceiling` | frequency-ceiling level | leave default unless throttling |
 | `enable_dnd` | Do-Not-Disturb while playing | `true` for focus |
 
 **Recommended per-game starting point for a demanding game:** `mode =
-performance`, `target_fps` = the game's real cap, `refresh_rate` = same,
+performance` (or `fast`), `target_fps` = the game's real cap, `refresh_rate` = same,
 `cpu_governor = performance`. Tune down toward `balance` if the device runs hot.
 
 `target_fps` as an **array** (`[60, 90, 120]`) lets FAS match whichever rate the
 game actually renders at — useful for games with in-menu vs in-match rate changes.
 
-## Profile modes vs FAS modes (don't mix them up)
+## Profile modes and FAS tuning
 
-- **Profile modes** — `performance` / `balance` / `powersave` (3). These set CPU
+- **Profile modes** — `powersave` / `balance` / `performance` / `fast` (4). These set CPU
   governor, GPU mode, and tweaks. Chosen per-game via `mode`, or globally via
   `daemon.default_mode`. What each writes:
   [overview → static profiles](../architecture/overview#what-each-static-profile-changes).
-- **FAS modes** — `powersave` / `balance` / `performance` / `fast` (4). These are
-  just `margin` + `thermal_threshold` presets for the FAS controller, chosen via
-  `fas.default_mode`. `fast` exists only here.
+- **FAS tuning presets** — `powersave` / `balance` / `performance` / `fast` (4). These are
+  `margin` + `thermal_threshold` presets for the FAS controller, chosen via
+  `fas.default_mode` or per-profile tuning.
 
-Same words, different layers: profile modes decide the baseline; FAS modes decide
+Profile modes decide the baseline CPU governor and kernel behavior; FAS presets decide
 how aggressively FAS chases the frame target on top of it.
 
 ## See also

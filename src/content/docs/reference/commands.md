@@ -58,7 +58,7 @@ actions). "Prints" describes stdout on success.
 | `disable` | — | `DISABLE` | raw reply (`OK DISABLED`) | `executor.rs:39-42` |
 | `reload` | — | `RELOAD` | `Configuration reloaded: OK RELOADED <n>` | `executor.rs:44-47` |
 | `restart` | — | *(none — local)* | `Restarting daemon + companion...` then a tail hint | `executor.rs:49`, `115-159` |
-| `set-profile` | `<performance\|balance\|powersave>` | `SET_PROFILE <MODE>` | `Profile set: OK SET_PROFILE <Mode>` | `executor.rs:51-56` |
+| `set-profile` | `<fast\|performance\|balance\|powersave>` | `SET_PROFILE <MODE>` | `Profile set: OK SET_PROFILE <Mode>` | `executor.rs:51-56` |
 | `set-fps` | `<fps>` (u32) | `SET_FPS <fps>` | `FPS set: OK SET_FPS <fps>` | `executor.rs:58-61` |
 | `get-fps` | — | `GET_FPS` | `Current FPS: FPS=<measured> TARGET=<target>` | `executor.rs:63-66` |
 | `add-game` | `<package>` | `ADD_GAME <package>` | `Game added: OK ADD_GAME <package>` | `executor.rs:68-71` |
@@ -66,7 +66,7 @@ actions). "Prints" describes stdout on success.
 | `list-games` | — | `GET_GAMELIST` | `Configured games:` + JSON array | `executor.rs:78-81` |
 | `list-packages` | — | `LIST_PACKAGES` | `Installed packages:` + `pm list packages` output | `executor.rs:83-86` |
 | `get-rates` | — | `GET_SUPPORTED_RATES` | `Supported refresh rates:` + JSON array | `executor.rs:88-91` |
-| `set-log` | `<debug\|info\|warn\|error>` | `SETLOG <LEVEL>` | `Log level set: OK SET_LOG` | `executor.rs:93-98` |
+| `set-log` | `<trace\|debug\|info\|warn\|error>` | `SETLOG <LEVEL>` | `Log level set: OK SET_LOG` | `executor.rs:93-98` |
 | `get-pid` | — | `GET_PID` | `Daemon PID: PKG=<pkg> PID=<pid>` | `executor.rs:100-103` |
 | `ping` | — | `PING` | `Daemon is alive (PONG)` or `Error: Daemon not responding` | `executor.rs:105-111` |
 | `inject` | `<package>` | `INJECT <package>` | `Injected: OK INJECT` | `executor.rs:113-116` |

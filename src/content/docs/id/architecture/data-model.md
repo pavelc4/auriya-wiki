@@ -62,7 +62,7 @@ Arti lengkap setiap kunci konfigurasi dan penggunaannya oleh daemon dijelaskan d
 | `enable_dnd` | bool | Ya | Status mode Do Not Disturb |
 | `target_fps` | int **atau** int[] | — | Deserializer kustom (`TargetFpsConfig`) |
 | `refresh_rate` | int | — | Target refresh rate layar (Hz) |
-| `mode` | string | — | `performance`/`balance`/`powersave` |
+| `mode` | string | — | `powersave`/`balance`/`performance`/`fast` |
 | `ceiling` | string | — | Batas atas frekuensi CPU/GPU |
 
 Rincian selengkapnya: [referensi gamelist](../reference/gamelist).

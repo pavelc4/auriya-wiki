@@ -47,7 +47,7 @@ BYE
 | `ENABLE` / `DISABLE` | — | — |
 | `RELOAD` | — | — |
 | `RESTART` | — | — |
-| `SETLOG` | `SET_LOG` | `<DEBUG\|INFO\|WARN\|ERROR>` |
+| `SETLOG` | `SET_LOG` | `<TRACE\|DEBUG\|INFO\|WARN\|ERROR>` |
 | `SET_FPS` | `SETFPS` | `<u32>` |
 | `GET_FPS` | `GETFPS` | — |
 | `GET_SUPPORTED_RATES` | `GETRATES` | — |
@@ -57,7 +57,7 @@ BYE
 | `GETPID` | `GET_PID` | — |
 | `PING` | — | — |
 | `QUIT` | — | — |
-| `SET_PROFILE` | `SETPROFILE` | `<PERFORMANCE\|BALANCE\|POWERSAVE>` |
+| `SET_PROFILE` | `SETPROFILE` | `<FAST\|PERFORMANCE\|BALANCE\|POWERSAVE\|1\|2\|3\|4>` |
 | `ADD_GAME` | `ADDGAME` | `<package>` |
 | `REMOVE_GAME` | `REMOVEGAME` | `<package>` |
 | `UPDATE_GAME` | `UPDATEGAME` | `<package> [gov= dnd= fps= fps_array= rate= mode= ceiling=]` |
@@ -100,7 +100,7 @@ TEMP_CPU={c|N/A} TEMP_GPU={c|N/A}
 | --- | --- | --- |
 | `ENABLE` | `OK ENABLED` | Mengaktifkan flag atomic daemon. |
 | `DISABLE` | `OK DISABLED` | Menonaktifkan flag atomic daemon. |
-| `SETLOG <LEVEL>` | `OK SET_LOG` | Mengubah level log runtime `tracing` secara live. |
+| `SETLOG <LEVEL>` | `OK SET_LOG` | Mengubah level log runtime `tracing` secara live (`TRACE`, `DEBUG`, `INFO`, `WARN`, `ERROR`). |
 | `INJECT <pkg>` | `OK INJECT` | Memaksa paket foreground untuk debugging (mengabaikan companion). |
 | `CLEAR_INJECT` | `OK CLEAR_INJECT` | Menghapus status override inject. |
 
@@ -118,7 +118,7 @@ TEMP_CPU={c|N/A} TEMP_GPU={c|N/A}
 | `SET_PROFILE <MODE>` | `OK SET_PROFILE {Mode}` | `ERR SET_PROFILE {e}` |
 | `SET_FPS <n>` | `OK SET_FPS {n}` | `ERR usage: SET_FPS <number>` |
 
-`SET_PROFILE` mengambil lock eksklusif sebelum menerapkan setelan ke kernel. `MODE` yang valid: `PERFORMANCE`, `BALANCE`, `POWERSAVE`.
+`SET_PROFILE` mengambil lock eksklusif sebelum menerapkan setelan ke kernel. `MODE` yang valid: `FAST`, `PERFORMANCE`, `BALANCE`, `POWERSAVE` (atau angka `4`, `1`, `2`, `3`).
 
 ### 5. Mutasi Daftar Game (Gamelist)
 

@@ -30,7 +30,7 @@ auriyactl get-stats
 | Perintah | Perintah IPC Terkait | Penjelasan |
 | --- | --- | --- |
 | `status` | `STATUS` | Menampilkan ringkasan status daemon, paket aktif, FPS, serta metrik CPU/GPU/termal. |
-| `profile <MODE>` | `SET_PROFILE <MODE>` | Mengatur profil performa aktif (`performance`, `balance`, `powersave`). |
+| `profile <MODE>` | `SET_PROFILE <MODE>` | Mengatur profil performa aktif (`fast`, `performance`, `balance`, `powersave`). |
 | `fps <TARGET>` | `SET_FPS <TARGET>` | Mengatur target FPS manual untuk sesi aktif. |
 | `rates` | `GET_SUPPORTED_RATES` | Menampilkan daftar refresh rate layar yang didukung oleh perangkat. |
 | `get-pid` | `GETPID` | Menampilkan nama paket dan PID aplikasi yang sedang aktif di latar depan. |
@@ -38,7 +38,7 @@ auriyactl get-stats
 | `reload` | `RELOAD` | Memuat ulang konfigurasi dari file `settings.toml`. |
 | `restart` | — (lokal) | Menghentikan proses daemon lama dan menjalankannya kembali. |
 | `enable` / `disable` | `ENABLE` / `DISABLE` | Mengaktifkan atau menonaktifkan pemrosesan tick daemon. |
-| `log <LEVEL>` | `SETLOG <LEVEL>` | Mengubah level log secara dinamis (`DEBUG`, `INFO`, `WARN`, `ERROR`). |
+| `log <LEVEL>` | `SETLOG <LEVEL>` | Mengubah level log secara dinamis (`TRACE`, `DEBUG`, `INFO`, `WARN`, `ERROR`). |
 | `inject <PKG>` | `INJECT <PKG>` | Memaksa paket foreground untuk kebutuhan pengujian/debugging. |
 | `clear-inject` | `CLEAR_INJECT` | Menghapus status override paket inject. |
 

@@ -125,7 +125,7 @@ Defined by `DaemonConfig`, `settings.rs:20-30`.
 | --- | --- | --- | :---: | --- |
 | `log_level` | string | `"info"` | Yes | `tracing` env-filter directive applied **at startup** (`main.rs:13-14`, `EnvFilter::new(level)`). Accepts anything `EnvFilter` accepts (`error`/`warn`/`info`/`debug`/`trace`, or per-target like `auriya::daemon=debug`). **Not** re-read on file reload — change the running level with the IPC `SETLOG` command instead (`src/daemon/run.rs:378-392`). |
 | `check_interval_ms` | integer (ms) | `2000` | Yes | Idle/foreground tick cadence. Feeds `Daemon::normal_interval_ms` (clamped ≥100 ms), used in the event-loop sleep selection (`src/daemon/run.rs`). Re-read on reload. The in-game (500 ms) and screen-off (10 s) cadences stay fixed. |
-| `default_mode` | string | `"balance"` | Yes | The profile applied when no whitelisted game is foreground. Parsed via `ProfileMode::from_str`; unrecognized values fall back to `Balance` (`src/daemon/run.rs:164-170`). Re-read on reload (`run.rs:303-312`). Valid: `performance`, `balance`, `powersave` (`src/common/types.rs:14-16`). |
+| `default_mode` | string | `"balance"` | Yes | The profile applied when no whitelisted game is foreground. Parsed via `ProfileMode::from_str`; unrecognized values fall back to `Balance` (`src/daemon/run.rs:164-170`). Re-read on reload (`run.rs`). Valid: `fast`, `performance`, `balance`, `powersave` (`src/common/types.rs`). |
 
 ### `[cpu]`
 
@@ -149,7 +149,7 @@ Frame-Aware Scheduling. Defined by `FasConfig`, `settings.rs:43-49`.
 
 | Key | Type | Default | Consumed | Meaning & evidence |
 | --- | --- | --- | :---: | --- |
-| `enabled` | bool | none (**required**) | Yes | Master switch for FAS. When `true` **and** the eBPF frame stream initialized, the daemon builds a `FasController`; otherwise FAS is skipped (`src/daemon/run.rs`, `main.rs`). |
+| `enabled` | bool | none (**required**) | Yes | Master switch for FAS. When `true` **and** the eBPF frame stream initialized, the daemon runs the `FasController`; when `false`, FAS scaling is bypassed (`src/daemon/tick.rs`). |
 | `default_mode` | string | none (**required**) | Yes | Selects which `[modes.*]` entry is active, supplying the FAS `margin` and (preferentially) thermal ceiling (`FasTuning::from_settings`, `src/daemon/fas.rs`). Unknown name → default margin + `fas.thermal_threshold` fallback (logged). |
 | `thermal_threshold` | float (°C) | none (**required**) | Yes | Fallback skin-temp ceiling for FAS `Reduce`, used when the active `[modes.*]` entry omits its own `thermal_threshold` (`FasTuning::from_settings`). |
 | `poll_interval_ms` | integer (ms) | `100` | Yes | eBPF frame-poll deadline, clamped to `[1, 500]` ms (`EbpfFrameStream::new`, `src/core/ebpf.rs`). |
@@ -188,25 +188,18 @@ A TOML table per mode name, deserialized into `HashMap<String, FasMode>`
 | `thermal_threshold` | float (°C) | none (required per table) | Yes | Skin-temp ceiling for the active mode; above it FAS forces `Reduce`. Overrides `fas.thermal_threshold` when the active mode defines it. |
 
 The shipped file defines four modes (`powersave`, `balance`, `performance`,
-`fast`). Only the one selected by `fas.default_mode` is active at a time; its
-`margin`/`thermal_threshold` drive FAS. `fast` is a FAS **margin preset**
-(`margin = 0.0`, push closest to the frame deadline) — it is *not* a separate
-CPU-governor profile. This per-mode layout mirrors upstream
-[fas-rs](https://github.com/shadow3aaa/fas-rs), which Auriya's FAS controller is
-adapted from.
+`fast`). `margin`/`thermal_threshold` drive FAS tuning.
 
 ## Reload behavior
 
-The settings watcher reacts to a runtime edit of `settings.toml`. A few keys are
-re-read live; everything else is applied **once at startup** until the daemon
-restarts. Verified in `Daemon::reload_settings` (`src/daemon/run.rs`):
+The settings watcher reacts to runtime edits of `settings.toml`. Verified in `Daemon::reload_settings` (`src/daemon/run.rs`):
 
 | Key | Re-read on file change? | Effect |
 | --- | :---: | --- |
 | `cpu.default_governor` | Yes | Updates `balance_governor`; re-applies immediately only if the current profile is Balance. |
 | `daemon.default_mode` | Yes | Updates the fallback profile for the next tick. |
 | `daemon.check_interval_ms` | Yes | Updates the idle/foreground tick cadence for the next loop iteration. |
-| `[fas]` / `[dynamic_governor]` / `[modes.*]` | No | Consumed at startup into the `FasController`; needs `auriyactl restart` to re-tune. |
+| `[fas]` / `[dynamic_governor]` / `[modes.*]` | Yes | Re-tunes `FasController` live via `FasController::set_tuning`. |
 | everything else | No | Applied at startup (including `log_level` — use `SETLOG` over IPC). |
 
 ## Schema sync (Rust ↔ app)

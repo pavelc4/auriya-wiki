@@ -92,7 +92,7 @@ and effective), **No** (parsed but unused).
 | `enable_dnd` | bool | **Yes** | — | Yes | `true` → request Priority Do-Not-Disturb while foreground; `false` → All/normal notifications (`tick.rs:296-300`). If a client omits it during mutation, the daemon treats it as `true` (`tick.rs:226`). |
 | `target_fps` | integer **or** integer array | No | `None` (FAS keeps its current target) | Yes | FAS frame-rate target. Accepts **two shapes** — see [The `target_fps` field](#the-target_fps-field-single-value-or-array) below. Applied to the FAS controller when set (`tick.rs:159-170`). |
 | `refresh_rate` | integer (Hz) | No | `None` (no display override) | Yes | Requested display refresh rate while foreground. Applied only when it differs from the currently applied rate (`tick.rs:287-293`); released back to automatic on exit by requesting `0` (`tick.rs:315-320`). |
-| `mode` | string | No | `None` → **Performance** | Yes | Profile for this game. Parsed **case-insensitively**: `powersave` → Powersave, `balance` → Balance, **any other value _or_ missing → Performance** (`tick.rs:227-234`). So a typo like `mode = "perf"` silently resolves to Performance, not an error. |
+| `mode` | string | No | `None` → **Performance** | Yes | Profile for this game. Parsed **case-insensitively**: `powersave` → Powersave, `balance` → Balance, `fast` → Fast, **any other value _or_ missing → Performance** (`tick.rs`). So a typo like `mode = "perf"` silently resolves to Performance, not an error. |
 | `ceiling` | string | No | `None` (no ceiling override) | Yes | Frequency-ceiling level for this game. Parsed to `CeilingLevel`; an **unparseable value is dropped to no-override**, not an error (`tick.rs:282-285`). |
 
 :::note Where the enum values are defined

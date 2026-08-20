@@ -32,7 +32,7 @@ These exist after installation and boot.
 | `gamelist.toml` | manager app **and** daemon (IPC mutations) | daemon (startup + watcher) | Per-app whitelist/profiles. See [gamelist reference](gamelist). `GAMELIST_FILE`, `constants.rs:5`. |
 | `system_status` | companion service | daemon (`system_status` watcher) | Companion→daemon snapshot: focused app, screen/battery/zen state. Deleted at each boot by `service.sh` so the daemon only proceeds on fresh data. `STATUS_FILE`, `src/core/system_status`. |
 | `companion.lock` | companion service (flock) | daemon (`companion_lock` watcher) | Liveness lock; the daemon watches its release to detect a dead companion. `src/daemon/companion_lock.rs:31-32`. |
-| `current_profile` | daemon | external/legacy readers | Legacy status file holding `1`/`2`/`3` for Performance/Balance/Powersave. Best-effort compatibility output — **not** the authoritative UI state. `src/daemon/run.rs:49-64`. |
+| `current_profile` | daemon | external/legacy readers | Legacy status file holding `1`/`2`/`3`/`4` for Performance/Balance/Powersave/Fast. Best-effort compatibility output — **not** the authoritative UI state. `src/daemon/run.rs`. |
 | `gpu_type` | `customize.sh` (install-time) | — | Detected GPU (`adreno`/`mali`/`unknown`), written once at install. `module/customize.sh` (`make_node`). |
 | `arch` | `customize.sh` (install-time) | — | Detected device ABI, written once at install. |
 

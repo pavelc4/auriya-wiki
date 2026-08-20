@@ -71,7 +71,7 @@ Full per-key meaning + which the daemon consumes: [settings reference](../refere
 | `enable_dnd` | bool | Yes | |
 | `target_fps` | int **or** int[] | — | custom deserializer (`TargetFpsConfig`) |
 | `refresh_rate` | int | — | |
-| `mode` | string | — | `performance`/`balance`/`powersave` |
+| `mode` | string | — | `powersave`/`balance`/`performance`/`fast` |
 | `ceiling` | string | — | |
 
 Full detail: [gamelist reference](../reference/gamelist).

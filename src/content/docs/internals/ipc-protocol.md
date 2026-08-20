@@ -60,7 +60,7 @@ lower-cased downstream).
 | `ENABLE` / `DISABLE` | — | — |
 | `RELOAD` | — | — |
 | `RESTART` | — | — |
-| `SETLOG` | `SET_LOG` | `<DEBUG\|INFO\|WARN\|ERROR>` |
+| `SETLOG` | `SET_LOG` | `<TRACE\|DEBUG\|INFO\|WARN\|ERROR>` |
 | `SET_FPS` | `SETFPS` | `<u32>` |
 | `GET_FPS` | `GETFPS` | — |
 | `GET_SUPPORTED_RATES` | `GETRATES` | — |
@@ -70,7 +70,7 @@ lower-cased downstream).
 | `GETPID` | `GET_PID` | — |
 | `PING` | — | — |
 | `QUIT` | — | — |
-| `SET_PROFILE` | `SETPROFILE` | `<PERFORMANCE\|BALANCE\|POWERSAVE>` |
+| `SET_PROFILE` | `SETPROFILE` | `<FAST\|PERFORMANCE\|BALANCE\|POWERSAVE\|1\|2\|3\|4>` |
 | `ADD_GAME` | `ADDGAME` | `<package>` |
 | `REMOVE_GAME` | `REMOVEGAME` | `<package>` |
 | `UPDATE_GAME` | `UPDATEGAME` | `<package> [gov= dnd= fps= fps_array= rate= mode= ceiling=]` |
@@ -129,7 +129,7 @@ One `CORE_{id}` line is emitted per online/known core. See
 | --- | --- | --- |
 | `ENABLE` | `OK ENABLED` | Sets the atomic enabled flag (`Ordering::Release`). |
 | `DISABLE` | `OK DISABLED` | Clears it. |
-| `SETLOG <LEVEL>` | `OK SET_LOG` | Live-reloads the `tracing` filter (`run.rs:378-392`). Bad level → `ERR usage: SETLOG <DEBUG\|INFO\|WARN\|ERROR>`. |
+| `SETLOG <LEVEL>` | `OK SET_LOG` | Live-reloads the `tracing` filter (`run.rs`). Bad level → `ERR usage: SETLOG <TRACE\|DEBUG\|INFO\|WARN\|ERROR>`. |
 | `INJECT <pkg>` | `OK INJECT` | Forces a foreground package for debugging (overrides the companion). |
 | `CLEAR_INJECT` | `OK CLEAR_INJECT` | Clears the override. |
 
@@ -140,8 +140,7 @@ One `CORE_{id}` line is emitted per online/known core. See
 | `RELOAD` | `OK RELOADED {n}` (`n` = reload result) | `ERR RELOAD {e}` |
 | `RESTART` | *(no response — daemon re-execs)* | `ERR RESTART_FAILED` if the relaunch spawn fails |
 
-`RELOAD` re-reads config; only `cpu.default_governor` and `daemon.default_mode`
-actually take effect on reload (see [settings reference](../reference/settings#reload-behavior)).
+`RELOAD` re-reads config; `cpu.default_governor`, `daemon.default_mode`, `daemon.check_interval_ms`, FAS tuning parameters, and log filters take effect on reload (see [settings reference](../reference/settings#reload-behavior)).
 
 `RESTART` clears `/data/adb/auriya/daemon.log`, spawns
 `sh -c "sleep 2 && sh /data/adb/modules/auriya/service.sh"` in a new session
@@ -159,7 +158,7 @@ which does the kill/relaunch itself — see [Command reference](../reference/com
 
 `SET_PROFILE` takes a **process-wide profile lock** before applying, so
 concurrent profile writes cannot interleave (`handlers.rs`, `profile_lock`).
-`MODE` ∈ `PERFORMANCE`/`BALANCE`/`POWERSAVE`. What each profile writes is
+`MODE` ∈ `FAST`/`PERFORMANCE`/`BALANCE`/`POWERSAVE` (or numeric `4`/`1`/`2`/`3`). What each profile writes is
 documented once in
 [Architecture overview → What each static profile changes](../architecture/overview#what-each-static-profile-changes).
 

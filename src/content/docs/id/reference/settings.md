@@ -90,7 +90,7 @@ thermal_threshold = 95.0
 | --- | --- | --- | --- |
 | `log_level` | string | `"info"` | Arahan env-filter `tracing` saat **startup** (`error`/`warn`/`info`/`debug`/`trace`). Gunakan perintah IPC `SETLOG` untuk mengubah level secara live saat runtime. |
 | `check_interval_ms` | integer (ms) | `2000` | Interval cadence loop tick dalam kondisi idle/normal di latar depan. |
-| `default_mode` | string | `"balance"` | Profil performa default saat tidak ada game yang aktif di foreground (`performance`, `balance`, `powersave`). |
+| `default_mode` | string | `"balance"` | Profil performa default saat tidak ada game yang aktif di foreground (`fast`, `performance`, `balance`, `powersave`). |
 
 ### `[cpu]`
 
@@ -138,7 +138,7 @@ Setiap tabel mendefinisikan konfigurasi mode FAS (`powersave`, `balance`, `perfo
 | `cpu.default_governor` | Ya | Memperbarui `balance_governor`; langsung diterapkan jika profil aktif adalah Balance. |
 | `daemon.default_mode` | Ya | Memperbarui profil fallback untuk tick berikutnya. |
 | `daemon.check_interval_ms` | Ya | Memperbarui interval waktu tidur loop tick berikutnya. |
-| `[fas]` / `[dynamic_governor]` / `[modes.*]` | Tidak | Dibaca saat startup oleh `FasController`; memerlukan `auriyactl restart` untuk tuning ulang. |
+| `[fas]` / `[dynamic_governor]` / `[modes.*]` | Ya | Memperbarui parameter tuning `FasController` secara langsung via `set_tuning`. |
 | Lainnya | Tidak | Diterapkan hanya saat startup daemon. |
 
 ## Sinkronisasi Skema (Rust ↔ Aplikasi)

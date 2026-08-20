@@ -54,18 +54,18 @@ Pada layar Games, setiap game yang terdaftar di whitelist dapat dikonfigurasi se
 | --- | --- | --- |
 | `target_fps` | Target FPS untuk FAS; nilai tunggal (`120`) atau array langkah (`[60,90,120]`) | Batas FPS game, misal `120` |
 | `cpu_governor` | Governor CPU saat game ini berjalan | `performance` atau `walt` |
-| `mode` | Profil statis: `performance` / `balance` / `powersave` | `performance` untuk game berat |
+| `mode` | Profil statis: `powersave` / `balance` / `performance` / `fast` | `performance` atau `fast` untuk game berat |
 | `refresh_rate` | Target refresh rate layar (Hz) | Samakan dengan `target_fps` |
 | `ceiling` | Batas atas frekuensi (Low/Balance) | Biarkan default kecuali throttling |
 | `enable_dnd` | Mode Jangan Ganggu saat bermain | `true` untuk fokus bermain |
 
-**Rekomendasi awal untuk game berat:** `mode = performance`, `target_fps` = batas frame game (misal `120`), `refresh_rate` = `120`, `cpu_governor = performance`. Jika perangkat terasa terlalu panas, ubah ke `balance`.
+**Rekomendasi awal untuk game berat:** `mode = performance` (atau `fast`), `target_fps` = batas frame game (misal `120`), `refresh_rate` = `120`, `cpu_governor = performance`. Jika perangkat terasa terlalu panas, ubah ke `balance`.
 
 Format array pada `target_fps` (`[60, 90, 120]`) memungkinkan FAS menyesuaikan target secara adaptif saat game berganti frame rate antara menu lobi dan saat pertandingan.
 
-## Perbedaan Profil Mode vs Mode FAS
+## Profil Mode dan Tuning FAS
 
-- **Mode Profil** — `performance` / `balance` / `powersave` (3 mode). Mengatur governor CPU, mode performa GPU, dan tweak kernel. Dipilih per-game via `mode`, atau secara global via `daemon.default_mode`.
-- **Mode FAS** — `powersave` / `balance` / `performance` / `fast` (4 mode). Merupakan preset `margin` + `thermal_threshold` untuk algoritma controller FAS.
+- **Mode Profil** — `powersave` / `balance` / `performance` / `fast` (4 mode). Mengatur governor CPU, mode performa GPU, dan tweak kernel. Dipilih per-game via `mode`, atau secara global via `daemon.default_mode`.
+- **Mode Tuning FAS** — `powersave` / `balance` / `performance` / `fast` (4 mode). Merupakan preset `margin` + `thermal_threshold` untuk algoritma controller FAS.
 
-Mode profil menentukan baseline sistem, sedangkan mode FAS mengatur seberapa agresif algoritma mengejar target frame di atas baseline tersebut.
+Mode profil menentukan baseline sistem, sedangkan preset tuning FAS mengatur seberapa agresif algoritma mengejar target frame di atas baseline tersebut.

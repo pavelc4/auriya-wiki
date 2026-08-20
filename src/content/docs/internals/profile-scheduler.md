@@ -65,15 +65,15 @@ is enumerated in
 Source-level specifics worth pinning here:
 
 - **Mode resolution is case-insensitive with a Performance default.** `powersave`
-  → Powersave, `balance` → Balance, **anything else or missing → Performance**
-  (`tick.rs:227-234`). A typo silently resolves to Performance.
+  → Powersave, `balance` → Balance, `fast` → Fast, **anything else or missing → Performance**
+  (`tick.rs`). A typo silently resolves to Performance.
 - **Governor fallback**: an empty per-game `cpu_governor` falls back to the global
-  `balance_governor` (`tick.rs:266-269`).
+  `balance_governor` (`tick.rs`).
 - **Ceiling**: an unparseable per-game `ceiling` string is dropped to
-  no-override, not an error (`tick.rs:282-285`).
+  no-override, not an error (`tick.rs`).
 - **Refresh rate** is only requested when it differs from the currently applied
-  rate (`tick.rs:287-293`), and released (request `0`) when leaving
-  (`tick.rs:315-320`).
+  rate (`tick.rs`), and released (request `0`) when leaving
+  (`tick.rs`).
 
 What each profile actually writes to the kernel is the single-source-of-truth
 table in
@@ -91,7 +91,7 @@ The frame-measurement mechanism itself is in
 
 ## Leaving a game / no foreground
 
-The clear path (`apply_balance_and_clear`, `tick.rs:309-348`) applies
+The clear path (`apply_balance_and_clear`, `tick.rs`) applies
 `daemon.default_mode` only if it differs from the current mode, then restores
 default ceiling, detaches eBPF, requests normal notifications (DnD All), releases
 any refresh-rate override (request `0`), unlocks vendor controls, and clears the
@@ -101,13 +101,14 @@ PID tracker.
 
 On each applied profile change the daemon also writes
 `/data/adb/.config/auriya/current_profile` (`update_current_profile_file`,
-`run.rs:49-64`, called from `tick.rs:86`). It contains a single digit:
+`run.rs`, called from `tick.rs`). It contains a single digit:
 
 | Value | Profile |
 | --- | --- |
 | `1` | Performance |
 | `2` | Balance |
 | `3` | Powersave |
+| `4` | Fast |
 
 This is a **legacy/compatibility** status output for external readers. It is
 best-effort (write failures are logged, not fatal) and is **not** the

@@ -105,7 +105,7 @@ This order is implemented by `Daemon::process_tick_logic` ([source](https://gith
 
 1. Locks vendor-owned controls so external vendor services cannot immediately overwrite Auriya's values.
 2. Broadcasts `dev.auriya.app.ACTION_SHOW_TOAST` with the chosen mode.
-3. Reads the game profile. Missing/unknown `mode` defaults to Performance; recognized values are `performance`, `balance`, and `powersave`.
+3. Reads the game profile. Missing/unknown `mode` defaults to Performance; recognized values are `fast`, `performance`, `balance`, and `powersave`.
 4. Applies the target profile only when it differs from the current mode.
 5. Applies the game ceiling override, or the configured default ceiling when none exists.
 6. Requests the configured refresh rate when it differs from the active override.
@@ -121,6 +121,7 @@ These are the direct actions in `src/core/profile.rs`; individual tweak modules 
 
 | Profile | Actions |
 | --- | --- |
+| Fast | aggressive performance profile: sets requested governor, enables CPU boost, onlines cores, applies MediaTek/Snapdragon hooks, sets GPU performance mode, enables touch game mode, applies general/scheduler/storage/memory tweaks, drops caches, and sets game affinity/priority |
 | Performance | set requested CPU governor, enable CPU boost, online cores, apply MediaTek/Snapdragon performance hooks, set GPU performance mode, enable touch game mode, apply general/scheduler/storage/memory tweaks, drop caches, and optionally set game CPU affinity/priority |
 | Balance | set the configured governor, disable CPU boost, restore vendor normal mode, set balanced GPU mode, disable touch game mode, restore scheduler/storage/memory defaults |
 | Powersave | set CPU governor to `powersave` and request swappiness `60`; it does not run the Balance restoration sequence first |

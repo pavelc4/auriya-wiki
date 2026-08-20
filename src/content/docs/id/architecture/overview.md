@@ -105,7 +105,7 @@ Urutan ini diimplementasikan oleh `Daemon::process_tick_logic` ([sumber](https:/
 
 1. Mengunci kontrol vendor agar service vendor eksternal tidak dapat langsung menimpa nilai Auriya.
 2. Mengirim siaran broadcast `dev.auriya.app.ACTION_SHOW_TOAST` berisi mode terpilih.
-3. Membaca profil game. Jika `mode` tidak diisi atau tidak dikenal, defaultnya adalah Performance; nilai yang valid adalah `performance`, `balance`, dan `powersave`.
+3. Membaca profil game. Jika `mode` tidak diisi atau tidak dikenal, defaultnya adalah Performance; nilai yang valid adalah `fast`, `performance`, `balance`, dan `powersave`.
 4. Menerapkan profil target hanya jika berbeda dengan mode yang sedang aktif.
 5. Menerapkan override batas atas (ceiling) frekuensi game, atau batas atas default yang dikonfigurasi jika tidak ada override khusus.
 6. Meminta refresh rate yang dikonfigurasi jika berbeda dari override aktif.
@@ -121,6 +121,7 @@ Berikut adalah tindakan langsung pada `src/core/profile.rs`; modul tweak masing-
 
 | Profil | Tindakan yang Dijalankan |
 | --- | --- |
+| Fast | Profil performa agresif: mengatur CPU governor yang diminta, mengaktifkan CPU boost, meng-online-kan semua core, menerapkan hook performa vendor, mengatur mode performa GPU, mengaktifkan mode game sentuhan, menerapkan tweak scheduler/storage/memori agresif, membersihkan cache, dan mengatur afinitas/prioritas CPU game |
 | Performance | Mengatur CPU governor yang diminta, mengaktifkan CPU boost, meng-online-kan core, menerapkan hook performa MediaTek/Snapdragon, mengatur mode performa GPU, mengaktifkan mode game sentuhan (touch), menerapkan tweak umum/scheduler/storage/memori, membersihkan cache (drop caches), dan opsional mengatur afinitas/prioritas CPU game |
 | Balance | Mengatur governor yang dikonfigurasi, menonaktifkan CPU boost, memulihkan mode normal vendor, mengatur mode seimbang GPU, menonaktifkan mode game sentuhan, memulihkan setelan default scheduler/storage/memori |
 | Powersave | Mengatur CPU governor ke `powersave` dan meminta nilai swappiness `60`; profil ini tidak menjalankan urutan pemulihan Balance terlebih dahulu |

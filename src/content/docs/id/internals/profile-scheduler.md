@@ -42,9 +42,9 @@ Profil hanya diterapkan (ulang) jika profil target berbeda dari yang sedang akti
 ## Memasuki Game yang Ada di Whitelist
 
 Saat cabang 5 memvalidasi PID yang hidup, `handle_whitelisted_app` (`tick.rs:194-307`) menjalankan inisialisasi sesi game:
-1. **Resolusi Mode**: Bersifat case-insensitive dengan default Performance. `powersave` → Powersave, `balance` → Balance, **nilai lain atau tidak diisi → Performance** (`tick.rs:227-234`).
-2. **Fallback Governor**: Jika `cpu_governor` per-game kosong, sistem menggunakan `balance_governor` global (`tick.rs:266-269`).
-3. **Batas Frekuensi (Ceiling)**: Jika format `ceiling` tidak dapat diparsing, sistem mengabaikannya tanpa error (`tick.rs:282-285`).
+1. **Resolusi Mode**: Bersifat case-insensitive dengan default Performance. `powersave` → Powersave, `balance` → Balance, `fast` → Fast, **nilai lain atau tidak diisi → Performance** (`tick.rs`).
+2. **Fallback Governor**: Jika `cpu_governor` per-game kosong, sistem menggunakan `balance_governor` global (`tick.rs`).
+3. **Batas Frekuensi (Ceiling)**: Jika format `ceiling` tidak dapat diparsing, sistem mengabaikannya tanpa error (`tick.rs`).
 4. **Refresh Rate**: Hanya diminta jika berbeda dari refresh rate yang sedang aktif, dan dilepaskan (meminta `0`) saat keluar dari sesi game.
 
 Tabel tindakan yang ditulis setiap profil dapat dilihat di [Ringkasan arsitektur → Perubahan statis setiap profil](../architecture/overview#perubahan-yang-dilakukan-oleh-setiap-profil-statis).
@@ -55,14 +55,15 @@ Pada jalur cepat (cabang 4), jika FAS aktif, algoritma membaca stream frame Kala
 
 ## Keluar dari Game / Tanpa Foreground
 
-Fungsi pembersihan (`apply_balance_and_clear`, `tick.rs:309-348`) menerapkan `daemon.default_mode` jika berbeda dari mode saat ini, memulihkan batas frekuensi default, melepas eBPF, mengembalikan mode notifikasi normal (DnD All), melepas override refresh rate (meminta `0`), membuka kunci kontrol vendor, dan menghapus pelacak PID.
+Fungsi pembersihan (`apply_balance_and_clear`, `tick.rs`) menerapkan `daemon.default_mode` jika berbeda dari mode saat ini, memulihkan batas frekuensi default, melepas eBPF, mengembalikan mode notifikasi normal (DnD All), melepas override refresh rate (meminta `0`), membuka kunci kontrol vendor, dan menghapus pelacak PID.
 
 ## File `current_profile`
 
-Setiap kali profil berganti, daemon menulis digit identifikasi ke `/data/adb/.config/auriya/current_profile` (`update_current_profile_file`, `run.rs:49-64`):
+Setiap kali profil berganti, daemon menulis digit identifikasi ke `/data/adb/.config/auriya/current_profile` (`update_current_profile_file`, `run.rs`):
 - `1` → Performance
 - `2` → Balance
 - `3` → Powersave
+- `4` → Fast
 
 File ini disediakan untuk kompatibilitas script eksternal dan bukan status utama UI (status utama diperoleh via IPC).
 

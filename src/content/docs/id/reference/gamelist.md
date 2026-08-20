@@ -56,7 +56,7 @@ target_fps = 120
 | `enable_dnd` | bool | **Ya** | — | `true` → mengaktifkan mode Priority Do-Not-Disturb; `false` → notifikasi normal (`tick.rs:296-300`). |
 | `target_fps` | int **atau** int[] | Tidak | `None` (FAS mempertahankan target saat ini) | Target frame rate FAS. Menerima nilai tunggal atau array nilai (adaptif). |
 | `refresh_rate` | integer (Hz) | Tidak | `None` (tanpa override tampilan) | Target refresh rate layar (Hz) saat game aktif di foreground (`tick.rs:287-293`). Dipulihkan ke `0` saat keluar. |
-| `mode` | string | Tidak | `None` → **Performance** | Profil game. Case-insensitive: `powersave`, `balance`, **nilai lain / kosong → Performance** (`tick.rs:227-234`). |
+| `mode` | string | Tidak | `None` → **Performance** | Profil game. Case-insensitive: `powersave`, `balance`, `fast`, **nilai lain / kosong → Performance** (`tick.rs`). |
 | `ceiling` | string | Tidak | `None` (tanpa batas frekuensi) | Batas atas frekuensi (Low/Balance). Nilai yang tidak valid diabaikan tanpa error. |
 
 ### Field `target_fps`: Nilai Tunggal atau Array

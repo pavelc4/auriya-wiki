@@ -21,7 +21,7 @@ Jalur ini aktif setelah modul terpasang dan sistem telah melakukan booting.
 | `gamelist.toml` | Aplikasi manajer **dan** Daemon (mutasi IPC) | Daemon (startup + watcher) | Whitelist game dan profil per-aplikasi. Lihat [referensi gamelist](gamelist). |
 | `system_status` | Companion service | Daemon (watcher file) | Snapshot status Android: aplikasi foreground, status layar/baterai/Zen. |
 | `companion.lock` | Companion service (flock) | Daemon (watcher lock) | File pelacak keaktifan companion; pelepasan lock menandakan companion mati. |
-| `current_profile` | Daemon | Pembaca legacy/skrip eksternal | File kompatibilitas berisi angka `1`/`2`/`3` untuk Performance/Balance/Powersave. |
+| `current_profile` | Daemon | Pembaca legacy/skrip eksternal | File kompatibilitas berisi angka `1`/`2`/`3`/`4` untuk Performance/Balance/Powersave/Fast. |
 | `gpu_type` | `customize.sh` (saat instalasi) | — | Tipe GPU terdeteksi (`adreno`/`mali`/`unknown`). |
 | `arch` | `customize.sh` (saat instalasi) | — | ABI perangkat terdeteksi (`arm64-v8a`). |
 
