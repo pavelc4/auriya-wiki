@@ -20,7 +20,7 @@ Di balik layar, Auriya membaca dua file TOML di bawah direktori `/data/adb/.conf
 
 ## Dua Hal Penting Sebelum Mengubah Setelan
 
-1. **Sebagian kunci berlaku live, sebagian besar saat startup.** Kunci `cpu.default_governor`, `daemon.default_mode`, dan `daemon.check_interval_ms` langsung dibaca ulang saat Anda mengubah `settings.toml`; sedangkan blok FAS (`[fas]`, `[dynamic_governor]`, `[modes.*]`) dibaca satu kali saat daemon dibuat dan memerlukan restart daemon (`auriyactl restart`) untuk tuning ulang. Rincian per-kunci ada di [referensi settings](../reference/settings#referensi-kunci-demi-kunci).
+1. **Pembaruan Konfigurasi Secara Live.** Kunci `cpu.default_governor`, `daemon.default_mode`, `daemon.check_interval_ms`, serta seluruh blok FAS (`[fas]`, `[dynamic_governor]`, `[modes.*]`) langsung dibaca ulang saat `settings.toml` berubah dan di-update realtime via `set_tuning`. Directory watcher kini aman menangani penulisan atomic write.
 2. **`fas.default_mode` menentukan tabel `[modes.*]` yang aktif.** Hanya mode yang dinamai oleh field ini yang mengontrol nilai margin dan termal FAS; blok mode lainnya tidak aktif hingga dipilih.
 
 ## Langkah Selanjutnya

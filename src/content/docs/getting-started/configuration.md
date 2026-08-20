@@ -36,11 +36,10 @@ every key (type, default, whether the daemon actually consumes it, and evidence)
 
 ## Two things to know before editing
 
-1. **Some keys apply live, most at startup.** `cpu.default_governor`,
-   `daemon.default_mode`, and `daemon.check_interval_ms` are re-read when you edit
-   `settings.toml`; the FAS block (`[fas]`, `[dynamic_governor]`, `[modes.*]`) is
-   read once at construction and needs a daemon restart to re-tune. Each key's
-   behavior is in the [settings reference](../reference/settings#key-by-key-reference).
+1. **Live configuration updates.** `cpu.default_governor`, `daemon.default_mode`,
+   `daemon.check_interval_ms`, and the FAS block (`[fas]`, `[dynamic_governor]`,
+   `[modes.*]`) are re-read live when `settings.toml` is modified and updated directly
+   via `FasController::set_tuning`. The directory watcher safely captures atomic writes.
 2. **`fas.default_mode` picks the active `[modes.*]`.** Only the mode it names
    drives FAS margin/thermal; the other `[modes.*]` blocks are inactive until
    selected. See [settings → `[modes.*]`](../reference/settings#modes).
