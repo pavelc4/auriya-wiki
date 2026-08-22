@@ -1,5 +1,6 @@
 import { defineConfig } from 'astro/config';
 import starlight from '@astrojs/starlight';
+import starlightLlmsTxt from 'starlight-llms-txt';
 import mermaid from 'astro-mermaid';
 import tailwindcss from '@tailwindcss/vite';
 
@@ -13,6 +14,9 @@ export default defineConfig({
     starlight({
       title: 'Auriya',
       favicon: '/kurukuru.gif',
+      plugins: [
+        starlightLlmsTxt(),
+      ],
       expressiveCode: {
         themes: ['catppuccin-mocha', 'catppuccin-latte'],
         styleOverrides: {
