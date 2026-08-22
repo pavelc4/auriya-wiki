@@ -1,0 +1,85 @@
+---
+title: "LLM Context & llms.txt"
+description: "Machine-readable documentation formats for AI models, agents, and IDE extensions."
+---
+
+import { CardGrid, LinkCard, Tabs, TabItem } from '@astrojs/starlight/components';
+
+Auriya provides standardized machine-readable documentation compliant with the [llmstxt.org](https://llmstxt.org) specification. These endpoints allow Large Language Models (LLMs), AI coding assistants, and autonomous agents to index and reference Auriya's technical documentation directly.
+
+## Available Endpoints
+
+<CardGrid>
+  <LinkCard
+    title="llms.txt"
+    description="Standardized root index and documentation catalog for AI discovery."
+    href="/llms.txt"
+    target="_blank"
+  />
+  <LinkCard
+    title="llms-small.txt"
+    description="Abridged context containing essential architecture, APIs, and tuning guides."
+    href="/llms-small.txt"
+    target="_blank"
+  />
+  <LinkCard
+    title="llms-full.txt"
+    description="Comprehensive complete documentation concatenated into a single Markdown file."
+    href="/llms-full.txt"
+    target="_blank"
+  />
+</CardGrid>
+
+---
+
+## Integration Guide
+
+### 1. In AI IDEs & Agents
+
+Add Auriya's documentation as a custom doc source in your AI editor (Cursor, Windsurf, Claude Code, Antigravity, GitHub Copilot):
+
+<Tabs>
+  <TabItem label="Index URL (Recommended)">
+
+```text
+https://auriya.pages.dev/llms.txt
+```
+
+  </TabItem>
+  <TabItem label="Full Context File">
+
+```text
+https://auriya.pages.dev/llms-full.txt
+```
+
+  </TabItem>
+</Tabs>
+
+### 2. Prompt Ingestion via cURL / Terminal
+
+Fetch documentation context directly inside terminal sessions or pipe into local AI CLI tools:
+
+<Tabs>
+  <TabItem label="cURL to File">
+
+```bash
+# Download complete documentation for offline LLM prompting
+curl -sSL https://auriya.pages.dev/llms-full.txt -o auriya_docs.md
+```
+
+  </TabItem>
+  <TabItem label="Direct Pipe to LLM CLI">
+
+```bash
+# Pipe abridged context directly to your CLI runner
+curl -sSL https://auriya.pages.dev/llms-small.txt | llm "Explain Auriya FAS dynamic scheduling"
+```
+
+  </TabItem>
+</Tabs>
+
+---
+
+## Automatic Generation
+
+These files are built automatically during every deployment using `starlight-llms-txt`. Any updates to guides, configuration keys, or kernel tweaks are immediately synchronized across all LLM endpoints.

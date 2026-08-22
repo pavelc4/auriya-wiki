@@ -1,0 +1,85 @@
+---
+title: "Konteks LLM & llms.txt"
+description: "Format dokumentasi ramah mesin (machine-readable) untuk model AI, coding assistant, dan agent."
+---
+
+import { CardGrid, LinkCard, Tabs, TabItem } from '@astrojs/starlight/components';
+
+Auriya menyediakan dokumentasi ramah mesin yang mematuhi spesifikasi [llmstxt.org](https://llmstxt.org). Endpoint ini memungkinkan Large Language Models (LLM), AI coding assistant, dan agent otonom untuk membaca serta mengindeks seluruh dokumentasi teknis Auriya secara bersih tanpa markup HTML.
+
+## Endpoint yang Tersedia
+
+<CardGrid>
+  <LinkCard
+    title="llms.txt"
+    description="Indeks utama standar dan katalog dokumentasi untuk penelusuran AI."
+    href="/llms.txt"
+    target="_blank"
+  />
+  <LinkCard
+    title="llms-small.txt"
+    description="Konteks ringkas memuat panduan arsitektur, API, dan tuning performa inti."
+    href="/llms-small.txt"
+    target="_blank"
+  />
+  <LinkCard
+    title="llms-full.txt"
+    description="Dokumentasi lengkap seluruh wiki dalam satu file teks Markdown terstruktur."
+    href="/llms-full.txt"
+    target="_blank"
+  />
+</CardGrid>
+
+---
+
+## Panduan Integrasi
+
+### 1. Pada AI IDE & Coding Assistant
+
+Tambahkan URL dokumentasi Auriya sebagai sumber referensi (*custom doc source*) pada editor AI Anda (Cursor, Windsurf, Claude Code, Antigravity, GitHub Copilot):
+
+<Tabs>
+  <TabItem label="URL Indeks (Disarankan)">
+
+```text
+https://auriya.pages.dev/llms.txt
+```
+
+  </TabItem>
+  <TabItem label="File Konteks Lengkap">
+
+```text
+https://auriya.pages.dev/llms-full.txt
+```
+
+  </TabItem>
+</Tabs>
+
+### 2. Pengambilan Data via Terminal / cURL
+
+Unduh atau salurkan (*pipe*) konteks dokumentasi langsung ke tool LLM baris perintah:
+
+<Tabs>
+  <TabItem label="Unduh ke File">
+
+```bash
+# Unduh seluruh dokumentasi untuk prompt offline
+curl -sSL https://auriya.pages.dev/llms-full.txt -o auriya_docs.md
+```
+
+  </TabItem>
+  <TabItem label="Pipe ke LLM CLI">
+
+```bash
+# Salurkan konteks ringkas langsung ke CLI LLM
+curl -sSL https://auriya.pages.dev/llms-small.txt | llm "Jelaskan penjadwalan dinamis FAS Auriya"
+```
+
+  </TabItem>
+</Tabs>
+
+---
+
+## Pembaruan Otomatis
+
+File-file ini dibuat secara otomatis pada setiap siklus build dan deployment menggunakan `starlight-llms-txt`. Setiap pembaruan panduan konfigurasi, protokol IPC, atau arsitektur akan langsung tersinkronisasi secara real-time.
