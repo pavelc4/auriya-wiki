@@ -45,7 +45,13 @@ import { Card, CardGrid } from '@astrojs/starlight/components';
 ## AI & Machine-Readable Docs
 
 <CardGrid>
-  <Card title="llms.txt Integration" icon="open-book">
-    Standardized documentation context for LLMs, AI coding assistants, and autonomous agents. Access [`/llms.txt`](/llms.txt) or view the [LLM Context Guide](/reference/llms/).
+  <Card title="llms.txt Catalog" icon="open-book">
+    Standardized discovery catalog following the llmstxt.org specification. Access [`/llms.txt`](/llms.txt) for machine-readable navigation.
+  </Card>
+  <Card title="Full Context Bundles" icon="document">
+    Single-file markdown datasets ([`llms-small.txt`](/llms-small.txt) & [`llms-full.txt`](/llms-full.txt)) containing complete architecture, IPC specs, and tuning guides.
+  </Card>
+  <Card title="Agent & IDE Ready" icon="rocket">
+    Directly pluggable into Cursor, Windsurf, Claude Code, Antigravity, and Copilot. View the [LLM Integration Guide](/reference/llms/).
   </Card>
 </CardGrid>
