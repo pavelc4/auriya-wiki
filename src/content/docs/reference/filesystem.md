@@ -28,8 +28,8 @@ These exist after installation and boot.
 
 | Path | Written by | Read by | Purpose |
 | --- | --- | --- | --- |
-| `settings.toml` | manager app | daemon (startup + watcher) | Global config. See [settings reference](settings). `SETTINGS_FILE`, `constants.rs:4`. |
-| `gamelist.toml` | manager app **and** daemon (IPC mutations) | daemon (startup + watcher) | Per-app whitelist/profiles. See [gamelist reference](gamelist). `GAMELIST_FILE`, `constants.rs:5`. |
+| `settings.toml` | manager app | daemon (startup + watcher) | Global config. See [settings reference](/reference/settings/). `SETTINGS_FILE`, `constants.rs:4`. |
+| `gamelist.toml` | manager app **and** daemon (IPC mutations) | daemon (startup + watcher) | Per-app whitelist/profiles. See [gamelist reference](/reference/gamelist/). `GAMELIST_FILE`, `constants.rs:5`. |
 | `system_status` | companion service | daemon (`system_status` watcher) | Companion→daemon snapshot: focused app, screen/battery/zen state. Deleted at each boot by `service.sh` so the daemon only proceeds on fresh data. `STATUS_FILE`, `src/core/system_status`. |
 | `companion.lock` | companion service (flock) | daemon (`companion_lock` watcher) | Liveness lock; the daemon watches its release to detect a dead companion. `src/daemon/companion_lock.rs:31-32`. |
 | `current_profile` | daemon | external/legacy readers | Legacy status file holding `1`/`2`/`3`/`4` for Performance/Balance/Powersave/Fast. Best-effort compatibility output — **not** the authoritative UI state. `src/daemon/run.rs`. |
@@ -40,7 +40,7 @@ These exist after installation and boot.
 
 | Path | Purpose |
 | --- | --- |
-| `/dev/socket/auriya.sock` | Local Unix socket for all IPC (app + `auriyactl`). Created by the daemon on startup, removed by `service.sh` before restart and by `uninstall.sh`. `SOCKET_PATH`, `constants.rs:1`; bound at `src/daemon/run.rs:417`. See [IPC protocol](../internals/ipc-protocol). |
+| `/dev/socket/auriya.sock` | Local Unix socket for all IPC (app + `auriyactl`). Created by the daemon on startup, removed by `service.sh` before restart and by `uninstall.sh`. `SOCKET_PATH`, `constants.rs:1`; bound at `src/daemon/run.rs:417`. See [IPC protocol](/internals/ipc-protocol/). |
 
 ### Logs — `/data/adb/auriya/`
 
@@ -82,7 +82,7 @@ overlay. All four are removed by `uninstall.sh`.
 ## Kernel interfaces (read/written by tweaks)
 
 Device-dependent; probed before use and skipped when absent. See
-[System tweaks](../internals/system-tweaks).
+[System tweaks](/internals/system-tweaks/).
 
 | Path root | Purpose |
 | --- | --- |

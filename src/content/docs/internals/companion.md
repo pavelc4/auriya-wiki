@@ -23,7 +23,7 @@ with the daemon through files, never a socket.
 | Set Do-Not-Disturb, refresh rate | No | Yes |
 
 So the daemon owns kernel-level work; the companion owns framework-level work. See
-[overview → runtime boundaries](../architecture/overview#runtime-boundaries).
+[overview → runtime boundaries](/architecture/overview/#runtime-boundaries).
 
 ## Launch & single-instance lock
 
@@ -88,7 +88,7 @@ flowchart LR
 
 Two independent directions: **sensors → `system_status`** (observe) and
 **`auriya_cmd` → actuators** (actuate). The daemon is on the other end of both
-files — see [Data flow](../architecture/data-flow#the-four-channels-concretely).
+files — see [Data flow](/architecture/data-flow/#the-four-channels-concretely).
 
 ## Sensors (observe → `system_status`)
 
@@ -109,7 +109,7 @@ merged state to `StatusWriter`.
 registration fails. It de-dupes by emitting only when the package changes.
 
 The merged snapshot becomes `SystemStatus` (the exact fields are the
-[data model](../architecture/data-model#systemstatus-companion--daemon)).
+[data model](/architecture/data-model/#systemstatus-companion--daemon)).
 
 ## Actuators (actuate ← `auriya_cmd`)
 
@@ -129,8 +129,8 @@ expose a half-written file, `StatusWriter` writes a sibling tempfile → `fsync`
 `Files.move(ATOMIC_MOVE, REPLACE_EXISTING)` (with a plain-replace fallback if the
 FS rejects atomic move). The daemon therefore always reads a complete snapshot.
 This mirrors the daemon's own atomic-write pattern
-([CmdWriter](system-tweaks#actions-routed-through-android--cmdwriter),
-[gamelist save](../reference/gamelist#persistence)).
+([CmdWriter](/internals/system-tweaks/#actions-routed-through-android--cmdwriter),
+[gamelist save](/reference/gamelist/#persistence)).
 
 ### `CmdReader` — polling, not FileObserver
 
@@ -150,7 +150,7 @@ day (`CmdReader.kt` doc comment).
 `companion.lock` (exclusive `FileLock`, held for the JVM lifetime) is both the
 single-instance guard and the daemon's liveness signal: the daemon watches it and,
 when the companion is considered dead, falls back to Android `settings put` for
-DnD / refresh rate ([overview → control paths](../architecture/overview#control-and-status-paths)).
+DnD / refresh rate ([overview → control paths](/architecture/overview/#control-and-status-paths)).
 `service.sh` restarts a dead companion; the daemon rate-limits restart attempts.
 
 ## Shared models
@@ -158,10 +158,10 @@ DnD / refresh rate ([overview → control paths](../architecture/overview#contro
 The companion and the app share Kotlin models + codecs in `android/shared`
 (`SystemStatus`, `Cmd`, `StatusFormat`, `CmdFormat`) — the same `android/shared`
 that defines the app's config models. Wire shapes must match the daemon's Rust
-structs; see [data model → config entities](../architecture/data-model#config-entities-rust--kotlin--must-stay-in-sync).
+structs; see [data model → config entities](/architecture/data-model/#config-entities-rust--kotlin--must-stay-in-sync).
 
 ## See also
 
-- [Data flow](../architecture/data-flow) — how `system_status` / `auriya_cmd` move.
-- [Game detection](game-detection) — how the daemon consumes `focused_app`/`pid`.
-- [System tweaks → CmdWriter](system-tweaks#actions-routed-through-android--cmdwriter) — the daemon's side of `auriya_cmd`.
+- [Data flow](/architecture/data-flow/) — how `system_status` / `auriya_cmd` move.
+- [Game detection](/internals/game-detection/) — how the daemon consumes `focused_app`/`pid`.
+- [System tweaks → CmdWriter](/internals/system-tweaks/#actions-routed-through-android--cmdwriter) — the daemon's side of `auriya_cmd`.

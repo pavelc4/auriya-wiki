@@ -9,7 +9,7 @@ Traced to commit `10fe7c6`:
 [`Cargo.toml`](https://github.com/pavelc4/auriya/blob/10fe7c6b56474a00513fec34ebac1376b30e95e6/Cargo.toml),
 [`.cargo/config.toml`](https://github.com/pavelc4/auriya/blob/10fe7c6b56474a00513fec34ebac1376b30e95e6/.cargo/config.toml),
 `android/*/build.gradle.kts`, `website/package.json`. The authoritative CI recipe
-is [CI/CD workflows](ci-cd).
+is [CI/CD workflows](/development/ci-cd/).
 :::
 
 ## Cargo is pinned to cross-compile for Android
@@ -50,7 +50,7 @@ cargo test  --target x86_64-unknown-linux-gnu
 ## Rust — the CI recipe (reproducible)
 
 The exact command CI uses to produce the shipped binaries
-([CI/CD → rust-binary](ci-cd#rust-binary)):
+([CI/CD → rust-binary](/development/ci-cd/#rust-binary)):
 
 ```bash
 # Requires: Android NDK, Rust nightly with target aarch64-linux-android,
@@ -65,10 +65,10 @@ cargo ndk -t aarch64-linux-android --platform 26 -- build --release --bin auriya
 
 :::note Nightly toolchain
 CI uses **nightly** Rust with `edition = "2024"` and installs `rust-src`
-([CI/CD → setup-tools](ci-cd#setup-tools)). The Kala eBPF dependency is a git
+([CI/CD → setup-tools](/development/ci-cd/#setup-tools)). The Kala eBPF dependency is a git
 dependency (`Cargo.toml`); its own eBPF object is prebuilt, so you do not need
 `bpf-linker` to build Auriya
-([Kala eBPF frame probe](../internals/kala-research#auriya-integration)).
+([Kala eBPF frame probe](/internals/kala-research/#auriya-integration)).
 :::
 
 ## Lints and formatting
@@ -113,4 +113,4 @@ bun run build     # static production build into website/build
 
 The complete trigger, job DAG, per-step commands, artifacts, secrets, cache
 keys, failure behavior, and external side effects are documented in
-[CI/CD workflows](ci-cd).
+[CI/CD workflows](/development/ci-cd/).

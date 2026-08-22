@@ -3,15 +3,15 @@ title: "Performance Tuning"
 ---
 How to pick Auriya's settings and what values to use — the "which knob, which
 value, and why" guide. For the exhaustive per-key spec (types, defaults, what
-the daemon consumes) see the [settings reference](../reference/settings) and
-[gamelist reference](../reference/gamelist); this page is the practical layer on
+the daemon consumes) see the [settings reference](/reference/settings/) and
+[gamelist reference](/reference/gamelist/); this page is the practical layer on
 top.
 
 :::tip Use the manager app — you do not need to edit files
 **Every setting on this page is configurable from the Auriya manager app.** You
 do **not** need to open a terminal or hand-edit `settings.toml` / `gamelist.toml`.
 The app writes both files for you and the daemon picks the changes up. Manual
-file editing exists (see [Configuration](configuration)) but is a fallback for
+file editing exists (see [Configuration](/getting-started/configuration/)) but is a fallback for
 power users, not the intended workflow.
 :::
 
@@ -30,8 +30,8 @@ everywhere else.
 Frame-Aware Scheduling (FAS) watches real frame timing and nudges CPU/GPU up or
 down to hold your target FPS with the least power. It only runs for **whitelisted
 games** and only when the eBPF frame probe is available (see
-[FPS detection](../internals/fps-detection) and
-[Kala eBPF frame probe](../internals/kala-research)).
+[FPS detection](/internals/fps-detection/) and
+[Kala eBPF frame probe](/internals/kala-research/)).
 
 ### Enabling FAS
 
@@ -77,7 +77,7 @@ everyday settings.
 Changes to `[fas]`, `[dynamic_governor]`, and `[modes.*]` are read when the daemon
 starts. After changing them, restart the daemon (the app does this for you; from a
 shell it's `auriyactl restart`). `cpu.default_governor` and `daemon.default_mode`
-apply live. See [settings → reload behavior](../reference/settings#reload-behavior).
+apply live. See [settings → reload behavior](/reference/settings/#reload-behavior).
 :::
 
 ## Per-game tuning
@@ -105,7 +105,7 @@ game actually renders at — useful for games with in-menu vs in-match rate chan
 - **Profile modes** — `powersave` / `balance` / `performance` / `fast` (4). These set CPU
   governor, GPU mode, and tweaks. Chosen per-game via `mode`, or globally via
   `daemon.default_mode`. What each writes:
-  [overview → static profiles](../architecture/overview#what-each-static-profile-changes).
+  [overview → static profiles](/architecture/overview/#what-each-static-profile-changes).
 - **FAS tuning presets** — `powersave` / `balance` / `performance` / `fast` (4). These are
   `margin` + `thermal_threshold` presets for the FAS controller, chosen via
   `fas.default_mode` or per-profile tuning.
@@ -115,6 +115,6 @@ how aggressively FAS chases the frame target on top of it.
 
 ## See also
 
-- [settings.toml reference](../reference/settings) — every global key.
-- [gamelist.toml reference](../reference/gamelist) — every per-game field.
-- [Profile scheduler](../internals/profile-scheduler) — how a profile is chosen each tick.
+- [settings.toml reference](/reference/settings/) — every global key.
+- [gamelist.toml reference](/reference/gamelist/) — every per-game field.
+- [Profile scheduler](/internals/profile-scheduler/) — how a profile is chosen each tick.

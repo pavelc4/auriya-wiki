@@ -36,7 +36,7 @@ manager after reboot.
 Step 4 removes `/data/adb/.config/auriya` entirely. If you want to keep your
 `settings.toml` / `gamelist.toml`, back them up **before** uninstalling. A fresh
 install re-seeds the shipped defaults (see
-[Installation](installation#what-the-installer-actually-does)).
+[Installation](/getting-started/installation/#what-the-installer-actually-does)).
 :::
 
 ## Do not reboot early

@@ -1,7 +1,7 @@
 ---
 title: "Tuning Performa"
 ---
-Panduan praktis untuk memilih setelan performa terbaik sesuai kebutuhan Anda. Untuk spesifikasi mendalam mengenai tipe data, nilai default, dan perilaku internal daemon, lihat [referensi settings](../reference/settings) dan [referensi gamelist](../reference/gamelist).
+Panduan praktis untuk memilih setelan performa terbaik sesuai kebutuhan Anda. Untuk spesifikasi mendalam mengenai tipe data, nilai default, dan perilaku internal daemon, lihat [referensi settings](/id/reference/settings/) dan [referensi gamelist](/id/reference/gamelist/).
 
 :::tip Gunakan Aplikasi Manajer
 **Seluruh pengaturan pada halaman ini dapat dikonfigurasi melalui aplikasi manajer Auriya.** Anda tidak perlu membuka terminal atau mengedit file secara manual.
@@ -18,7 +18,7 @@ Override per-game memiliki prioritas tertinggi saat game tersebut aktif di latar
 
 ## Frame-Aware Scheduling (FAS)
 
-FAS mengamati timing frame secara real-time melalui eBPF Kala dan secara dinamis menyesuaikan frekuensi CPU/GPU untuk mempertahankan target FPS dengan konsumsi daya seefisien mungkin. FAS hanya berjalan untuk **game yang terdaftar di whitelist** dan saat probe eBPF tersedia (lihat [Deteksi FPS](../internals/fps-detection) dan [Probe frame eBPF Kala](../internals/kala-research)).
+FAS mengamati timing frame secara real-time melalui eBPF Kala dan secara dinamis menyesuaikan frekuensi CPU/GPU untuk mempertahankan target FPS dengan konsumsi daya seefisien mungkin. FAS hanya berjalan untuk **game yang terdaftar di whitelist** dan saat probe eBPF tersedia (lihat [Deteksi FPS](/id/internals/fps-detection/) dan [Probe frame eBPF Kala](/id/internals/kala-research/)).
 
 ### Mode FAS (Parameter `margin`)
 

@@ -5,7 +5,7 @@ Auriya reports a frames-per-second value in daemon status and, when Frame-Aware
 Scheduling is active, feeds frame data to the scheduler. FPS **observation** and
 FAS **control** are separate: this page covers observation
 (`src/core/fps_meter/mod.rs`); FAS is documented in
-[Kala eBPF frame probe](kala-research) and [Profile scheduler](profile-scheduler).
+[Kala eBPF frame probe](/internals/kala-research/) and [Profile scheduler](/internals/profile-scheduler/).
 
 :::info Verified against source
 Traced to Auriya commit
@@ -49,7 +49,7 @@ flowchart TD
 ```
 
 In `STATUS` this surfaces as `FPS=<value> SOURCE=<ebpf|sysfs>` (see
-[IPC protocol → STATUS](ipc-protocol#status-response)).
+[IPC protocol → STATUS](/internals/ipc-protocol/#status-response)).
 
 ## Sysfs source
 
@@ -82,7 +82,7 @@ Behavior (`read_sysfs`):
 
 Used only when sysfs produced nothing. Frame durations arrive over a
 `broadcast::Receiver<Duration>` from the Kala frame stream (see
-[Kala eBPF frame probe → Auriya integration](kala-research#auriya-integration)).
+[Kala eBPF frame probe → Auriya integration](/internals/kala-research/#auriya-integration)).
 `drain_ebpf` + `read` (`fps_meter/mod.rs`):
 
 - Each incoming delta is kept only if **< 500 ms** (`Duration::from_millis(500)`);
@@ -103,7 +103,7 @@ Used only when sysfs produced nothing. Frame durations arrive over a
   non-blocking. A tick that finds neither source simply reports no FPS.
 - The eBPF value here is a **frame-submission** rate derived from `queueBuffer`
   deltas, not a display-present timestamp — see the limitations in
-  [Kala eBPF frame probe → Scope and limitations](kala-research#scope-and-limitations).
+  [Kala eBPF frame probe → Scope and limitations](/internals/kala-research/#scope-and-limitations).
 
 ## Likely to drift first
 

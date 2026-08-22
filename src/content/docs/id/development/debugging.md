@@ -37,7 +37,7 @@ Jika `Not running`, periksa `daemon.log` dan `companion.log` untuk mengetahui pe
 printf 'STATUS\nQUIT\n' | nc -U /dev/socket/auriya.sock
 ```
 
-Format respons selengkapnya didokumentasikan di [Protokol IPC](../internals/ipc-protocol).
+Format respons selengkapnya didokumentasikan di [Protokol IPC](/id/internals/ipc-protocol/).
 
 ### 3. Deteksi Game & Aplikasi Foreground
 
@@ -52,8 +52,8 @@ auriyactl inject com.nama.game               # Memaksa paket tertentu untuk peng
 ### 4. Profil Tidak Diterapkan
 
 - Pastikan paket terdaftar di whitelist (`auriyactl list-games`).
-- Ingat [urutan keputusan penjadwal](../internals/profile-scheduler#urutan-pengambilan-keputusan): layar mati atau penghemat baterai selalu mengesampingkan mode game.
-- Daemon hanya menulis ke kernel jika profil target berbeda dari profil saat ini ([perlindungan idempotensi](../internals/profile-scheduler#perlindungan-idempotensi-idempotence-guard)).
+- Ingat [urutan keputusan penjadwal](/id/internals/profile-scheduler/#urutan-pengambilan-keputusan): layar mati atau penghemat baterai selalu mengesampingkan mode game.
+- Daemon hanya menulis ke kernel jika profil target berbeda dari profil saat ini ([perlindungan idempotensi](/id/internals/profile-scheduler/#perlindungan-idempotensi-idempotence-guard)).
 - Periksa file `/data/adb/.config/auriya/current_profile` (`1`/`2`/`3`) untuk mengetahui profil terakhir yang diterapkan.
 
 ## Melakukan Restart Bersih

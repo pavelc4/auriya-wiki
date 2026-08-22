@@ -30,7 +30,7 @@ The control CLI in `src/ctl.rs` provides a second entry point for querying or co
 
 ## Binary execution workflow
 
-The installed module does not launch the daemon through the Android app. At boot, `module/service.sh` waits for Android's `sys.boot_completed`, starts the bundled companion APK with `app_process`, waits up to 10 seconds for `/data/adb/.config/auriya/system_status`, then executes `/data/adb/modules/auriya/system/bin/auriya` with the installed settings and gamelist paths. Standard output/error are piped into logcat and `/data/adb/auriya/daemon.log`. See [module lifecycle](module-lifecycle) for the installation paths.
+The installed module does not launch the daemon through the Android app. At boot, `module/service.sh` waits for Android's `sys.boot_completed`, starts the bundled companion APK with `app_process`, waits up to 10 seconds for `/data/adb/.config/auriya/system_status`, then executes `/data/adb/modules/auriya/system/bin/auriya` with the installed settings and gamelist paths. Standard output/error are piped into logcat and `/data/adb/auriya/daemon.log`. See [module lifecycle](/architecture/module-lifecycle/) for the installation paths.
 
 ```mermaid
 flowchart TD
@@ -140,7 +140,7 @@ When the package and PID are unchanged, the daemon avoids full re-entry logic. I
 | `Maintain` | no system write |
 | `Reduce` | return to `daemon.default_mode` unless already there |
 
-FAS errors are warnings in the caller and do not stop the tick loop. The eBPF measurement method and its limitations are documented once in [Kala eBPF frame probe](../internals/kala-research).
+FAS errors are warnings in the caller and do not stop the tick loop. The eBPF measurement method and its limitations are documented once in [Kala eBPF frame probe](/internals/kala-research/).
 
 ### Leaving a game or losing foreground state
 
@@ -148,7 +148,7 @@ For a non-whitelisted package, invalid/missing PID, or no foreground package, th
 
 ## Control and status paths
 
-`auriyactl` and Android clients connect to `/dev/socket/auriya.sock`; they do not invoke profile functions directly. The IPC handler parses a command, then operates on daemon state or calls a serialized profile function. Companion-originated state travels in the opposite direction through `/data/adb/.config/auriya/system_status`. Display and DnD requests normally go through the companion command writer; when the companion is considered dead, refresh rate and Zen mode use Android `settings put` fallbacks. See [IPC protocol](../internals/ipc-protocol) and [filesystem reference](../reference/filesystem).
+`auriyactl` and Android clients connect to `/dev/socket/auriya.sock`; they do not invoke profile functions directly. The IPC handler parses a command, then operates on daemon state or calls a serialized profile function. Companion-originated state travels in the opposite direction through `/data/adb/.config/auriya/system_status`. Display and DnD requests normally go through the companion command writer; when the companion is considered dead, refresh rate and Zen mode use Android `settings put` fallbacks. See [IPC protocol](/internals/ipc-protocol/) and [filesystem reference](/reference/filesystem/).
 
 ## Runtime boundaries
 

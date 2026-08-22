@@ -60,7 +60,7 @@ the TOML file. Keeping them equal is a hard requirement.
 | `[dynamic_governor]` | `DynamicGovernorConfig { enabled, cv_threshold, debounce_frames }` | `DynamicGovernorConfig(enabled, cvThreshold, debounceFrames)` | Parity |
 | `[modes.*]` | `HashMap<String, FasMode { margin, thermal_threshold }>` | `Map<String, FasMode(margin, thermalThreshold)>` | Parity |
 
-Full per-key meaning + which the daemon consumes: [settings reference](../reference/settings).
+Full per-key meaning + which the daemon consumes: [settings reference](/reference/settings/).
 
 ### `GameProfile` ↔ `[[game]]` ↔ Kotlin
 
@@ -74,7 +74,7 @@ Full per-key meaning + which the daemon consumes: [settings reference](../refere
 | `mode` | string | — | `powersave`/`balance`/`performance`/`fast` |
 | `ceiling` | string | — | |
 
-Full detail: [gamelist reference](../reference/gamelist).
+Full detail: [gamelist reference](/reference/gamelist/).
 
 :::warning The schema-sync rule
 There is no `#[serde(deny_unknown_fields)]`. If you add a key to one side only:
@@ -126,7 +126,7 @@ Holds `pkg`, `pid`, `screen_awake`, `battery_saver`, `profile`, `companion_alive
 `src/core/stats/mod.rs`. Assembled per request from `CurrentState` + a fresh
 `BatterySnapshot` + FPS stats from the FAS `FrameBuffer`. Serialized to JSON,
 grouped one-per-UI-card. This is the **stable contract for the app** — schema and
-null rules in [Stats API](../reference/stats-api).
+null rules in [Stats API](/reference/stats-api/).
 
 ### Telemetry snapshots (point reads, per tick or per request)
 
@@ -147,7 +147,7 @@ fresh on each `GET_STATS`. All fields best-effort `Option`.
 
 ## See also
 
-- [Data flow](data-flow) — how these entities move at runtime.
-- [Components](components) — the processes that own them.
-- [settings](../reference/settings) · [gamelist](../reference/gamelist) ·
-  [Stats API](../reference/stats-api) — the field-level specs.
+- [Data flow](/architecture/data-flow/) — how these entities move at runtime.
+- [Components](/architecture/components/) — the processes that own them.
+- [settings](/reference/settings/) · [gamelist](/reference/gamelist/) ·
+  [Stats API](/reference/stats-api/) — the field-level specs.

@@ -1,7 +1,7 @@
 ---
 title: "Referensi gamelist.toml"
 ---
-`gamelist.toml` adalah file konfigurasi **per-aplikasi** milik Auriya: daftar putih (whitelist) paket Android yang menerima profil performa terkelola, beserta override khusus saat aplikasi tersebut aktif di latar depan (foreground). Pengaturan global sistem dikelola di [`settings.toml`](settings).
+`gamelist.toml` adalah file konfigurasi **per-aplikasi** milik Auriya: daftar putih (whitelist) paket Android yang menerima profil performa terkelola, beserta override khusus saat aplikasi tersebut aktif di latar depan (foreground). Pengaturan global sistem dikelola di [`settings.toml`](/id/reference/settings/).
 
 :::info Diverifikasi langsung terhadap kode sumber
 Dilacak ke commit Auriya [`10fe7c6`](https://github.com/pavelc4/auriya/tree/10fe7c6b56474a00513fec34ebac1376b30e95e6). Skema: [`src/core/config/gamelist.rs`](https://github.com/pavelc4/auriya/blob/10fe7c6b56474a00513fec34ebac1376b30e95e6/src/core/config/gamelist.rs). Konsumsi runtime: [`src/daemon/tick.rs`](https://github.com/pavelc4/auriya/blob/10fe7c6b56474a00513fec34ebac1376b30e95e6/src/daemon/tick.rs).

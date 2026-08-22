@@ -3,8 +3,8 @@ title: "Components"
 ---
 Auriya is three runtime planes plus shared code. This page names each component,
 where it lives, and what it owns. For how they interact at runtime see
-[Data flow](data-flow); for the whole-system flow see
-[Architecture overview](overview).
+[Data flow](/architecture/data-flow/); for the whole-system flow see
+[Architecture overview](/architecture/overview/).
 
 ## Android manager — `android/app/`
 
@@ -12,7 +12,7 @@ The user-facing app (package `dev.auriya.app`). Renders the Compose UI, persists
 appearance/onboarding preferences, requests root, edits `settings.toml` /
 `gamelist.toml`, and displays live daemon status. It is a **client** of the
 daemon over the Unix socket — it does not itself apply tweaks. Installed by
-`customize.sh` via `pm install` ([Installation](../getting-started/installation)).
+`customize.sh` via `pm install` ([Installation](/getting-started/installation/)).
 
 ## Companion service — `android/service/`
 
@@ -24,12 +24,12 @@ daemon cannot reach:
   Zen/DnD state to `/data/adb/.config/auriya/system_status`.
 - **Actuators** → replays daemon-requested DnD and refresh-rate changes through
   Android framework APIs, driven by the `auriya_cmd` file
-  ([System tweaks → CmdWriter](../internals/system-tweaks#actions-routed-through-android--cmdwriter)).
+  ([System tweaks → CmdWriter](/internals/system-tweaks/#actions-routed-through-android--cmdwriter)).
 
 Its liveness is tracked via `companion.lock` (see
-[Architecture overview](overview#control-and-status-paths)). Full internals —
+[Architecture overview](/architecture/overview/#control-and-status-paths)). Full internals —
 sensors, actuators, atomic file IO — are documented in
-[Companion service](../internals/companion).
+[Companion service](/internals/companion/).
 
 ## Shared Kotlin — `android/shared/`
 
@@ -38,7 +38,7 @@ Models and codecs used by both the app and the companion: the `Settings` /
 (`TomlParser.kt`), and the command/status wire formats. This is where the app's
 view of `settings.toml` is defined — and why config keys must stay in sync
 between here and the Rust `Settings` struct
-([settings reference](../reference/settings#schema-sync-rust--app)).
+([settings reference](/reference/settings/#schema-sync-rust--app)).
 
 :::note `android/shared/bin/` is generated
 `android/shared/bin/` mirrors the shared Kotlin for tooling and is **not** the
@@ -65,14 +65,14 @@ scheduling), `telemetry/` (CPU/GPU/thermal), `tweaks/` (kernel writes),
 ## Control CLI — `src/ctl.rs` + `src/cli/`
 
 `auriyactl` — a line-oriented client for the same Unix socket
-([Command reference](../reference/commands)). As of this revision it is a
+([Command reference](/reference/commands/)). As of this revision it is a
 secondary control surface; the app is primary.
 
 ## Kernel/device boundary — `src/core/tweaks/`, telemetry, eBPF
 
 Best-effort reads and guarded writes to vendor-dependent `/proc` and `/sys`
 nodes, plus the eBPF frame probe. Missing nodes are skipped
-([System tweaks](../internals/system-tweaks)).
+([System tweaks](/internals/system-tweaks/)).
 
 ## Architecture tree
 
@@ -111,4 +111,4 @@ flowchart TD
 ```
 
 For the exact source-tree layout of files on disk, see
-[Project structure](../development/project-structure).
+[Project structure](/development/project-structure/).

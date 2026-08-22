@@ -17,8 +17,8 @@ Jalur ini aktif setelah modul terpasang dan sistem telah melakukan booting.
 
 | Jalur File | Ditulis Oleh | Dibaca Oleh | Fungsi / Tujuan |
 | --- | --- | --- | --- |
-| `settings.toml` | Aplikasi manajer | Daemon (startup + watcher) | Konfigurasi global sistem. Lihat [referensi settings](settings). |
-| `gamelist.toml` | Aplikasi manajer **dan** Daemon (mutasi IPC) | Daemon (startup + watcher) | Whitelist game dan profil per-aplikasi. Lihat [referensi gamelist](gamelist). |
+| `settings.toml` | Aplikasi manajer | Daemon (startup + watcher) | Konfigurasi global sistem. Lihat [referensi settings](/id/reference/settings/). |
+| `gamelist.toml` | Aplikasi manajer **dan** Daemon (mutasi IPC) | Daemon (startup + watcher) | Whitelist game dan profil per-aplikasi. Lihat [referensi gamelist](/id/reference/gamelist/). |
 | `system_status` | Companion service | Daemon (watcher file) | Snapshot status Android: aplikasi foreground, status layar/baterai/Zen. |
 | `companion.lock` | Companion service (flock) | Daemon (watcher lock) | File pelacak keaktifan companion; pelepasan lock menandakan companion mati. |
 | `current_profile` | Daemon | Pembaca legacy/skrip eksternal | File kompatibilitas berisi angka `1`/`2`/`3`/`4` untuk Performance/Balance/Powersave/Fast. |
@@ -29,7 +29,7 @@ Jalur ini aktif setelah modul terpasang dan sistem telah melakukan booting.
 
 | Jalur File | Fungsi / Tujuan |
 | --- | --- |
-| `/dev/socket/auriya.sock` | Unix domain socket untuk seluruh komunikasi IPC (aplikasi manajer & `auriyactl`). Lihat [Protokol IPC](../internals/ipc-protocol). |
+| `/dev/socket/auriya.sock` | Unix domain socket untuk seluruh komunikasi IPC (aplikasi manajer & `auriyactl`). Lihat [Protokol IPC](/id/internals/ipc-protocol/). |
 
 ### File Log — `/data/adb/auriya/`
 

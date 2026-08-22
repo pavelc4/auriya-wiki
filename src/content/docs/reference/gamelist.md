@@ -4,7 +4,7 @@ title: "gamelist.toml Reference"
 `gamelist.toml` is Auriya's **per-app** configuration: the whitelist of Android
 packages that receive a managed performance profile, plus the per-package
 overrides applied while that app is in the foreground. Global defaults live in
-[`settings.toml`](settings) instead.
+[`settings.toml`](/reference/settings/) instead.
 
 :::info Verified against source
 Every claim is traced to Auriya commit
@@ -82,7 +82,7 @@ is rebuilt and tracked package/PID state is cleared (`Daemon::rebuild_whitelist`
 ## Field reference
 
 Defined by `GameProfile`, `gamelist.rs:89-102`. The **Consumed** column uses the
-same legend as the [settings reference](settings#key-by-key-reference): **Yes** (read
+same legend as the [settings reference](/reference/settings/#key-by-key-reference): **Yes** (read
 and effective), **No** (parsed but unused).
 
 | Key | Type | Required | Default when omitted | Consumed | Meaning & evidence |
@@ -99,7 +99,7 @@ and effective), **No** (parsed but unused).
 `mode` values map to `ProfileMode` (`src/common/types.rs:14-16`). `ceiling`
 values map to `CeilingLevel` (`src/core/tweaks/ceiling.rs:20-24`). For what each
 profile actually writes to the kernel, see
-[Architecture overview → What each static profile changes](../architecture/overview#what-each-static-profile-changes).
+[Architecture overview → What each static profile changes](/architecture/overview/#what-each-static-profile-changes).
 :::
 
 ### The `target_fps` field: single value or array
@@ -128,7 +128,7 @@ frame-rate steps to Frame-Aware Scheduling; the single form pins one target.
 
 There is **no direct-edit CLI** for individual fields; entries are mutated over
 the IPC socket (by the manager app, or by `auriyactl` for the subset it wraps —
-see [Command reference](commands) and [IPC protocol](../internals/ipc-protocol)).
+see [Command reference](/reference/commands/) and [IPC protocol](/internals/ipc-protocol/)).
 Each mutation rewrites the whole file.
 
 ### `ADD_GAME <package>` — injected defaults

@@ -2,7 +2,7 @@
 title: "Command Reference (auriyactl)"
 ---
 `auriyactl` is the command-line client for the Auriya daemon. It is a thin
-wrapper over the [IPC protocol](../internals/ipc-protocol): almost every
+wrapper over the [IPC protocol](/internals/ipc-protocol/): almost every
 subcommand opens the daemon's Unix socket, sends one text command, and prints
 the reply.
 
@@ -91,13 +91,13 @@ in the CLI process (`handle_restart`, `executor.rs:115-159`):
 Because it shells out to `killall` and the module's `service.sh`, `restart`
 needs root and only works on an installed device — not in a bare build tree. The
 separate IPC `RESTART` command (used by the app) makes the *daemon* re-exec
-itself instead; see [IPC protocol](../internals/ipc-protocol).
+itself instead; see [IPC protocol](/internals/ipc-protocol/).
 
 ### `status` prints a subset of the daemon reply
 
 The daemon's raw `STATUS` reply contains `ENABLED`, `PACKAGES`, `OVERRIDE`,
 `LOG_LEVEL`, and multi-line telemetry (`FPS`, per-core CPU, GPU, thermal) —
-documented in [IPC protocol](../internals/ipc-protocol). The CLI's pretty-printer
+documented in [IPC protocol](/internals/ipc-protocol/). The CLI's pretty-printer
 (`print_status`, `output.rs:1-40`) only renders four keys — `ENABLED`,
 `PROFILE`, `PACKAGES`, `FPS` — and silently drops the rest via its catch-all
 arm. Note `PROFILE` is matched by the printer but **not currently emitted** by

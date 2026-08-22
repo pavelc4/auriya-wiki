@@ -98,7 +98,7 @@ marks interpolated values.
 | `GETPID` / `GET_PID` | `PKG={pkg} PID={pid}`, or `PKG={pkg} PID=None`, or `PKG=None PID=None` | — |
 | `GET_FPS` | `FPS={measured:.1} TARGET={target}` (measured `0` if none) | — |
 | `GET_SUPPORTED_RATES` | JSON array of unique refresh rates, e.g. `[60,90,120]` (deduped/sorted from cached display modes) | `ERR JSON {e}` |
-| `GET_STATS` | Single-line JSON perf snapshot (fps/thermal/battery/cpu/gpu/session) — full schema in [Stats API](../reference/stats-api) | `ERR JSON {e}` |
+| `GET_STATS` | Single-line JSON perf snapshot (fps/thermal/battery/cpu/gpu/session) — full schema in [Stats API](/reference/stats-api/) | `ERR JSON {e}` |
 | `STATUS` | See [STATUS format](#status-response) below | — |
 
 #### STATUS response
@@ -121,7 +121,7 @@ TEMP_CPU={c|N/A} TEMP_GPU={c|N/A}
 ```
 
 One `CORE_{id}` line is emitted per online/known core. See
-[FPS detection](fps-detection) for `SOURCE` semantics.
+[FPS detection](/internals/fps-detection/) for `SOURCE` semantics.
 
 ### State toggles
 
@@ -140,14 +140,14 @@ One `CORE_{id}` line is emitted per online/known core. See
 | `RELOAD` | `OK RELOADED {n}` (`n` = reload result) | `ERR RELOAD {e}` |
 | `RESTART` | *(no response — daemon re-execs)* | `ERR RESTART_FAILED` if the relaunch spawn fails |
 
-`RELOAD` re-reads config; `cpu.default_governor`, `daemon.default_mode`, `daemon.check_interval_ms`, FAS tuning parameters, and log filters take effect on reload (see [settings reference](../reference/settings#reload-behavior)).
+`RELOAD` re-reads config; `cpu.default_governor`, `daemon.default_mode`, `daemon.check_interval_ms`, FAS tuning parameters, and log filters take effect on reload (see [settings reference](/reference/settings/#reload-behavior)).
 
 `RESTART` clears `/data/adb/auriya/daemon.log`, spawns
 `sh -c "sleep 2 && sh /data/adb/modules/auriya/service.sh"` in a new session
 (`setsid`), then exits the current process after 500 ms (`handlers.rs`,
 `Command::Restart`). Because it returns before replying, clients see the
 connection close rather than an `OK`. This is distinct from `auriyactl restart`,
-which does the kill/relaunch itself — see [Command reference](../reference/commands#restart-is-local-not-an-ipc-command).
+which does the kill/relaunch itself — see [Command reference](/reference/commands/#restart-is-local-not-an-ipc-command).
 
 ### Profile control
 
@@ -160,12 +160,12 @@ which does the kill/relaunch itself — see [Command reference](../reference/com
 concurrent profile writes cannot interleave (`handlers.rs`, `profile_lock`).
 `MODE` ∈ `FAST`/`PERFORMANCE`/`BALANCE`/`POWERSAVE` (or numeric `4`/`1`/`2`/`3`). What each profile writes is
 documented once in
-[Architecture overview → What each static profile changes](../architecture/overview#what-each-static-profile-changes).
+[Architecture overview → What each static profile changes](/architecture/overview/#what-each-static-profile-changes).
 
 ### Game-list mutations
 
 All persist to `gamelist.toml` atomically on success (see
-[gamelist reference](../reference/gamelist#persistence)). All can return
+[gamelist reference](/reference/gamelist/#persistence)). All can return
 `ERR lock poisoned` if the shared lock is poisoned, or `ERR SAVE_GAMELIST {e}` if
 the write fails after a successful in-memory change.
 
@@ -179,7 +179,7 @@ the write fails after a successful in-memory change.
 
 `ADD_GAME` inserts a **fixed default profile** (governor `performance`, DnD on,
 mode `performance`), not the shipped example values — see
-[gamelist reference → ADD_GAME](../reference/gamelist#add_game-package--injected-defaults).
+[gamelist reference → ADD_GAME](/reference/gamelist/#add_game-package--injected-defaults).
 `UPDATE_GAME` token syntax (`gov=`, `dnd=`, `fps=`, `fps_array=`, `rate=`,
 `mode=`, `ceiling=`) is documented in the same page.
 
@@ -196,7 +196,7 @@ mode `performance`), not the shipped example values — see
 Commands and status flow **into** the daemon over this socket. Companion-observed
 state (focused app, screen/battery/zen) flows the **other** way — the companion
 writes `/data/adb/.config/auriya/system_status`, which the daemon watches. See
-[Data flow](../architecture/data-flow) and [Game detection](game-detection).
+[Data flow](/architecture/data-flow/) and [Game detection](/internals/game-detection/).
 
 ## Likely to drift first
 

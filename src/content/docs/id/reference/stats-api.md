@@ -12,7 +12,7 @@ Payload `GET_STATS` adalah **format komunikasi IPC internal** yang dirancang khu
 | Properti | Nilai |
 | --- | --- |
 | Perintah IPC | `GET_STATS` (alias `GETSTATS`) |
-| Saluran Komunikasi | Socket Unix `/dev/socket/auriya.sock` (lihat [Protokol IPC](../internals/ipc-protocol)) |
+| Saluran Komunikasi | Socket Unix `/dev/socket/auriya.sock` (lihat [Protokol IPC](/id/internals/ipc-protocol/)) |
 | Format Respons | Satu baris string JSON, lalu koneksi ditutup dengan perintah `QUIT` |
 | Beban Komputasi | Dihitung **hanya saat diminta** — daemon tidak mengakumulasikan data antar polling |
 

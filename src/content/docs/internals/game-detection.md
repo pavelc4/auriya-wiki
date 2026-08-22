@@ -24,12 +24,12 @@ The companion service observes the Android task stack and writes the focused
 package and PID into `/data/adb/.config/auriya/system_status`. The daemon reads
 that snapshot each tick — it never calls `dumpsys` for foreground detection
 itself (`dumpsys/activity.rs` module comment: the old dumpsys-scanning path was
-removed). See [Data flow](../architecture/data-flow) and
-[IPC protocol → data flow direction](ipc-protocol#direction-of-data-flow).
+removed). See [Data flow](/architecture/data-flow/) and
+[IPC protocol → data flow direction](/internals/ipc-protocol/#direction-of-data-flow).
 
 An `INJECT <package>` IPC command overrides the companion's focused package for
 debugging; `CLEAR_INJECT` removes the override (see
-[IPC protocol](ipc-protocol#state-toggles)).
+[IPC protocol](/internals/ipc-protocol/#state-toggles)).
 
 ## The whitelist
 
@@ -37,7 +37,7 @@ At startup and on every `gamelist.toml` change, the daemon builds a `HashSet` of
 package names from the game list — the "whitelist" (`src/daemon/run.rs:212-217`,
 rebuilt by `rebuild_whitelist`, `run.rs:320-327`). A package is "a game" to
 Auriya iff it is in this set. Matching is **exact** (no wildcards); see
-[gamelist reference](../reference/gamelist).
+[gamelist reference](/reference/gamelist/).
 
 ## PID validity vs. package verification
 
@@ -96,14 +96,14 @@ Each tick resolves the package/PID, then (`process_tick_logic`,
 
 - **Same package, PID still alive** → fast path: the profile is *not* reapplied;
   only FAS may adjust within the session (see
-  [Profile scheduler](profile-scheduler)).
+  [Profile scheduler](/internals/profile-scheduler/)).
 - **New package, or previous PID exited** → full re-evaluation.
 - **Whitelisted package with a valid PID** → enter/refresh the game session.
 - **Not whitelisted, or PID invalid/missing, or no foreground package** → clear
   game state and apply the default profile.
 
 The exact branch order and what each branch writes are documented in
-[Profile scheduler](profile-scheduler).
+[Profile scheduler](/internals/profile-scheduler/).
 
 ## Likely to drift first
 

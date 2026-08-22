@@ -25,7 +25,7 @@ Dilacak ke commit Auriya [`10fe7c6`](https://github.com/pavelc4/auriya/tree/10fe
 | `vendor/` (`detect.rs`, `mtk.rs`, `snapdragon.rs`) | Deteksi SoC + hook khusus vendor. |
 | `vendor_lock.rs` | Mengunci node perfmgr vendor agar service bawaan tidak menimpa nilai Auriya. |
 
-Daftar perubahan yang dipicu oleh setiap profil dapat dilihat di [Ringkasan arsitektur → Perubahan statis setiap profil](../architecture/overview#perubahan-yang-dilakukan-oleh-setiap-profil-statis).
+Daftar perubahan yang dipicu oleh setiap profil dapat dilihat di [Ringkasan arsitektur → Perubahan statis setiap profil](/id/architecture/overview/#perubahan-yang-dilakukan-oleh-setiap-profil-statis).
 
 ## Deteksi dan Caching Jalur (Path Caching)
 
@@ -76,7 +76,7 @@ Dua keputusan memerlukan API framework Android (`NotificationManager` untuk DnD 
 - **Pengiriman Atomik**: Ditulis ke `.auriya_cmd.tmp` lalu di-`rename` agar watcher inotify companion hanya membaca payload yang utuh.
 
 :::note Fallback Saat Companion Tidak Aktif
-Jika companion mati, permintaan refresh rate dan DnD beralih ke perintah `settings put` Android langsung dari daemon (lihat [Ringkasan arsitektur → Jalur kontrol dan status](../architecture/overview#jalur-kontrol-dan-status)).
+Jika companion mati, permintaan refresh rate dan DnD beralih ke perintah `settings put` Android langsung dari daemon (lihat [Ringkasan arsitektur → Jalur kontrol dan status](/id/architecture/overview/#jalur-kontrol-dan-status)).
 :::
 
 ## Deteksi SoC
@@ -101,4 +101,4 @@ Daftar jalur yang dikunci (`VENDOR_PATHS`):
 /proc/game_opt/disable_cpufreq_limit                 → 1
 ```
 
-Penguncian dilakukan saat memasuki sesi game dan dibuka kembali saat keluar (lihat [Penjadwal profil](profile-scheduler#memasuki-game-yang-ada-di-whitelist)).
+Penguncian dilakukan saat memasuki sesi game dan dibuka kembali saat keluar (lihat [Penjadwal profil](/id/internals/profile-scheduler/#memasuki-game-yang-ada-di-whitelist)).

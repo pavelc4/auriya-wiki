@@ -1,7 +1,7 @@
 ---
 title: "Deteksi FPS"
 ---
-Auriya melaporkan nilai frame-per-second (FPS) dalam status daemon dan, saat Frame-Aware Scheduling (FAS) aktif, menyuplai data frame ke penjadwal. **Observasi** FPS dan **kontrol** FAS dipisahkan: halaman ini membahas observasi (`src/core/fps_meter/mod.rs`); FAS didokumentasikan di [Probe frame eBPF Kala](kala-research) dan [Penjadwal profil](profile-scheduler).
+Auriya melaporkan nilai frame-per-second (FPS) dalam status daemon dan, saat Frame-Aware Scheduling (FAS) aktif, menyuplai data frame ke penjadwal. **Observasi** FPS dan **kontrol** FAS dipisahkan: halaman ini membahas observasi (`src/core/fps_meter/mod.rs`); FAS didokumentasikan di [Probe frame eBPF Kala](/id/internals/kala-research/) dan [Penjadwal profil](/id/internals/profile-scheduler/).
 
 :::info Diverifikasi langsung terhadap kode sumber
 Dilacak ke commit Auriya [`10fe7c6`](https://github.com/pavelc4/auriya/tree/10fe7c6b56474a00513fec34ebac1376b30e95e6), [`src/core/fps_meter/mod.rs`](https://github.com/pavelc4/auriya/blob/10fe7c6b56474a00513fec34ebac1376b30e95e6/src/core/fps_meter/mod.rs).
@@ -39,7 +39,7 @@ flowchart TD
     clamp -->|tidak| return_none
 ```
 
-Pada respons perintah `STATUS`, nilai ini muncul sebagai `FPS=<value> SOURCE=<ebpf|sysfs>` (lihat [Protokol IPC → STATUS](ipc-protocol#respons-status)).
+Pada respons perintah `STATUS`, nilai ini muncul sebagai `FPS=<value> SOURCE=<ebpf|sysfs>` (lihat [Protokol IPC → STATUS](/id/internals/ipc-protocol/#respons-status)).
 
 ## Sumber Sysfs
 
@@ -64,7 +64,7 @@ Perilaku (`read_sysfs`):
 
 ## Fallback eBPF
 
-Digunakan hanya jika sysfs tidak menghasilkan data. Durasi waktu frame masuk melalui `broadcast::Receiver<Duration>` dari stream frame Kala (lihat [Probe frame eBPF Kala → Integrasi Auriya](kala-research#integrasi-auriya)). `drain_ebpf` + `read` (`fps_meter/mod.rs`):
+Digunakan hanya jika sysfs tidak menghasilkan data. Durasi waktu frame masuk melalui `broadcast::Receiver<Duration>` dari stream frame Kala (lihat [Probe frame eBPF Kala → Integrasi Auriya](/id/internals/kala-research/#integrasi-auriya)). `drain_ebpf` + `read` (`fps_meter/mod.rs`):
 
 - Setiap delta waktu frame hanya dipertahankan jika **< 500 ms** (`Duration::from_millis(500)`); jeda yang lebih besar (misalnya saat aplikasi berhenti merender) akan dibuang.
 - Delta yang valid disimpan dalam ring buffer **30-frame** (`SHORT_WINDOW`, ≈ ½ detik pada 60 fps); nilai FPS dihitung dengan rumus `1.0 / mean(frametimes)`.
@@ -76,4 +76,4 @@ Digunakan hanya jika sysfs tidak menghasilkan data. Durasi waktu frame masuk mel
 
 - **Ketersediaan FAS tidak membatasi pelaporan FPS status.** Meskipun program eBPF tidak dapat dipasang (misalnya karena kernel lama atau simbol hilang), FPS dari sysfs tetap dapat mengisi status daemon.
 - Meter ini tidak pernah memblokir thread: sysfs dibatasi dengan cache, dan antrean eBPF dikosongkan secara non-blocking. Tick yang tidak menemukan sumber apa pun hanya melaporkan ketiadaan FPS.
-- Nilai eBPF di sini adalah laju **frame-submission** yang dihitung dari delta hook `queueBuffer`, bukan timestamp tampilan fisik pada layar — lihat batasan pada [Probe frame eBPF Kala → Cakupan dan Batasan](kala-research#cakupan-dan-batasan).
+- Nilai eBPF di sini adalah laju **frame-submission** yang dihitung dari delta hook `queueBuffer`, bukan timestamp tampilan fisik pada layar — lihat batasan pada [Probe frame eBPF Kala → Cakupan dan Batasan](/id/internals/kala-research/#cakupan-dan-batasan).

@@ -51,4 +51,4 @@ auriyactl get-stats
 | `game update <PKG> [opsi]` | `UPDATE_GAME <PKG>` | Memperbarui pengaturan khusus game (`--gov`, `--dnd`, `--fps`, `--mode`, `--ceiling`). |
 | `game list` | `GET_GAMELIST` | Menampilkan seluruh game yang terdaftar beserta konfigurasinya. |
 
-Perintah `auriyactl restart` dijalankan secara lokal di sisi klien dengan membunuh proses daemon dan memanggil skrip `service.sh`, berbeda dengan perintah IPC murni. Rincian selengkapnya mengenai format protokol wire dijelaskan di [Protokol IPC](../internals/ipc-protocol).
+Perintah `auriyactl restart` dijalankan secara lokal di sisi klien dengan membunuh proses daemon dan memanggil skrip `service.sh`, berbeda dengan perintah IPC murni. Rincian selengkapnya mengenai format protokol wire dijelaskan di [Protokol IPC](/id/internals/ipc-protocol/).

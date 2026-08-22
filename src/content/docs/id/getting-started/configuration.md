@@ -2,15 +2,15 @@
 title: "Konfigurasi"
 ---
 :::tip Konfigurasi Semua Hal dari Aplikasi Manajer
-**Anda tidak perlu mengedit file secara manual.** Aplikasi manajer Auriya dirancang untuk mengubah setiap setelan — baik perilaku global maupun override khusus per-game. Buka aplikasi, ubah pengaturan yang diinginkan, dan aplikasi akan menuliskan konfigurasi untuk Anda secara otomatis. Penjelasan file di bawah ini ditujukan untuk pemahaman teknis dan opsi fallback bagi pengguna mahir. Panduan memilih nilai yang optimal dapat dilihat di [Tuning performa](performance-tuning).
+**Anda tidak perlu mengedit file secara manual.** Aplikasi manajer Auriya dirancang untuk mengubah setiap setelan — baik perilaku global maupun override khusus per-game. Buka aplikasi, ubah pengaturan yang diinginkan, dan aplikasi akan menuliskan konfigurasi untuk Anda secara otomatis. Penjelasan file di bawah ini ditujukan untuk pemahaman teknis dan opsi fallback bagi pengguna mahir. Panduan memilih nilai yang optimal dapat dilihat di [Tuning performa](/id/getting-started/performance-tuning/).
 :::
 
 Di balik layar, Auriya membaca dua file TOML di bawah direktori `/data/adb/.config/auriya/`:
 
 | File Konfigurasi | Cakupan Pengaturan | Referensi Lengkap |
 | --- | --- | --- |
-| `settings.toml` | Nilai default **global** untuk daemon dan scheduler | [Referensi settings.toml](../reference/settings) |
-| `gamelist.toml` | Whitelist dan override **per-aplikasi** | [Referensi gamelist.toml](../reference/gamelist) |
+| `settings.toml` | Nilai default **global** untuk daemon dan scheduler | [Referensi settings.toml](/id/reference/settings/) |
+| `gamelist.toml` | Whitelist dan override **per-aplikasi** | [Referensi gamelist.toml](/id/reference/gamelist/) |
 
 ## Dynamic Reload & Directory Watcher
 
@@ -33,4 +33,4 @@ Auriya dilengkapi dengan **Inotify Directory Watcher** background berbasis threa
 
 ## Langkah Selanjutnya
 
-[Tuning performa](performance-tuning) · [Referensi settings.toml](../reference/settings) · [Referensi gamelist.toml](../reference/gamelist) · [Penjadwal profil](../internals/profile-scheduler).
+[Tuning performa](/id/getting-started/performance-tuning/) · [Referensi settings.toml](/id/reference/settings/) · [Referensi gamelist.toml](/id/reference/gamelist/) · [Penjadwal profil](/id/internals/profile-scheduler/).

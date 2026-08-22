@@ -33,7 +33,7 @@ and
 | `vendor_lock.rs` | Locks vendor perfmgr nodes so vendor services cannot fight Auriya. |
 
 Which of these a given profile triggers is the single-source table in
-[Architecture overview → What each static profile changes](../architecture/overview#what-each-static-profile-changes).
+[Architecture overview → What each static profile changes](/architecture/overview/#what-each-static-profile-changes).
 
 ## Path detection and caching
 
@@ -111,7 +111,7 @@ There is one process-wide writer (`shared()`); using more than one would reset t
 :::note There is a fallback for a dead companion
 When the companion is considered dead, refresh-rate and DnD requests fall back to
 Android `settings put` invocations from the daemon (see
-[Architecture overview → Control and status paths](../architecture/overview#control-and-status-paths)).
+[Architecture overview → Control and status paths](/architecture/overview/#control-and-status-paths)).
 :::
 
 ## SoC detection
@@ -147,7 +147,7 @@ value back. The locked set (`VENDOR_PATHS`):
 ```
 
 Locking happens when entering a game session and unlocking when leaving it (see
-[Profile scheduler](profile-scheduler#entering-a-whitelisted-game)). A failed
+[Profile scheduler](/internals/profile-scheduler/#entering-a-whitelisted-game)). A failed
 mount-bind reverts the node's permissions and logs a warning rather than aborting.
 
 :::warning This performs mounts as root

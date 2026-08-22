@@ -30,7 +30,7 @@ CLI kontrol di `src/ctl.rs` menyediakan titik masuk kedua untuk memeriksa atau m
 
 ## Alur Eksekusi Binary
 
-Modul yang terinstal tidak menjalankan daemon melalui aplikasi Android. Saat boot, `module/service.sh` menunggu sinyal `sys.boot_completed` Android, menjalankan APK companion via `app_process`, menunggu hingga 10 detik file `/data/adb/.config/auriya/system_status`, lalu mengeksekusi `/data/adb/modules/auriya/system/bin/auriya` dengan jalur file settings dan gamelist yang terpasang. Log standar dialirkan ke logcat dan `/data/adb/auriya/daemon.log`. Lihat [siklus hidup modul](module-lifecycle) untuk jalur instalasi.
+Modul yang terinstal tidak menjalankan daemon melalui aplikasi Android. Saat boot, `module/service.sh` menunggu sinyal `sys.boot_completed` Android, menjalankan APK companion via `app_process`, menunggu hingga 10 detik file `/data/adb/.config/auriya/system_status`, lalu mengeksekusi `/data/adb/modules/auriya/system/bin/auriya` dengan jalur file settings dan gamelist yang terpasang. Log standar dialirkan ke logcat dan `/data/adb/auriya/daemon.log`. Lihat [siklus hidup modul](/id/architecture/module-lifecycle/) untuk jalur instalasi.
 
 ```mermaid
 flowchart TD
@@ -140,7 +140,7 @@ Saat paket dan PID tidak berubah, daemon menghindari logika inisialisasi ulang l
 | `Maintain` | Tidak ada penulisan ke node sistem |
 | `Reduce` | Kembali ke `daemon.default_mode` kecuali jika sudah berada di mode tersebut |
 
-Error pada FAS dicatat sebagai peringatan dan tidak menghentikan loop tick. Metode pengukuran eBPF serta batasannya didokumentasikan di [probe frame eBPF Kala](../internals/kala-research).
+Error pada FAS dicatat sebagai peringatan dan tidak menghentikan loop tick. Metode pengukuran eBPF serta batasannya didokumentasikan di [probe frame eBPF Kala](/id/internals/kala-research/).
 
 ### Keluar dari Game atau Kehilangan Status Foreground
 
@@ -148,7 +148,7 @@ Untuk paket yang tidak terdaftar di whitelist, PID tidak valid/hilang, atau saat
 
 ## Jalur Kontrol dan Status
 
-`auriyactl` dan klien Android terhubung melalui `/dev/socket/auriya.sock`; keduanya tidak memanggil fungsi profil secara langsung. Handler IPC menguraikan perintah, lalu beroperasi pada status daemon atau memanggil fungsi profil yang diserialisasi. Status yang berasal dari companion mengalir ke arah sebaliknya melalui `/data/adb/.config/auriya/system_status`. Permintaan layar dan DnD umumnya diteruskan melalui command writer companion; jika companion dianggap mati, pengaturan refresh rate dan mode Zen menggunakan fallback Android `settings put`. Lihat [protokol IPC](../internals/ipc-protocol) dan [referensi sistem file](../reference/filesystem).
+`auriyactl` dan klien Android terhubung melalui `/dev/socket/auriya.sock`; keduanya tidak memanggil fungsi profil secara langsung. Handler IPC menguraikan perintah, lalu beroperasi pada status daemon atau memanggil fungsi profil yang diserialisasi. Status yang berasal dari companion mengalir ke arah sebaliknya melalui `/data/adb/.config/auriya/system_status`. Permintaan layar dan DnD umumnya diteruskan melalui command writer companion; jika companion dianggap mati, pengaturan refresh rate dan mode Zen menggunakan fallback Android `settings put`. Lihat [protokol IPC](/id/internals/ipc-protocol/) dan [referensi sistem file](/id/reference/filesystem/).
 
 ## Batasan Runtime (Runtime Boundaries)
 

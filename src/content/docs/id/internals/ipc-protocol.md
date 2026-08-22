@@ -75,7 +75,7 @@ BYE
 | `GETPID` / `GET_PID` | `PKG={pkg} PID={pid}`, atau `PKG=None PID=None` | — |
 | `GET_FPS` | `FPS={measured:.1} TARGET={target}` | — |
 | `GET_SUPPORTED_RATES` | Array JSON refresh rate unik, misal `[60,90,120]` | `ERR JSON {e}` |
-| `GET_STATS` | Snapshot JSON single-line (fps/termal/baterai/cpu/gpu/sesi) — skema lengkap di [API Stats](../reference/stats-api) | `ERR JSON {e}` |
+| `GET_STATS` | Snapshot JSON single-line (fps/termal/baterai/cpu/gpu/sesi) — skema lengkap di [API Stats](/id/reference/stats-api/) | `ERR JSON {e}` |
 | `STATUS` | Rincian status multi-baris (lihat format di bawah) | — |
 
 #### Format Respons STATUS
@@ -134,4 +134,4 @@ Seluruh perintah ini menulis perubahan secara atomik ke `gamelist.toml`:
 
 ## Arah Aliran Data
 
-Perintah dan kueri status mengalir **masuk** ke daemon melalui Unix socket ini. Data status yang diamati oleh companion (aplikasi fokus, layar, baterai, Zen) mengalir melalui saluran **berbeda** — companion menulis ke `/data/adb/.config/auriya/system_status` yang dipantau oleh daemon. Lihat [Aliran data](../architecture/data-flow) dan [Deteksi game](game-detection).
+Perintah dan kueri status mengalir **masuk** ke daemon melalui Unix socket ini. Data status yang diamati oleh companion (aplikasi fokus, layar, baterai, Zen) mengalir melalui saluran **berbeda** — companion menulis ke `/data/adb/.config/auriya/system_status` yang dipantau oleh daemon. Lihat [Aliran data](/id/architecture/data-flow/) dan [Deteksi game](/id/internals/game-detection/).

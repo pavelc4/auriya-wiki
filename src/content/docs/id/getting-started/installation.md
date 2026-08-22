@@ -13,7 +13,7 @@ Dilacak ke [`module/customize.sh`](https://github.com/pavelc4/auriya/blob/10fe7c
 2. **Flash** file ZIP melalui manajer root pilihan Anda (Magisk / KernelSU / APatch).
 3. **Perhatikan output log installer.** `customize.sh` menampilkan informasi perangkat dan log instalasi per tahap.
 4. **Reboot** ponsel setelah instalasi selesai.
-5. **Buka aplikasi Auriya** dari app drawer dan berikan izin root saat diminta (lihat [Menjalankan Pertama Kali](first-run)).
+5. **Buka aplikasi Auriya** dari app drawer dan berikan izin root saat diminta (lihat [Menjalankan Pertama Kali](/id/getting-started/first-run/)).
 
 ## Apa yang Sebenarnya Dilakukan Installer
 
@@ -28,14 +28,14 @@ Dilacak ke [`module/customize.sh`](https://github.com/pavelc4/auriya/blob/10fe7c
 7. **Penyemaian Konfigurasi** — memindahkan `settings.toml` / `gamelist.toml` ke `/data/adb/.config/auriya/` **hanya jika belum ada konfigurasi sebelumnya**, sehingga pembaruan modul tidak pernah menimpa setelan Anda.
 8. **Symlink Root Manager** — membuat symlink ke `/data/adb/ksu/bin` (KernelSU) atau `/data/adb/ap/bin` (APatch) jika direktori tersebut ditemukan, agar perintah `auriya`/`auriyactl` langsung tersedia di `PATH`.
 
-Rincian jalur runtime dan staging lengkap didokumentasikan di [Referensi sistem file](../reference/filesystem).
+Rincian jalur runtime dan staging lengkap didokumentasikan di [Referensi sistem file](/id/reference/filesystem/).
 
 ## Setelah Reboot Perangkat
 
-Modul **tidak** menjalankan daemon melalui aplikasi UI. Saat booting, skrip `module/service.sh` (melalui hook `service.d`) menunggu sinyal `sys.boot_completed`, menjalankan companion dengan `app_process`, menunggu file status terbentuk, lalu menjalankan daemon dengan parameter `--settings` / `--gamelist` eksplisit. Lihat [Ringkasan arsitektur → Alur eksekusi binary](../architecture/overview#alur-eksekusi-binary).
+Modul **tidak** menjalankan daemon melalui aplikasi UI. Saat booting, skrip `module/service.sh` (melalui hook `service.d`) menunggu sinyal `sys.boot_completed`, menjalankan companion dengan `app_process`, menunggu file status terbentuk, lalu menjalankan daemon dengan parameter `--settings` / `--gamelist` eksplisit. Lihat [Ringkasan arsitektur → Alur eksekusi binary](/id/architecture/overview/#alur-eksekusi-binary).
 
-Jika terjadi kendala, file log daemon dan companion tersedia di `/data/adb/auriya/` (`daemon.log`, `companion.log`) — lihat [Debugging](../development/debugging).
+Jika terjadi kendala, file log daemon dan companion tersedia di `/data/adb/auriya/` (`daemon.log`, `companion.log`) — lihat [Debugging](/id/development/debugging/).
 
 ## Langkah Selanjutnya
 
-[Menjalankan Pertama Kali](first-run) · [Konfigurasi](configuration).
+[Menjalankan Pertama Kali](/id/getting-started/first-run/) · [Konfigurasi](/id/getting-started/configuration/).

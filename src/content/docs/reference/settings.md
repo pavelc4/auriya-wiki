@@ -3,7 +3,7 @@ title: "settings.toml Reference"
 ---
 `settings.toml` is Auriya's **global** configuration: daemon-wide defaults that
 apply regardless of which app is in the foreground. Per-app behavior lives in
-[`gamelist.toml`](gamelist) instead.
+[`gamelist.toml`](/reference/gamelist/) instead.
 
 :::info Verified against source
 Every claim on this page is traced to Auriya commit

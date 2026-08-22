@@ -7,7 +7,7 @@ intended way to change every setting global behavior and per-game overrides
 alike. Open the app, change what you want, and it writes the config for you; the
 daemon picks it up automatically. The file details below are for understanding
 and power-user fallback only a normal setup never touches a terminal or a text
-editor. For which values to choose, see [Performance tuning](performance-tuning).
+editor. For which values to choose, see [Performance tuning](/getting-started/performance-tuning/).
 :::
 
 Under the hood Auriya reads two TOML files, both under `/data/adb/.config/auriya/`
@@ -15,8 +15,8 @@ Under the hood Auriya reads two TOML files, both under `/data/adb/.config/auriya
 
 | File | Scope | Full reference |
 | --- | --- | --- |
-| `settings.toml` | **Global** daemon and scheduler defaults | [settings.toml reference](../reference/settings) |
-| `gamelist.toml` | **Per-app** whitelist and overrides | [gamelist.toml reference](../reference/gamelist) |
+| `settings.toml` | **Global** daemon and scheduler defaults | [settings.toml reference](/reference/settings/) |
+| `gamelist.toml` | **Per-app** whitelist and overrides | [gamelist.toml reference](/reference/gamelist/) |
 
 This page is the orientation; the reference pages are the source of truth for
 every key (type, default, whether the daemon actually consumes it, and evidence).
@@ -38,7 +38,7 @@ Auriya features a built-in, low-overhead background **Inotify Directory Watcher*
 - **From the CLI** — `auriyactl` mutates the game list over IPC (`add-game`,
   `remove-game`, and raw `UPDATE_GAME`) and can trigger a settings reload with
   `auriyactl reload`. It has **no** command to edit individual `settings.toml`
-  keys. See [Command reference](../reference/commands).
+  keys. See [Command reference](/reference/commands/).
 - **By hand (fallback)** — You *can* edit the files directly with a root text editor.
   The directory watcher will automatically pick up your edits and reload them live;
   running `auriyactl reload` is also available as an explicit trigger.
@@ -63,7 +63,7 @@ but a *missing* game list is treated as empty. Details in the reference pages.
 
 ## Next
 
-[Performance tuning](performance-tuning) — which values to choose ·
-[settings.toml reference](../reference/settings) ·
-[gamelist.toml reference](../reference/gamelist) ·
-[Profile scheduler](../internals/profile-scheduler).
+[Performance tuning](/getting-started/performance-tuning/) — which values to choose ·
+[settings.toml reference](/reference/settings/) ·
+[gamelist.toml reference](/reference/gamelist/) ·
+[Profile scheduler](/internals/profile-scheduler/).

@@ -9,13 +9,13 @@ Dilacak ke commit Auriya [`10fe7c6`](https://github.com/pavelc4/auriya/tree/10fe
 
 ## Asal Usul Paket Foreground
 
-Companion service memantau tumpukan tugas (task stack) Android dan menulis paket serta PID yang sedang fokus ke `/data/adb/.config/auriya/system_status`. Daemon membaca snapshot tersebut pada setiap tick — daemon tidak pernah menjalankan perintah lambat seperti `dumpsys` untuk mendeteksi foreground secara mandiri. Lihat [Aliran data](../architecture/data-flow) dan [Protokol IPC → arah aliran data](ipc-protocol#arah-aliran-data).
+Companion service memantau tumpukan tugas (task stack) Android dan menulis paket serta PID yang sedang fokus ke `/data/adb/.config/auriya/system_status`. Daemon membaca snapshot tersebut pada setiap tick — daemon tidak pernah menjalankan perintah lambat seperti `dumpsys` untuk mendeteksi foreground secara mandiri. Lihat [Aliran data](/id/architecture/data-flow/) dan [Protokol IPC → arah aliran data](/id/internals/ipc-protocol/#arah-aliran-data).
 
 Perintah IPC `INJECT <package>` memungkinkan override paket foreground secara manual untuk kebutuhan debugging; `CLEAR_INJECT` menghapus status override tersebut.
 
 ## Whitelist Paket Game
 
-Saat startup dan pada setiap perubahan file `gamelist.toml`, daemon membangun `HashSet` berisi nama-nama paket dari daftar game — yang disebut "whitelist" (`src/daemon/run.rs:212-217`). Suatu aplikasi dianggap sebagai "game" oleh Auriya jika dan hanya jika nama paketnya terdapat dalam set ini. Pencocokan bersifat **persis/exact** (tanpa wildcard); lihat [referensi gamelist](../reference/gamelist).
+Saat startup dan pada setiap perubahan file `gamelist.toml`, daemon membangun `HashSet` berisi nama-nama paket dari daftar game — yang disebut "whitelist" (`src/daemon/run.rs:212-217`). Suatu aplikasi dianggap sebagai "game" oleh Auriya jika dan hanya jika nama paketnya terdapat dalam set ini. Pencocokan bersifat **persis/exact** (tanpa wildcard); lihat [referensi gamelist](/id/reference/gamelist/).
 
 ## Validitas PID vs Verifikasi Paket
 

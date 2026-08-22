@@ -3,7 +3,7 @@ title: "Installation"
 ---
 Auriya ships as a single flashable module ZIP. The ZIP contains **everything** —
 the daemon, the CLI, both APKs, and default config — so nothing is downloaded at
-boot. See [Module lifecycle](../architecture/module-lifecycle) for the full
+boot. See [Module lifecycle](/architecture/module-lifecycle/) for the full
 packaging story.
 
 :::info Verified against source
@@ -22,7 +22,7 @@ at commit `10fe7c6`.
    step-by-step log (see below). If it aborts, the message says why.
 4. **Reboot** when prompted.
 5. **Open Auriya** from the launcher and grant root when asked (see
-   [First run](first-run)).
+   [First run](/getting-started/first-run/)).
 
 ## What the installer actually does
 
@@ -52,7 +52,7 @@ at commit `10fe7c6`.
    `auriya`/`auriyactl` are on `PATH`. Magisk needs no symlink.
 
 Exact runtime and staging paths are in the
-[Filesystem reference](../reference/filesystem).
+[Filesystem reference](/reference/filesystem/).
 
 ## After reboot
 
@@ -61,12 +61,12 @@ The module does **not** launch the daemon from the app. At boot,
 `sys.boot_completed`, launches the companion with `app_process`, waits for its
 status file, then starts the daemon with explicit `--settings` / `--gamelist`
 paths. See
-[Architecture overview → Binary execution workflow](../architecture/overview#binary-execution-workflow).
+[Architecture overview → Binary execution workflow](/architecture/overview/#binary-execution-workflow).
 
 If something is wrong, the daemon and companion logs are under
 `/data/adb/auriya/` (`daemon.log`, `companion.log`) — see
-[Debugging](../development/debugging).
+[Debugging](/development/debugging/).
 
 ## Next
 
-[First run](first-run) · [Configuration](configuration).
+[First run](/getting-started/first-run/) · [Configuration](/getting-started/configuration/).

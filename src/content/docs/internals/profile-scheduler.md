@@ -5,7 +5,7 @@ The scheduler is the daemon's decision core: once per tick it decides which
 performance profile the device should be in and applies it. This page documents
 the exact decision function; for the **system-level** view and the tables of what
 each profile writes, see
-[Architecture overview](../architecture/overview#profile-decision-workflow) — this
+[Architecture overview](/architecture/overview/#profile-decision-workflow) — this
 page is the source-precise companion to it, not a duplicate.
 
 :::info Verified against source
@@ -45,7 +45,7 @@ flowchart TD
 
 Screen-off / battery-saver is checked first and unconditionally, so it wins even
 while a game is foregrounded. The injected override (2) exists for debugging via
-`INJECT` (see [Game detection](game-detection#where-the-foreground-package-comes-from)).
+`INJECT` (see [Game detection](/internals/game-detection/#where-the-foreground-package-comes-from)).
 
 ## The idempotence guard
 
@@ -61,7 +61,7 @@ When branch 5 validates a live PID, `handle_whitelisted_app` (`tick.rs:194-307`)
 runs the game-session setup. The full ordered sequence (vendor lock, toast
 broadcast, mode resolution, ceiling, refresh rate, eBPF attach, DnD, PID tracker)
 is enumerated in
-[Architecture overview → Entering a whitelisted game](../architecture/overview#entering-a-whitelisted-game).
+[Architecture overview → Entering a whitelisted game](/architecture/overview/#entering-a-whitelisted-game).
 Source-level specifics worth pinning here:
 
 - **Mode resolution is case-insensitive with a Performance default.** `powersave`
@@ -77,7 +77,7 @@ Source-level specifics worth pinning here:
 
 What each profile actually writes to the kernel is the single-source-of-truth
 table in
-[Architecture overview → What each static profile changes](../architecture/overview#what-each-static-profile-changes).
+[Architecture overview → What each static profile changes](/architecture/overview/#what-each-static-profile-changes).
 
 ## FAS adjustments within a session
 
@@ -85,9 +85,9 @@ On the fast path (branch 4), if Frame-Aware Scheduling exists it consumes the
 Kala frame stream and picks one scaling action per tick. The action→effect
 mapping (`BoostGpu`, `BoostCpu`, `BoostBalanced`, `Maintain`, `Reduce`) is
 documented in
-[Architecture overview → FAS dynamic changes](../architecture/overview#fas-dynamic-changes-inside-the-same-game).
+[Architecture overview → FAS dynamic changes](/architecture/overview/#fas-dynamic-changes-inside-the-same-game).
 The frame-measurement mechanism itself is in
-[Kala eBPF frame probe](kala-research).
+[Kala eBPF frame probe](/internals/kala-research/).
 
 ## Leaving a game / no foreground
 
@@ -113,14 +113,14 @@ On each applied profile change the daemon also writes
 This is a **legacy/compatibility** status output for external readers. It is
 best-effort (write failures are logged, not fatal) and is **not** the
 authoritative UI state — live daemon status over IPC is. See
-[Filesystem reference](../reference/filesystem#configuration-and-runtime-state--dataadbconfigauriya).
+[Filesystem reference](/reference/filesystem/#configuration-and-runtime-state--dataadbconfigauriya).
 
 ## Error handling
 
 A failed profile application logs an error and leaves `last.profile_mode`
 unchanged, so the next tick retries (`tick.rs:274-279`, `330-335`). A tick that
 errors does not terminate the loop; identical errors are debounced for 30 s (see
-[Architecture overview → Event loop](../architecture/overview#event-loop-and-execution-cadence)).
+[Architecture overview → Event loop](/architecture/overview/#event-loop-and-execution-cadence)).
 
 ## Likely to drift first
 

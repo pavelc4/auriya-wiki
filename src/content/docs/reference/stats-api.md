@@ -14,7 +14,7 @@ The `GET_STATS` payload is an **internal IPC communication format** designed spe
 | Fact | Value |
 | --- | --- |
 | Command | `GET_STATS` (alias `GETSTATS`) |
-| Channel | Unix socket `/dev/socket/auriya.sock` (see [IPC protocol](../internals/ipc-protocol)) |
+| Channel | Unix socket `/dev/socket/auriya.sock` (see [IPC protocol](/internals/ipc-protocol/)) |
 | Response | one line of JSON, then the connection closes on `QUIT` |
 | Cost | computed **on request** — the daemon accumulates nothing between polls |
 
@@ -118,6 +118,6 @@ frame-level detail.
 
 ## See also
 
-- [IPC protocol](../internals/ipc-protocol) — the socket and every command.
-- [FPS detection](../internals/fps-detection) — where the FPS numbers come from.
-- [Performance tuning](../getting-started/performance-tuning) — FAS modes & values.
+- [IPC protocol](/internals/ipc-protocol/) — the socket and every command.
+- [FPS detection](/internals/fps-detection/) — where the FPS numbers come from.
+- [Performance tuning](/getting-started/performance-tuning/) — FAS modes & values.

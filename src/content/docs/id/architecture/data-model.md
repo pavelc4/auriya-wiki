@@ -51,7 +51,7 @@ Entitas ini memiliki **dua definisi otoritatif** — struct Rust (yang dikonsums
 | `[dynamic_governor]` | `DynamicGovernorConfig { enabled, cv_threshold, debounce_frames }` | `DynamicGovernorConfig(enabled, cvThreshold, debounceFrames)` | Selaras (Parity) |
 | `[modes.*]` | `HashMap<String, FasMode { margin, thermal_threshold }>` | `Map<String, FasMode(margin, thermalThreshold)>` | Selaras (Parity) |
 
-Arti lengkap setiap kunci konfigurasi dan penggunaannya oleh daemon dijelaskan di [referensi settings](../reference/settings).
+Arti lengkap setiap kunci konfigurasi dan penggunaannya oleh daemon dijelaskan di [referensi settings](/id/reference/settings/).
 
 ### `GameProfile` ↔ `[[game]]` ↔ Kotlin
 
@@ -65,7 +65,7 @@ Arti lengkap setiap kunci konfigurasi dan penggunaannya oleh daemon dijelaskan d
 | `mode` | string | — | `powersave`/`balance`/`performance`/`fast` |
 | `ceiling` | string | — | Batas atas frekuensi CPU/GPU |
 
-Rincian selengkapnya: [referensi gamelist](../reference/gamelist).
+Rincian selengkapnya: [referensi gamelist](/id/reference/gamelist/).
 
 :::warning Aturan Sinkronisasi Skema (Schema-Sync Rule)
 Tidak ada atribut `#[serde(deny_unknown_fields)]`. Jika Anda menambahkan kunci hanya di salah satu sisi:
@@ -107,7 +107,7 @@ Entitas ini bersifat transien — dihitung setiap tick atau setiap ada permintaa
 
 ### `StatsSnapshot` (`GET_STATS`, Dihitung Saat Diminta)
 
-`src/core/stats/mod.rs`. Disusun per permintaan dari `CurrentState` + snapshot segar `BatterySnapshot` + statistik FPS dari `FrameBuffer` FAS. Diserialisasi ke format JSON dan dikelompokkan sesuai kartu tampilan UI. Ini adalah **kontrak stabil untuk aplikasi manajer** — skema dan aturan nilainya ada di [API Stats](../reference/stats-api).
+`src/core/stats/mod.rs`. Disusun per permintaan dari `CurrentState` + snapshot segar `BatterySnapshot` + statistik FPS dari `FrameBuffer` FAS. Diserialisasi ke format JSON dan dikelompokkan sesuai kartu tampilan UI. Ini adalah **kontrak stabil untuk aplikasi manajer** — skema dan aturan nilainya ada di [API Stats](/id/reference/stats-api/).
 
 ### Snapshot Telemetri (Pembacaan Titik, Per-Tick atau Per-Permintaan)
 
@@ -126,6 +126,6 @@ Entitas ini bersifat transien — dihitung setiap tick atau setiap ada permintaa
 
 ## Lihat Juga
 
-- [Aliran data](data-flow) — bagaimana entitas ini bergerak saat runtime.
-- [Komponen](components) — proses-proses yang memilikinya.
-- [settings](../reference/settings) · [gamelist](../reference/gamelist) · [API Stats](../reference/stats-api) — spesifikasi mendalam di tingkat field.
+- [Aliran data](/id/architecture/data-flow/) — bagaimana entitas ini bergerak saat runtime.
+- [Komponen](/id/architecture/components/) — proses-proses yang memilikinya.
+- [settings](/id/reference/settings/) · [gamelist](/id/reference/gamelist/) · [API Stats](/id/reference/stats-api/) — spesifikasi mendalam di tingkat field.

@@ -1,7 +1,7 @@
 ---
 title: "Penjadwal Profil"
 ---
-Penjadwal (Profile Scheduler) adalah inti logika keputusan daemon: satu kali pada setiap tick, ia menentukan profil performa mana yang harus aktif pada perangkat dan menerapkannya. Halaman ini mendokumentasikan fungsi keputusan; untuk gambaran **tingkat sistem** dan tabel yang menjelaskan apa yang ditulis oleh setiap profil, lihat [Ringkasan arsitektur](../architecture/overview#alur-pengambilan-keputusan-profil).
+Penjadwal (Profile Scheduler) adalah inti logika keputusan daemon: satu kali pada setiap tick, ia menentukan profil performa mana yang harus aktif pada perangkat dan menerapkannya. Halaman ini mendokumentasikan fungsi keputusan; untuk gambaran **tingkat sistem** dan tabel yang menjelaskan apa yang ditulis oleh setiap profil, lihat [Ringkasan arsitektur](/id/architecture/overview/#alur-pengambilan-keputusan-profil).
 
 :::info Diverifikasi langsung terhadap kode sumber
 Dilacak ke commit Auriya [`10fe7c6`](https://github.com/pavelc4/auriya/tree/10fe7c6b56474a00513fec34ebac1376b30e95e6), [`src/daemon/tick.rs`](https://github.com/pavelc4/auriya/blob/10fe7c6b56474a00513fec34ebac1376b30e95e6/src/daemon/tick.rs) dan [`src/daemon/run.rs`](https://github.com/pavelc4/auriya/blob/10fe7c6b56474a00513fec34ebac1376b30e95e6/src/daemon/run.rs).
@@ -47,11 +47,11 @@ Saat cabang 5 memvalidasi PID yang hidup, `handle_whitelisted_app` (`tick.rs:194
 3. **Batas Frekuensi (Ceiling)**: Jika format `ceiling` tidak dapat diparsing, sistem mengabaikannya tanpa error (`tick.rs`).
 4. **Refresh Rate**: Hanya diminta jika berbeda dari refresh rate yang sedang aktif, dan dilepaskan (meminta `0`) saat keluar dari sesi game.
 
-Tabel tindakan yang ditulis setiap profil dapat dilihat di [Ringkasan arsitektur → Perubahan statis setiap profil](../architecture/overview#perubahan-yang-dilakukan-oleh-setiap-profil-statis).
+Tabel tindakan yang ditulis setiap profil dapat dilihat di [Ringkasan arsitektur → Perubahan statis setiap profil](/id/architecture/overview/#perubahan-yang-dilakukan-oleh-setiap-profil-statis).
 
 ## Penyesuaian FAS dalam Sesi Game
 
-Pada jalur cepat (cabang 4), jika FAS aktif, algoritma membaca stream frame Kala dan memilih satu aksi penskalaan per tick (`BoostGpu`, `BoostCpu`, `BoostBalanced`, `Maintain`, `Reduce`). Rincian pemetaan aksi FAS dijelaskan di [Ringkasan arsitektur → Penyesuaian Dinamis FAS](../architecture/overview#penyesuaian-dinamis-fas-pada-game-yang-sama).
+Pada jalur cepat (cabang 4), jika FAS aktif, algoritma membaca stream frame Kala dan memilih satu aksi penskalaan per tick (`BoostGpu`, `BoostCpu`, `BoostBalanced`, `Maintain`, `Reduce`). Rincian pemetaan aksi FAS dijelaskan di [Ringkasan arsitektur → Penyesuaian Dinamis FAS](/id/architecture/overview/#penyesuaian-dinamis-fas-pada-game-yang-sama).
 
 ## Keluar dari Game / Tanpa Foreground
 

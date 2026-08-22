@@ -35,11 +35,11 @@ flowchart TD
     kernel -->|"pembacaan telemetri: frek / beban / suhu"| daemon
 ```
 
-Aplikasi dan `auriyactl` berkomunikasi dengan daemon **secara langsung** melalui socket Unix untuk perintah dan status. Companion adalah partisipan yang *terpisah*: ia menyuplai status observasi Android ke daemon (`system_status`) dan mengeksekusi tindakan framework Android yang tidak dapat dijangkau langsung oleh daemon root (`auriya_cmd`) — lihat [Tweak sistem → CmdWriter](../internals/system-tweaks#actions-routed-through-android--cmdwriter).
+Aplikasi dan `auriyactl` berkomunikasi dengan daemon **secara langsung** melalui socket Unix untuk perintah dan status. Companion adalah partisipan yang *terpisah*: ia menyuplai status observasi Android ke daemon (`system_status`) dan mengeksekusi tindakan framework Android yang tidak dapat dijangkau langsung oleh daemon root (`auriya_cmd`) — lihat [Tweak sistem → CmdWriter](/id/internals/system-tweaks/#actions-routed-through-android--cmdwriter).
 
 ## Urutan Boot (Cold Start → Tick Pertama)
 
-Alur yang terjadi sejak ponsel dinyalakan hingga daemon siap melayani permintaan klien, sesuai `module/service.sh` dan `src/daemon/run.rs` (rincian lengkap: [ringkasan arsitektur → alur eksekusi binary](overview#alur-eksekusi-binary)):
+Alur yang terjadi sejak ponsel dinyalakan hingga daemon siap melayani permintaan klien, sesuai `module/service.sh` dan `src/daemon/run.rs` (rincian lengkap: [ringkasan arsitektur → alur eksekusi binary](/id/architecture/overview/#alur-eksekusi-binary)):
 
 ```mermaid
 flowchart TD
@@ -95,18 +95,18 @@ sequenceDiagram
     Daemon-->>App: JSON (fps: null, standby)
 ```
 
-Worker eBPF hanya memproses frame saat ada PID game yang terpasang, sehingga tidak membebani sistem di luar sesi game. `GET_STATS` dihitung berdasarkan permintaan — lihat [API Stats](../reference/stats-api).
+Worker eBPF hanya memproses frame saat ada PID game yang terpasang, sehingga tidak membebani sistem di luar sesi game. `GET_STATS` dihitung berdasarkan permintaan — lihat [API Stats](/id/reference/stats-api/).
 
 ## Empat Saluran Komunikasi Secara Konkret
 
 | Arah Aliran | Mekanisme | Payload / Data | Referensi Terkait |
 | --- | --- | --- | --- |
-| Klien → daemon | Socket Unix, teks berbaris baru | Perintah: `STATUS`, `SET_PROFILE`, `ADD_GAME`, `GET_STATS`, … | [Protokol IPC](../internals/ipc-protocol) |
+| Klien → daemon | Socket Unix, teks berbaris baru | Perintah: `STATUS`, `SET_PROFILE`, `ADD_GAME`, `GET_STATS`, … | [Protokol IPC](/id/internals/ipc-protocol/) |
 | Companion → daemon | File `system_status` (dipantau) | Aplikasi foreground/PID/UID, layar, penghemat baterai, Zen | di bawah ini |
-| Daemon → companion | File `auriya_cmd` (dipantau) | Filter DnD, refresh rate | [Tweak sistem → CmdWriter](../internals/system-tweaks#actions-routed-through-android--cmdwriter) |
-| Daemon → kernel | Penulisan `/proc`, `/sys` | Governor, ceiling frekuensi, tweak sistem | [Tweak sistem](../internals/system-tweaks) |
+| Daemon → companion | File `auriya_cmd` (dipantau) | Filter DnD, refresh rate | [Tweak sistem → CmdWriter](/id/internals/system-tweaks/#actions-routed-through-android--cmdwriter) |
+| Daemon → kernel | Penulisan `/proc`, `/sys` | Governor, ceiling frekuensi, tweak sistem | [Tweak sistem](/id/internals/system-tweaks/) |
 
-Struktur struct dan field yang tepat dari payload ini didokumentasikan di [Model data](data-model).
+Struktur struct dan field yang tepat dari payload ini didokumentasikan di [Model data](/id/architecture/data-model/).
 
 ## File `system_status` — Companion → Daemon
 
@@ -119,20 +119,20 @@ battery_saver <0|1>
 zen_mode <0|1|2|3>
 ```
 
-Watcher daemon memuat ulang file ini dan menggabungkannya ke snapshot `CurrentState` yang dibaca oleh klien IPC. Field bersifat opsional — penulisan parsial hanya memperbarui baris yang ada (`SystemStatus`, `mod.rs:27-56`). Daemon menggunakan `focused_app` + `focused_pid` untuk [deteksi game](../internals/game-detection), serta `screen_awake` + `battery_saver` untuk memicu cabang hemat daya pada [penjadwal profil](../internals/profile-scheduler#urutan-pengambilan-keputusan).
+Watcher daemon memuat ulang file ini dan menggabungkannya ke snapshot `CurrentState` yang dibaca oleh klien IPC. Field bersifat opsional — penulisan parsial hanya memperbarui baris yang ada (`SystemStatus`, `mod.rs:27-56`). Daemon menggunakan `focused_app` + `focused_pid` untuk [deteksi game](/id/internals/game-detection/), serta `screen_awake` + `battery_saver` untuk memicu cabang hemat daya pada [penjadwal profil](/id/internals/profile-scheduler/#urutan-pengambilan-keputusan).
 
 ## Alur Loop Tick
 
-Daemon menjalankan tick dengan interval yang adaptif (lihat [Ringkasan arsitektur → Event loop](../architecture/overview#event-loop-dan-irama-eksekusi) untuk tabel event):
+Daemon menjalankan tick dengan interval yang adaptif (lihat [Ringkasan arsitektur → Event loop](/id/architecture/overview/#event-loop-dan-irama-eksekusi) untuk tabel event):
 
 - **≈ 500 ms** saat sesi game tervalidasi aktif,
 - **`daemon.check_interval_ms`** (default 2 detik) pada kondisi normal di latar depan,
 - **10 detik** saat layar mati / mode penghemat baterai aktif.
 
-Setiap tick membaca snapshot companion yang dicache, memproses cabang hemat daya terlebih dahulu, membaca paket/PID (atau override `INJECT`), lalu menjalankan FAS untuk game yang terdaftar atau menerapkan profil yang sesuai ([Penjadwal profil](../internals/profile-scheduler)). Snapshot daftar game copy-on-write menghindari penahanan lock saat operasi asynchronous berlangsung. Tick juga dapat dipicu lebih cepat — di luar timer — oleh pembaruan status companion, perubahan konfigurasi, atau saat PID yang dilacak keluar ([deteksi game](../internals/game-detection#pelacakan-keaktifan-dan-keluar-instan)).
+Setiap tick membaca snapshot companion yang dicache, memproses cabang hemat daya terlebih dahulu, membaca paket/PID (atau override `INJECT`), lalu menjalankan FAS untuk game yang terdaftar atau menerapkan profil yang sesuai ([Penjadwal profil](/id/internals/profile-scheduler/)). Snapshot daftar game copy-on-write menghindari penahanan lock saat operasi asynchronous berlangsung. Tick juga dapat dipicu lebih cepat — di luar timer — oleh pembaruan status companion, perubahan konfigurasi, atau saat PID yang dilacak keluar ([deteksi game](/id/internals/game-detection/#pelacakan-keaktifan-dan-keluar-instan)).
 
 ## Visibilitas Kesalahan (Failure Visibility)
 
-- Error IPC dikembalikan ke klien dalam format baris `ERR …` ([Protokol IPC → konvensi respons](../internals/ipc-protocol#konvensi-respons)).
-- Kegagalan penulisan kernel bersifat best-effort dan dicatat ke log, bukan error fatal ([Tweak sistem](../internals/system-tweaks#penulisan-best-effort-terproteksi)).
-- Companion yang mati dideteksi melalui `companion.lock`; pengaturan layar/DnD kemudian beralih ke fallback `settings put` Android ([ringkasan arsitektur](../architecture/overview#jalur-kontrol-dan-status)).
+- Error IPC dikembalikan ke klien dalam format baris `ERR …` ([Protokol IPC → konvensi respons](/id/internals/ipc-protocol/#konvensi-respons)).
+- Kegagalan penulisan kernel bersifat best-effort dan dicatat ke log, bukan error fatal ([Tweak sistem](/id/internals/system-tweaks/#penulisan-best-effort-terproteksi)).
+- Companion yang mati dideteksi melalui `companion.lock`; pengaturan layar/DnD kemudian beralih ke fallback `settings put` Android ([ringkasan arsitektur](/id/architecture/overview/#jalur-kontrol-dan-status)).

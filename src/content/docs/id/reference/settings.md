@@ -1,7 +1,7 @@
 ---
 title: "Referensi settings.toml"
 ---
-`settings.toml` adalah file konfigurasi **global** milik Auriya: nilai default di tingkat daemon yang berlaku terlepas dari aplikasi apa yang sedang aktif di latar depan. Konfigurasi khusus per-aplikasi dikelola di [`gamelist.toml`](gamelist).
+`settings.toml` adalah file konfigurasi **global** milik Auriya: nilai default di tingkat daemon yang berlaku terlepas dari aplikasi apa yang sedang aktif di latar depan. Konfigurasi khusus per-aplikasi dikelola di [`gamelist.toml`](/id/reference/gamelist/).
 
 :::info Diverifikasi langsung terhadap kode sumber
 Dilacak ke commit Auriya [`10fe7c6`](https://github.com/pavelc4/auriya/tree/10fe7c6b56474a00513fec34ebac1376b30e95e6). Tipe Rust yang mendefinisikan skema ini adalah [`src/core/config/settings.rs`](https://github.com/pavelc4/auriya/blob/10fe7c6b56474a00513fec34ebac1376b30e95e6/src/core/config/settings.rs). Di sisi Android: `android/shared/src/main/kotlin/dev/auriya/shared/config/TomlParser.kt`.
