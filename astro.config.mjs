@@ -182,6 +182,7 @@ export default defineConfig({
             { label: 'Command Reference', slug: 'reference/commands' },
             { label: 'Telemetry Protocol', slug: 'reference/stats-api' },
             { label: 'Filesystem Layout', slug: 'reference/filesystem' },
+            { label: 'LLM Context (llms.txt)', slug: 'reference/llms' },
           ],
         },
         {
