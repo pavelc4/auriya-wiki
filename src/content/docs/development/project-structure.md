@@ -20,12 +20,6 @@ auriya/
 │   ├── uninstall.sh             [Module] cleanup
 │   ├── module.prop              [Module] module metadata
 │   └── META-INF/                [Module] recovery installer entry points
-├── website/                     [Docusaurus] documentation site
-│   ├── docs/                    [Docusaurus] wiki content
-│   ├── src/                     [Docusaurus] theme and CSS
-│   ├── static/                  [Docusaurus] fonts and media
-│   ├── sidebars.ts              [Docusaurus] navigation tree
-│   └── docusaurus.config.ts     [Docusaurus] site configuration
 ├── .github/
 │   ├── workflows/               [CI/CD] build and release pipelines
 │   └── actions/                 [CI/CD] setup, package, notifications
