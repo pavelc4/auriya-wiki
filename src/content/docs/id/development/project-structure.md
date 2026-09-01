@@ -20,11 +20,6 @@ auriya/
 │   ├── uninstall.sh             [Module] Skrip pembersihan saat dihapus
 │   ├── module.prop              [Module] Metadata modul root
 │   └── META-INF/                [Module] Entry point installer recovery
-├── website/                     [Docusaurus] Situs wiki dokumentasi
-│   ├── docs/                    [Docusaurus] Konten markdown wiki
-│   ├── src/                     [Docusaurus] Tema dan styling CSS
-│   ├── static/                  [Docusaurus] Font dan aset media
-│   └── docusaurus.config.ts     [Docusaurus] Konfigurasi situs web
 ├── .github/
 │   ├── workflows/               [CI/CD] Pipeline otomatis build dan release
 │   └── actions/                 [CI/CD] Aksi komposit (setup, package, notify)
