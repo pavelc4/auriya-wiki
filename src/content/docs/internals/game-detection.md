@@ -6,10 +6,10 @@ title: "Game Detection"
 :::info Verified against source
 Traced to Auriya v2.2.0.
 Files:
-- [`src/platform/binder/observer.rs`](file:///home/sineva/prjkt/rust/auriya/src/platform/binder/observer.rs) (Native `IProcessObserver` implementation)
-- [`src/platform/procfs.rs`](file:///home/sineva/prjkt/rust/auriya/src/platform/procfs.rs) (PID validity and package name resolution)
-- [`src/core/session/tracker.rs`](file:///home/sineva/prjkt/rust/auriya/src/core/session/tracker.rs) (pidfd liveness and exit events)
-- [`src/daemon/pipeline.rs`](file:///home/sineva/prjkt/rust/auriya/src/daemon/pipeline.rs) (the Ingest $\rightarrow$ Decide $\rightarrow$ Apply $\rightarrow$ FAS pipeline)
+- [`src/platform/binder/observer.rs`](https://github.com/pavelc4/auriya/blob/main/src/platform/binder/observer.rs) (Native `IProcessObserver` implementation)
+- [`src/platform/procfs.rs`](https://github.com/pavelc4/auriya/blob/main/src/platform/procfs.rs) (PID validity and package name resolution)
+- [`src/core/session/tracker.rs`](https://github.com/pavelc4/auriya/blob/main/src/core/session/tracker.rs) (pidfd liveness and exit events)
+- [`src/daemon/pipeline.rs`](https://github.com/pavelc4/auriya/blob/main/src/daemon/pipeline.rs) (the Ingest $\rightarrow$ Decide $\rightarrow$ Apply $\rightarrow$ FAS pipeline)
 :::
 
 ## Where the foreground package comes from

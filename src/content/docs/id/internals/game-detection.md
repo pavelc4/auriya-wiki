@@ -5,10 +5,10 @@ title: "Deteksi Game"
 
 :::info Diverifikasi langsung terhadap kode sumber
 Dilacak ke Auriya v2.2.0. File terkait:
-- [`src/platform/binder/observer.rs`](file:///home/sineva/prjkt/rust/auriya/src/platform/binder/observer.rs) (Implementasi Native `IProcessObserver`)
-- [`src/platform/procfs.rs`](file:///home/sineva/prjkt/rust/auriya/src/platform/procfs.rs) (Validasi PID dan nama paket)
-- [`src/core/session/tracker.rs`](file:///home/sineva/prjkt/rust/auriya/src/core/session/tracker.rs) (Pelacakan keaktifan pidfd dan event keluar)
-- [`src/daemon/pipeline.rs`](file:///home/sineva/prjkt/rust/auriya/src/daemon/pipeline.rs) (Alur pipeline Ingest $\rightarrow$ Decide $\rightarrow$ Apply $\rightarrow$ FAS)
+- [`src/platform/binder/observer.rs`](https://github.com/pavelc4/auriya/blob/main/src/platform/binder/observer.rs) (Implementasi Native `IProcessObserver`)
+- [`src/platform/procfs.rs`](https://github.com/pavelc4/auriya/blob/main/src/platform/procfs.rs) (Validasi PID dan nama paket)
+- [`src/core/session/tracker.rs`](https://github.com/pavelc4/auriya/blob/main/src/core/session/tracker.rs) (Pelacakan keaktifan pidfd dan event keluar)
+- [`src/daemon/pipeline.rs`](https://github.com/pavelc4/auriya/blob/main/src/daemon/pipeline.rs) (Alur pipeline Ingest $\rightarrow$ Decide $\rightarrow$ Apply $\rightarrow$ FAS)
 :::
 
 ## Asal Usul Paket Foreground

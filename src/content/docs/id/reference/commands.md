@@ -5,10 +5,10 @@ title: "Referensi Perintah (auriyactl)"
 
 :::info Diverifikasi langsung terhadap kode sumber
 Dilacak ke Auriya v2.2.0. File terkait:
-- [`src/cli/app/`](file:///home/sineva/prjkt/rust/auriya/src/cli/app/) (Definisi perintah dan argumen Clap)
-- [`src/cli/executor.rs`](file:///home/sineva/prjkt/rust/auriya/src/cli/executor.rs) (Penyaluran perintah dan pengukuran waktu eksekusi)
-- [`src/cli/commands/`](file:///home/sineva/prjkt/rust/auriya/src/cli/commands/) (Handler dan implementasi subperintah)
-- [`src/cli/output/`](file:///home/sineva/prjkt/rust/auriya/src/cli/output/) (Pemformatan tampilan terminal dan dashboard)
+- [`src/cli/app/`](https://github.com/pavelc4/auriya/tree/main/src/cli/app/) (Definisi perintah dan argumen Clap)
+- [`src/cli/executor.rs`](https://github.com/pavelc4/auriya/blob/main/src/cli/executor.rs) (Penyaluran perintah dan pengukuran waktu eksekusi)
+- [`src/cli/commands/`](https://github.com/pavelc4/auriya/tree/main/src/cli/commands/) (Handler dan implementasi subperintah)
+- [`src/cli/output/`](https://github.com/pavelc4/auriya/tree/main/src/cli/output/) (Pemformatan tampilan terminal dan dashboard)
 :::
 
 ## Sinopsis

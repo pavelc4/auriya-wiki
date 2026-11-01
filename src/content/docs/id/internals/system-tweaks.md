@@ -5,9 +5,9 @@ Lapisan tweak adalah tempat di mana daemon berinteraksi langsung dengan perangka
 
 :::info Diverifikasi langsung terhadap kode sumber
 Dilacak ke Auriya v2.2.0. File terkait:
-- [`src/platform/`](file:///home/sineva/prjkt/rust/auriya/src/platform/) (Adapter subsistem perangkat keras dan kernel)
-- [`src/platform/binder/actuators.rs`](file:///home/sineva/prjkt/rust/auriya/src/platform/binder/actuators.rs) (Aktuator Native Binder IPC)
-- [`src/core/profile/apply.rs`](file:///home/sineva/prjkt/rust/auriya/src/core/profile/apply.rs) (Mesin eksekusi profil)
+- [`src/platform/`](https://github.com/pavelc4/auriya/tree/main/src/platform/) (Adapter subsistem perangkat keras dan kernel)
+- [`src/platform/binder/actuators.rs`](https://github.com/pavelc4/auriya/blob/main/src/platform/binder/actuators.rs) (Aktuator Native Binder IPC)
+- [`src/core/profile/apply.rs`](https://github.com/pavelc4/auriya/blob/main/src/core/profile/apply.rs) (Mesin eksekusi profil)
 :::
 
 ## Peta Modul

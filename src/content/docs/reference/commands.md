@@ -6,10 +6,10 @@ title: "Command Reference (auriyactl)"
 :::info Verified against source
 Traced to Auriya v2.2.0.
 Files:
-- [`src/cli/app/`](file:///home/sineva/prjkt/rust/auriya/src/cli/app/) (Clap command definitions and arguments)
-- [`src/cli/executor.rs`](file:///home/sineva/prjkt/rust/auriya/src/cli/executor.rs) (Command dispatch and execution timing)
-- [`src/cli/commands/`](file:///home/sineva/prjkt/rust/auriya/src/cli/commands/) (Subcommand handlers and implementations)
-- [`src/cli/output/`](file:///home/sineva/prjkt/rust/auriya/src/cli/output/) (Formatted terminal output and dashboard rendering)
+- [`src/cli/app/`](https://github.com/pavelc4/auriya/tree/main/src/cli/app/) (Clap command definitions and arguments)
+- [`src/cli/executor.rs`](https://github.com/pavelc4/auriya/blob/main/src/cli/executor.rs) (Command dispatch and execution timing)
+- [`src/cli/commands/`](https://github.com/pavelc4/auriya/tree/main/src/cli/commands/) (Subcommand handlers and implementations)
+- [`src/cli/output/`](https://github.com/pavelc4/auriya/tree/main/src/cli/output/) (Formatted terminal output and dashboard rendering)
 :::
 
 ## Synopsis

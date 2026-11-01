@@ -9,9 +9,9 @@ that does not exist is skipped, never fatal.
 :::info Verified against source
 Traced to Auriya v2.2.0.
 Files:
-- [`src/platform/`](file:///home/sineva/prjkt/rust/auriya/src/platform/) (Hardware and kernel subsystem adapters)
-- [`src/platform/binder/actuators.rs`](file:///home/sineva/prjkt/rust/auriya/src/platform/binder/actuators.rs) (Native Binder IPC actuators)
-- [`src/core/profile/apply.rs`](file:///home/sineva/prjkt/rust/auriya/src/core/profile/apply.rs) (Profile execution engine)
+- [`src/platform/`](https://github.com/pavelc4/auriya/tree/main/src/platform/) (Hardware and kernel subsystem adapters)
+- [`src/platform/binder/actuators.rs`](https://github.com/pavelc4/auriya/blob/main/src/platform/binder/actuators.rs) (Native Binder IPC actuators)
+- [`src/core/profile/apply.rs`](https://github.com/pavelc4/auriya/blob/main/src/core/profile/apply.rs) (Profile execution engine)
 :::
 
 ## Module map
