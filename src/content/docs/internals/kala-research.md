@@ -2,7 +2,7 @@
 title: "Kala"
 sidebar_position: 4
 ---
-Kala ([`pavelc4/kala`](https://github.com/pavelc4/kala)) is an ultra-low-overhead, per-app frame-time probe for Android powered by eBPF uprobes on `Surface::queueBuffer` inside `/system/lib64/libgui.so`. It provides deterministic, microsecond-accurate frame pacing metrics without modifying target binaries, injecting shared libraries, or requiring ptrace.
+Kala ([`pavelc4/kala`](https://github.com/pavelc4/kala)) is a per-application frame-time tracking library for Android using eBPF uprobes on `Surface::queueBuffer` inside `/system/lib64/libgui.so`. It measures frame delivery times directly from the rendering pipeline without needing shared library injection or modifying game binaries.
 
 Auriya consumes Kala directly as its core frame-time measurement source for Frame-Aware Scheduling (FAS) and benchmark analytics.
 

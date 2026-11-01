@@ -2,7 +2,7 @@
 title: "Kala"
 sidebar_position: 4
 ---
-Kala ([`pavelc4/kala`](https://github.com/pavelc4/kala)) adalah probe frame-time per-aplikasi berkinerja tinggi untuk Android berbasis eBPF uprobe pada fungsi `Surface::queueBuffer` di dalam `/system/lib64/libgui.so`. Kala menyediakan metrik frame pacing dengan presisi tingkat mikrodirektori tanpa memerlukan injeksi pustaka bersama, modifikasi APK game, ataupun overhead ptrace.
+Kala ([`pavelc4/kala`](https://github.com/pavelc4/kala)) adalah pustaka pelacak waktu frame (frame time) aplikasi pada Android menggunakan kernel eBPF uprobe pada fungsi `Surface::queueBuffer` di `/system/lib64/libgui.so`. Auriya menggunakan Kala sebagai sumber data frame time untuk Frame-Aware Scheduling (FAS) dan pemantauan performa tanpa perlu injeksi pustaka ataupun modifikasi biner game.
 
 Auriya memanfaatkan Kala sebagai fondasi telemetri utama untuk Frame-Aware Scheduling (FAS) dan pencatatan benchmark game.
 

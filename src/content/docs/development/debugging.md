@@ -276,48 +276,24 @@ auriyactl restart         # Gracefully terminate daemon (SIGTERM) and relaunch
 
 ## Issue Reporting Guide
 
-If you discover a bug, unexpected behavior, or a kernel incompatibility, please submit an issue on the [Auriya GitHub Issues](https://github.com/pavelc4/auriya/issues) tracker.
+If you discover a bug, unexpected behavior, or a kernel/device incompatibility, please submit an issue on the [Auriya GitHub Issues](https://github.com/pavelc4/auriya/issues) tracker.
 
-### Step 1: Capture One-Liner System Diagnostic
+When opening an issue, provide your device model, kernel version, Android version, root solution and version (KernelSU, Magisk, or APatch), Auriya version, and relevant logs from `/data/adb/auriya/daemon.log`.
 
-Run this command in Termux, ADB Shell, or any root terminal. It gathers all essential environment, kernel, root manager, and Auriya diagnostic data into a single output:
+You can copy and fill out the template below:
 
-```bash
-su -c 'echo "=== Auriya Issue Diagnostics ===" && \
-echo "Manufacturer: $(getprop ro.product.manufacturer)" && \
-echo "Model: $(getprop ro.product.model) ($(getprop ro.product.device))" && \
-echo "Board: $(getprop ro.board.platform) / Hardware: $(getprop ro.hardware)" && \
-echo "Android: $(getprop ro.build.version.release) (SDK $(getprop ro.build.version.sdk))" && \
-echo "ROM: $(getprop ro.build.display.id)" && \
-echo "Kernel: $(uname -a)" && \
-echo "Root Manager: $([ -n "$KSU" ] || which ksud >/dev/null 2>&1 && echo "KernelSU ($(ksud -V 2>/dev/null || echo unknown))" || ([ -n "$MAGISK_VER" ] || which magisk >/dev/null 2>&1 && echo "Magisk ($(magisk -v 2>/dev/null || echo unknown))" || ([ -n "$APATCH" ] || which ap >/dev/null 2>&1 && echo "APatch ($(ap -v 2>/dev/null || echo unknown))" || echo "Other/Unknown")))" && \
-echo "Auriya: $(auriyactl --version 2>/dev/null || grep -E "^version=" /data/adb/modules/auriya/module.prop 2>/dev/null)" && \
-echo -e "\n=== auriyactl status ===" && auriyactl status 2>&1 && \
-echo -e "\n=== auriyactl info ===" && auriyactl info 2>&1 && \
-echo -e "\n=== auriyactl binder probe ===" && auriyactl binder probe 2>&1'
-```
-
-### Step 2: Fill Out the Issue Template
-
-Copy the Markdown template below when opening an issue:
-
-```markdown
+````markdown
 ### Issue Summary
 [Provide a clear and concise description of the bug or unexpected behavior]
 
 ### Environment & Device Information
 - **Device Model**: [e.g. Xiaomi POCO F5 (marble)]
-- **SoC Platform**: [e.g. Snapdragon 7+ Gen 2 (SM7475)]
+- **SoC / Platform**: [e.g. Snapdragon 7+ Gen 2 (SM7475)]
 - **Android Version**: [e.g. Android 14 (API 34)]
 - **ROM / OS**: [e.g. HyperOS 1.0.8.0.UMRMIXM / LineageOS 21]
 - **Kernel Version**: [e.g. Linux 5.10.198-android12-9-00045-g84e491295b92 aarch64]
 - **Root Solution & Version**: [e.g. KernelSU v0.9.5 / Magisk v27.0 / APatch v10763]
 - **Auriya Version**: [e.g. v2.2.0 (release)]
-
-### Diagnostic Command Output
-```text
-[Paste the complete output from the one-liner diagnostic command here]
-```
 
 ### Target Application
 - **Package Name**: [e.g. com.miHoYo.GenshinImpact or N/A]
@@ -335,7 +311,5 @@ Copy the Markdown template below when opening an issue:
 [What actually happened, including any error messages]
 
 ### Relevant Daemon Logs (`/data/adb/auriya/daemon.log`)
-```text
-[Paste the last 50-100 lines of /data/adb/auriya/daemon.log captured during the issue]
-```
-```
+[Paste the last 50-100 lines of /data/adb/auriya/daemon.log captured during the issue here]
+````

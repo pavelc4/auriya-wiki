@@ -276,48 +276,24 @@ auriyactl restart         # Menghentikan daemon secara bersih (SIGTERM) dan meny
 
 ## Panduan Pelaporan Masalah (Issue Reporting Guide)
 
-Jika Anda menemukan bug, perilaku tidak terduga, atau ketidakcocokan pada kernel/perangkat tertentu, silakan laporkan masalah melalui [GitHub Issues Auriya](https://github.com/pavelc4/auriya/issues).
+Jika Anda menemukan bug, perilaku tidak terduga, atau ketidakcocokan perangkat/kernel, silakan laporkan masalah melalui [GitHub Issues Auriya](https://github.com/pavelc4/auriya/issues).
 
-### Langkah 1: Jalankan Perintah Diagnostik Satu Baris
+Saat membuat laporan issue, cantumkan model perangkat, versi kernel, versi Android, root manager yang digunakan beserta versinya (KernelSU, Magisk, atau APatch), versi Auriya, serta lampirkan cuplikan log dari `/data/adb/auriya/daemon.log`.
 
-Jalankan perintah berikut di Termux, ADB Shell, atau terminal root apa pun. Perintah ini akan mengumpulkan seluruh informasi perangkat, kernel, root manager, dan diagnostik Auriya secara otomatis dalam satu blok teks:
+Anda dapat menyalin dan mengisi template berikut:
 
-```bash
-su -c 'echo "=== Auriya Issue Diagnostics ===" && \
-echo "Manufacturer: $(getprop ro.product.manufacturer)" && \
-echo "Model: $(getprop ro.product.model) ($(getprop ro.product.device))" && \
-echo "Board: $(getprop ro.board.platform) / Hardware: $(getprop ro.hardware)" && \
-echo "Android: $(getprop ro.build.version.release) (SDK $(getprop ro.build.version.sdk))" && \
-echo "ROM: $(getprop ro.build.display.id)" && \
-echo "Kernel: $(uname -a)" && \
-echo "Root Manager: $([ -n "$KSU" ] || which ksud >/dev/null 2>&1 && echo "KernelSU ($(ksud -V 2>/dev/null || echo unknown))" || ([ -n "$MAGISK_VER" ] || which magisk >/dev/null 2>&1 && echo "Magisk ($(magisk -v 2>/dev/null || echo unknown))" || ([ -n "$APATCH" ] || which ap >/dev/null 2>&1 && echo "APatch ($(ap -v 2>/dev/null || echo unknown))" || echo "Other/Unknown")))" && \
-echo "Auriya: $(auriyactl --version 2>/dev/null || grep -E "^version=" /data/adb/modules/auriya/module.prop 2>/dev/null)" && \
-echo -e "\n=== auriyactl status ===" && auriyactl status 2>&1 && \
-echo -e "\n=== auriyactl info ===" && auriyactl info 2>&1 && \
-echo -e "\n=== auriyactl binder probe ===" && auriyactl binder probe 2>&1'
-```
-
-### Langkah 2: Gunakan Format Template Masalah
-
-Salin dan isi template Markdown berikut saat membuat issue baru di GitHub:
-
-```markdown
+````markdown
 ### Ringkasan Masalah
 [Jelaskan secara singkat dan jelas masalah atau bug yang terjadi]
 
 ### Informasi Perangkat & Sistem
 - **Model Perangkat**: [contoh: Xiaomi POCO F5 (marble)]
-- **Platform SoC**: [contoh: Snapdragon 7+ Gen 2 (SM7475)]
+- **Platform SoC / Board**: [contoh: Snapdragon 7+ Gen 2 (SM7475)]
 - **Versi Android**: [contoh: Android 14 (API 34)]
 - **ROM / OS**: [contoh: HyperOS 1.0.8.0.UMRMIXM / LineageOS 21]
 - **Versi Kernel**: [contoh: Linux 5.10.198-android12-9-00045-g84e491295b92 aarch64]
 - **Root Manager & Versi**: [contoh: KernelSU v0.9.5 / Magisk v27.0 / APatch v10763]
 - **Versi Auriya**: [contoh: v2.2.0 (release)]
-
-### Output Perintah Diagnostik
-```text
-[Tempelkan seluruh hasil dari perintah diagnostik satu baris di sini]
-```
 
 ### Aplikasi / Game yang Terpengaruh
 - **Nama Paket**: [contoh: com.miHoYo.GenshinImpact atau N/A jika masalah umum]
@@ -335,7 +311,5 @@ Salin dan isi template Markdown berikut saat membuat issue baru di GitHub:
 [Apa yang sebenarnya terjadi, sertakan pesan error jika ada]
 
 ### Cuplikan Log Daemon (`/data/adb/auriya/daemon.log`)
-```text
-[Tempelkan 50-100 baris terakhir dari /data/adb/auriya/daemon.log saat masalah berlangsung]
-```
-```
+[Tempelkan 50-100 baris terakhir dari /data/adb/auriya/daemon.log saat masalah berlangsung di sini]
+````
