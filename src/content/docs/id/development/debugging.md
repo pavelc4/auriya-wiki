@@ -72,17 +72,6 @@ Daemon Runtime:
   CPU Load:       19.0%
   Workers:        7
 ```
-  BPF Syscall:    Available
-  JIT Compiler:   Enabled
-  Kala Probe:     Available
-  Active Engine:  Kala eBPF
-
-Daemon Runtime:
-  PID:            14210 (Running)
-  Memory (RSS):   5.4 MB
-  CPU Load:       0.3%
-  Workers:        2
-```
 
 ### 2. Manajemen Log & Streaming Langsung
 

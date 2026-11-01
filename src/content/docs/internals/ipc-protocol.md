@@ -132,7 +132,7 @@ One `CORE_{id}` line is emitted per online/known core. See
 | --- | --- | --- |
 | `ENABLE` | `OK ENABLED` | Sets the atomic enabled flag (`Ordering::Release`). |
 | `DISABLE` | `OK DISABLED` | Clears it. |
-| `SETLOG <LEVEL>` | `OK SET_LOG` | Live-reloads the `tracing` filter (`run.rs`). Bad level → `ERR usage: SETLOG <TRACE\|DEBUG\|INFO\|WARN\|ERROR>`. |
+| `SETLOG <LEVEL>` | `OK SET_LOG` | Live-reloads the logger filter (`src/daemon/ipc/handlers.rs`). Bad level → `ERR usage: SETLOG <TRACE\|DEBUG\|INFO\|WARN\|ERROR>`. |
 | `INJECT <pkg>` | `OK INJECT` | Forces a foreground package for debugging (overrides Native Binder ProcessObserver). |
 | `CLEAR_INJECT` | `OK CLEAR_INJECT` | Clears the override. |
 

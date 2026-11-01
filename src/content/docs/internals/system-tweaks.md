@@ -131,5 +131,5 @@ already exist.
 
 `VENDOR_PATHS`, the general-tweak node lists and their values in `init.rs`, and
 the SoC-detection prefixes. These are hardware-specific and change most often.
-Re-verify against `src/core/tweaks/init.rs`, `vendor_lock.rs`, and
-`vendor/detect.rs`.
+Re-verify against `src/platform/common/init.rs`, `src/platform/vendor/vendor_lock.rs`, and
+`src/platform/vendor/detect.rs`.

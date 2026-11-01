@@ -96,11 +96,13 @@ $ auriyactl set-profile performance
 Profile set: OK SET_PROFILE Performance
 
 $ auriyactl stats
-[Auriya Telemetry Snapshot]
-Profile: performance | Game: None
-FPS: 119.8 (avg: 120.0, 1% low: 114.2)
-CPU Load: 42% | GPU Load: 58% (680 MHz)
-Thermal: CPU 56.4°C | Battery 38.5°C
+Auriya Live Telemetry (Ctrl+C to quit):
+  FPS:            2.0 FPS (1% low: 0.1, 0.1% low: 0.1, peak: 98, σ: 1575.68ms)
+  CPU Load:       17%
+  GPU Load:       1% (20 MHz)
+  Temperature:    CPU: 40°C, Bat: 36°C
+  Battery:        19% (-252 mA)
+  Active App:     com.whatsapp (performance)
 
 $ auriyactl monitor
 # Membuka dashboard interaktif telemetri real-time di terminal

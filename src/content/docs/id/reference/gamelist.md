@@ -4,18 +4,18 @@ title: "Referensi gamelist.toml"
 `gamelist.toml` adalah file konfigurasi **per-aplikasi** milik Auriya: daftar putih (whitelist) paket Android yang menerima profil performa terkelola, beserta override khusus saat aplikasi tersebut aktif di latar depan (foreground). Pengaturan global sistem dikelola di [`settings.toml`](/id/reference/settings/).
 
 :::info Diverifikasi langsung terhadap kode sumber
-Dilacak ke commit Auriya [`10fe7c6`](https://github.com/pavelc4/auriya/tree/10fe7c6b56474a00513fec34ebac1376b30e95e6). Skema: [`src/core/config/gamelist.rs`](https://github.com/pavelc4/auriya/blob/10fe7c6b56474a00513fec34ebac1376b30e95e6/src/core/config/gamelist.rs). Konsumsi runtime: [`src/daemon/tick.rs`](https://github.com/pavelc4/auriya/blob/10fe7c6b56474a00513fec34ebac1376b30e95e6/src/daemon/tick.rs).
+Dilacak ke commit Auriya [`10fe7c6`](https://github.com/pavelc4/auriya/tree/10fe7c6b56474a00513fec34ebac1376b30e95e6). Skema: [`src/core/config/gamelist.rs`](https://github.com/pavelc4/auriya/blob/10fe7c6b56474a00513fec34ebac1376b30e95e6/src/core/config/gamelist.rs). Konsumsi runtime: [`src/daemon/pipeline/`](https://github.com/pavelc4/auriya/tree/main/src/daemon/pipeline).
 :::
 
 ## Lokasi dan Kepemilikan
 
 | Properti | Nilai | Sumber Kode |
 | --- | --- | --- |
-| Jalur Terinstal | `/data/adb/.config/auriya/gamelist.toml` | `src/core/config/path.rs:11-13` (`gamelist_path()`) |
+| Jalur Terinstal | `/data/adb/.config/auriya/gamelist.toml` | `src/core/config/path.rs` (`gamelist_path()`) |
 | Parameter Daemon | `auriya --gamelist <path>` | `module/service.sh` |
-| Format Data | Array tabel TOML (`[[game]]`) | `GameList` = `Vec<GameProfile>`, `gamelist.rs:83-102` |
-| Ditulis Oleh | Aplikasi manajer **dan** daemon saat mutasi IPC | `TomlParser.kt`; `gamelist.rs:118-130` |
-| Dibaca Oleh | Daemon, dicache sebagai whitelist dan diperiksa setiap tick | `src/daemon/run.rs:212-217`, `tick.rs:222` |
+| Format Data | Array tabel TOML (`[[game]]`) | `GameList` = `Vec<GameProfile>`, `gamelist.rs` |
+| Ditulis Oleh | Aplikasi manajer **dan** daemon saat mutasi IPC | `TomlParser.kt`; `gamelist.rs` |
+| Dibaca Oleh | Daemon, dicache sebagai whitelist dan diperiksa setiap tick | `src/daemon/engine/`, `src/daemon/pipeline/` |
 
 Berbeda dengan `settings.toml`, file ini **dapat dimutasi saat runtime oleh daemon**. Saat klien mengirim perintah `ADD_GAME`, `REMOVE_GAME`, atau `UPDATE_GAME` via IPC, daemon memperbarui memori dan menulis ulang seluruh isi file secara atomik.
 
@@ -52,12 +52,12 @@ target_fps = 120
 | Kunci | Tipe Data | Wajib | Default Saat Dikosongkan | Keterangan & Makna |
 | --- | --- | :---: | --- | --- |
 | `package` | string | **Ya** | — | Nama paket Android persis, misalnya `com.tencent.ig`. Dicocokkan dengan paket foreground yang dideteksi via ProcessObserver Native Binder (`gamelist.find(pkg)`). Tanpa wildcard. |
-| `cpu_governor` | string | **Ya** | — | CPU governor untuk game ini. Diteruskan langsung ke kernel (`tick.rs:223-225`). Jika string kosong, fallback ke `balance_governor` global. |
-| `enable_dnd` | bool | **Ya** | — | `true` → mengaktifkan mode Priority Do-Not-Disturb; `false` → notifikasi normal (`tick.rs:296-300`). |
-| `target_fps` | int **atau** int[] | Tidak | `None` (FAS mempertahankan target saat ini) | Target frame rate FAS. Menerima nilai tunggal atau array nilai (adaptif). |
-| `refresh_rate` | integer (Hz) | Tidak | `None` (tanpa override tampilan) | Target refresh rate layar (Hz) saat game aktif di foreground (`tick.rs:287-293`). Dipulihkan ke `0` saat keluar. |
-| `mode` | string | Tidak | `None` → **Performance** | Profil game. Case-insensitive: `powersave`, `balance`, `fast`, **nilai lain / kosong → Performance** (`tick.rs`). |
-| `ceiling` | string | Tidak | `None` (tanpa batas frekuensi) | Batas atas frekuensi (Low/Balance). Nilai yang tidak valid diabaikan tanpa error. |
+| `cpu_governor` | string | **Ya** | — | CPU governor untuk game ini. Diteruskan langsung ke kernel via `src/daemon/pipeline/apply.rs`. Jika string kosong, fallback ke `balance_governor` global. |
+| `enable_dnd` | bool | **Ya** | — | `true` → mengaktifkan mode Priority Do-Not-Disturb via Native Binder; `false` → notifikasi normal. |
+| `target_fps` | int **atau** int[] | Tidak | `None` (FAS mempertahankan target saat ini) | Target frame rate FAS. Menerima nilai tunggal atau array nilai (adaptif) via `src/daemon/pipeline/fas.rs`. |
+| `refresh_rate` | integer (Hz) | Tidak | `None` (tanpa override tampilan) | Target refresh rate layar (Hz) saat game aktif di foreground via Native Binder. Dipulihkan ke `0` saat keluar. |
+| `mode` | string | Tidak | `None` → **Performance** | Profil game. Case-insensitive: `powersave`, `balance`, `fast`, **nilai lain / kosong → Performance** (`src/daemon/pipeline/decide.rs`). |
+| `ceiling` | string | Tidak | `None` (tanpa batas frekuensi) | Batas atas frekuensi (Low/Balance). Nilai yang tidak valid diabaikan tanpa error (`src/platform/cpu/ceiling.rs`). |
 
 ### Field `target_fps`: Nilai Tunggal atau Array
 

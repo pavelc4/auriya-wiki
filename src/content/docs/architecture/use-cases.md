@@ -11,9 +11,9 @@ below is grounded in the runtime paths described in [Data flow](/architecture/da
 | --- | --- |
 | **User** | Person operating the phone — installs, tweaks, plays. |
 | **Manager app** | Compose UI (`dev.auriya.app`). Writes config, sends commands, renders telemetry. |
-| **Companion** | `AuriyaSysMon`. Observes Android state, executes framework actions. |
-| **Daemon** | `auriya` (root). Owns scheduling, tweaks, IPC, telemetry. |
-| **Kernel** | `/proc` + `/sys` nodes the daemon reads/writes. |
+| **Daemon** | `auriya` (root). Owns scheduling, tweaks, IPC, telemetry, and Native Binder IPC. |
+| **Android Framework** | System services (`IActivityManager`, `IPowerManager`, `IDisplayManager`) queried via Binder. |
+| **Kernel** | `/proc`, `/sys`, and eBPF Uprobe nodes the daemon reads/writes. |
 
 ## Use-case map
 

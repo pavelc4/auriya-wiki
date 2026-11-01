@@ -32,7 +32,7 @@ Aplikasi manager mengelola konfigurasi pengguna, tampilan overlay HUD interaktif
 
 ## Alur Eksekusi Biner
 
-Modul yang terpasang tidak menjalankan daemon melalui aplikasi Android. Saat boot, script `module/service.sh` menunggu sinyal Android `sys.boot_completed`, menghentikan sisa proses daemon lama, menghapus file soket lama, dan mengeksekusi `/data/adb/modules/auriya/system/bin/auriya` dengan path konfigurasi settings dan gamelist. Log output dicatat langsung ke file `/data/adb/auriya/auriya.log` melalui engine logger dmesg zero-allocation.
+Modul yang terpasang tidak menjalankan daemon melalui aplikasi Android. Saat boot, script `module/service.sh` menunggu sinyal Android `sys.boot_completed`, menghentikan sisa proses daemon lama, menghapus file soket lama, dan mengeksekusi `/data/adb/modules/auriya/system/bin/auriya` dengan path konfigurasi settings dan gamelist. Log output dicatat langsung ke file `/data/adb/auriya/daemon.log` melalui engine logger dmesg zero-allocation.
 
 ```mermaid
 flowchart TD

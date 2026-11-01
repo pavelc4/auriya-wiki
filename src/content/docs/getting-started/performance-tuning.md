@@ -29,13 +29,13 @@ everywhere else.
 
 Frame-Aware Scheduling (FAS) watches real frame timing and nudges CPU/GPU up or
 down to hold your target FPS with the least power. It only runs for **whitelisted
-games** and only when the eBPF frame probe is available (see
+games** and only when Kala eBPF is available (see
 [FPS detection](/internals/fps-detection/) and
 [Kala](/internals/kala-research/)).
 
 ### Enabling FAS
 
-`[fas] enabled = true` (default). If the device kernel can't load the eBPF probe,
+`[fas] enabled = true` (default). If the device kernel can't load Kala eBPF,
 the daemon automatically falls back to sysfs-only FPS and disables FAS — nothing
 to configure.
 

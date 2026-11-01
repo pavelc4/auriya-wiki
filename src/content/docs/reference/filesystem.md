@@ -26,8 +26,9 @@ Path constants defined in `src/platform/common/mod.rs` and `src/core/config/mod.
 
 | Path | Written by | Purpose |
 | :--- | :--- | :--- |
-| `auriya.log` | DmesgLogger | Structured kernel-style logs with boottime precision stamps (`[   12.345678] [INFO] ...`). Automatically rotated when exceeding 1 MB. |
-| `auriya.log.1` | DmesgLogger | Previous rotated log archive. |
+| `daemon.log` | DmesgLogger | Structured kernel-style logs with boottime precision stamps (`[ 1234.567890] [info] ...`). Automatically rotated when exceeding 2 MB. |
+| `daemon.log.old` | DmesgLogger | Previous rotated log archive. |
+| `restart.log` | `service.sh` | Captured outputs during background daemon restarts. |
 
 ### Module Directory — `/data/adb/modules/auriya/`
 

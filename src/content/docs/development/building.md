@@ -8,7 +8,7 @@ you must know before running any cargo command.
 Traced to commit `10fe7c6`:
 [`Cargo.toml`](https://github.com/pavelc4/auriya/blob/10fe7c6b56474a00513fec34ebac1376b30e95e6/Cargo.toml),
 [`.cargo/config.toml`](https://github.com/pavelc4/auriya/blob/10fe7c6b56474a00513fec34ebac1376b30e95e6/.cargo/config.toml),
-`android/*/build.gradle.kts`, `website/package.json`. The authoritative CI recipe
+`android/app/build.gradle.kts`, `auriya-wiki/package.json`. The authoritative CI recipe
 is [CI/CD workflows](/development/ci-cd/).
 :::
 
@@ -32,7 +32,7 @@ Consequences for a first-time contributor:
   path** `/opt/android-ndk`. Without that NDK, the build fails at the linker.
 - **`cargo test` runs on a device.** The `runner` ships each test binary to a
   connected device over adb (`.cargo/adb-runner.sh`) — tests execute on real
-  hardware, not your workstation. Several tests (`pid_tracker`, `cmd_writer`)
+  hardware, not your workstation. Several tests (`pid_tracker`, `logger_test`)
   assume a real Android/Linux environment.
 - CI installs the NDK and uses `cargo ndk` rather than relying on this hardcoded
   path — see below.
@@ -86,27 +86,24 @@ are denied.
 
 ## Android
 
-Two Gradle modules produce the APKs (`android/app`, `android/service`;
-`minSdk = 30` / Android 11, `android/app/build.gradle.kts:54`). Signed release
-builds need `android/signing.properties` (template:
-`android/signing.properties.example` — never commit real keys):
+The manager application is built using Gradle (`android/app`; `minSdk = 26` / Android 8.0). Signed release builds use `android/signing.properties` (template: `android/signing.properties.example` — never commit real keys):
 
 ```bash
 cd android
-./gradlew build                                    # all modules, debug + release
-./gradlew :app:assembleRelease :service:assembleRelease   # what CI builds
+./gradlew build                                    # build debug and release variants
+./gradlew :app:assembleRelease                     # release manager APK built by CI
 ./gradlew test                                     # JVM unit tests
 ```
 
 ## Documentation site
 
-The website uses **Bun** (`website/bun.lock`, `website/package.json`):
+The documentation site uses **Bun** (`auriya-wiki/package.json`):
 
 ```bash
-cd website
+cd auriya-wiki
 bun install
-bun run start     # local dev server with live reload
-bun run build     # static production build into website/build
+bun run dev       # local dev server with live reload
+bun run build     # static production build into auriya-wiki/dist
 ```
 
 ## Full pipeline

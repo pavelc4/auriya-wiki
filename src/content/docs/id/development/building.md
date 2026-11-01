@@ -4,7 +4,7 @@ title: "Membangun (Building)"
 Cara mengompilasi setiap bagian dari Auriya. Kompilasi Rust memiliki **catatan khusus repositori** yang wajib diketahui sebelum menjalankan perintah cargo apa pun.
 
 :::info Diverifikasi langsung terhadap kode sumber
-Dilacak ke commit `10fe7c6`: [`Cargo.toml`](https://github.com/pavelc4/auriya/blob/10fe7c6b56474a00513fec34ebac1376b30e95e6/Cargo.toml), [`.cargo/config.toml`](https://github.com/pavelc4/auriya/blob/10fe7c6b56474a00513fec34ebac1376b30e95e6/.cargo/config.toml), `android/*/build.gradle.kts`, `website/package.json`. Resep CI resmi ada di [Workflow CI/CD](/id/development/ci-cd/).
+Dilacak ke commit `10fe7c6`: [`Cargo.toml`](https://github.com/pavelc4/auriya/blob/10fe7c6b56474a00513fec34ebac1376b30e95e6/Cargo.toml), [`.cargo/config.toml`](https://github.com/pavelc4/auriya/blob/10fe7c6b56474a00513fec34ebac1376b30e95e6/.cargo/config.toml), `android/app/build.gradle.kts`, `auriya-wiki/package.json`. Resep CI resmi ada di [Workflow CI/CD](/id/development/ci-cd/).
 :::
 
 ## Cargo Dikonfigurasi Cross-Compile untuk Android
@@ -22,7 +22,7 @@ runner = "bash .cargo/adb-runner.sh"
 
 Konsekuensi penting bagi kontributor:
 - **`cargo build` tidak membangun untuk host lokal secara default.** Perintah ini melakukan cross-compile ke binary `aarch64-linux-android` dan membutuhkan Android NDK pada jalur hardcoded `/opt/android-ndk`.
-- **`cargo test` dijalankan langsung di perangkat fisik.** Nilai `runner` mengirimkan setiap binary pengujian ke perangkat yang terhubung melalui adb (`.cargo/adb-runner.sh`). Sejumlah tes (`pid_tracker`, `cmd_writer`) memang memerlukan lingkungan Android/Linux nyata.
+- **`cargo test` dijalankan langsung di perangkat fisik.** Nilai `runner` mengirimkan setiap binary pengujian ke perangkat yang terhubung melalui adb (`.cargo/adb-runner.sh`). Sejumlah tes (`pid_tracker`, `logger_test`) memang memerlukan lingkungan Android/Linux nyata.
 
 Untuk melakukan build di komputer host (misal untuk unit test lokal non-perangkat):
 
@@ -58,22 +58,22 @@ cargo clippy --all-targets --all-features -- -D warnings    # lint tingkat deny
 
 ## Android
 
-Dua modul Gradle menghasilkan APK (`android/app`, `android/service`; `minSdk = 30` / Android 11):
+Aplikasi manager dibangun menggunakan Gradle (`android/app`; `minSdk = 26` / Android 8.0):
 
 ```bash
 cd android
-./gradlew build                                            # semua modul (debug + release)
-./gradlew :app:assembleRelease :service:assembleRelease   # paket release
-./gradlew test                                             # unit test JVM
+./gradlew build                                    # build varian debug dan release
+./gradlew :app:assembleRelease                     # build APK manager rilis (CI)
+./gradlew test                                     # unit test JVM
 ```
 
 ## Situs Dokumentasi
 
-Situs web wiki menggunakan **Bun** (`website/package.json`):
+Situs web dokumentasi wiki menggunakan **Bun** (`auriya-wiki/package.json`):
 
 ```bash
-cd website
+cd auriya-wiki
 bun install
-bun run start     # development server lokal dengan hot-reload
-bun run build     # static production build
+bun run dev       # server development lokal dengan hot-reload
+bun run build     # static production build ke auriya-wiki/dist
 ```

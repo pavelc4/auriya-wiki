@@ -10,7 +10,7 @@ source, it is cited.
 | --- | --- | --- |
 | Root manager | Magisk, KernelSU, or APatch | `module/customize.sh` detects `KSU`/APatch and links binaries accordingly |
 | CPU architecture | **`arm64-v8a` (aarch64) only** | `customize.sh` aborts on any other `$ARCH`; the module ships only aarch64 binaries |
-| Android version | **11 or newer** (`minSdk = 30`) | `android/app/build.gradle.kts:54`, `android/service/build.gradle.kts:54` |
+| Android version | **11 or newer** (`minSdk = 30`) | `android/app/build.gradle.kts:55` |
 | Root permission | The manager and daemon require root to read/write `/proc` and `/sys` and to bind the daemon socket | see [System tweaks](/internals/system-tweaks/), [IPC protocol](/internals/ipc-protocol/) |
 
 ## Kernel features (for Frame-Aware Scheduling)

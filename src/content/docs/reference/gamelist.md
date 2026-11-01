@@ -12,18 +12,18 @@ Every claim is traced to Auriya commit
 Schema:
 [`src/core/config/gamelist.rs`](https://github.com/pavelc4/auriya/blob/10fe7c6b56474a00513fec34ebac1376b30e95e6/src/core/config/gamelist.rs).
 Runtime consumption:
-[`src/daemon/tick.rs`](https://github.com/pavelc4/auriya/blob/10fe7c6b56474a00513fec34ebac1376b30e95e6/src/daemon/tick.rs).
+[`src/daemon/pipeline/`](https://github.com/pavelc4/auriya/tree/main/src/daemon/pipeline).
 :::
 
 ## Location and ownership
 
 | Fact | Value | Source |
 | --- | --- | --- |
-| Installed path | `/data/adb/.config/auriya/gamelist.toml` | `src/core/config/path.rs:11-13` (`gamelist_path()`) |
+| Installed path | `/data/adb/.config/auriya/gamelist.toml` | `src/core/config/path.rs` (`gamelist_path()`) |
 | Passed to daemon as | `auriya --gamelist <path>` | `module/service.sh` (daemon launch line) |
-| Format | TOML array of tables (`[[game]]`) | `GameList` = `Vec<GameProfile>`, `gamelist.rs:83-102` |
-| Written by | manager app (`TomlParser.serializeGameList`) **and** the daemon itself on IPC mutation | `TomlParser.kt:198-219`; `gamelist.rs:118-130` |
-| Read by | the daemon, cached as a package whitelist and consulted every tick | `src/daemon/run.rs:212-217`, `tick.rs:222` |
+| Format | TOML array of tables (`[[game]]`) | `GameList` = `Vec<GameProfile>`, `gamelist.rs` |
+| Written by | manager app (`TomlParser.serializeGameList`) **and** the daemon itself on IPC mutation | `TomlParser.kt`; `gamelist.rs` |
+| Read by | the daemon, cached as a package whitelist and consulted every tick | `src/daemon/engine/`, `src/daemon/pipeline/` |
 
 Unlike `settings.toml`, this file is **mutated at runtime by the daemon**. When a
 client sends `ADD_GAME`, `REMOVE_GAME`, or `UPDATE_GAME` over IPC, the daemon
@@ -75,29 +75,28 @@ important way:
   `[[game]]` block are silently ignored.
 
 At startup the daemon builds a `HashSet` of package names (the "whitelist") from
-this list (`src/daemon/run.rs:212-217`). On a gamelist file change the whitelist
-is rebuilt and tracked package/PID state is cleared (`Daemon::rebuild_whitelist`,
-`run.rs:320-327`).
+this list (`src/daemon/engine/`). On a gamelist file change the whitelist
+is rebuilt and tracked package/PID state is cleared (`DaemonContext::reload_gamelist`).
 
 ## Field reference
 
-Defined by `GameProfile`, `gamelist.rs:89-102`. The **Consumed** column uses the
+Defined by `GameProfile`, `gamelist.rs`. The **Consumed** column uses the
 same legend as the [settings reference](/reference/settings/#key-by-key-reference): **Yes** (read
 and effective), **No** (parsed but unused).
 
 | Key | Type | Required | Default when omitted | Consumed | Meaning & evidence |
 | --- | --- | :---: | --- | :---: | --- |
 | `package` | string | **Yes** | — | Yes | Exact Android package name, e.g. `com.tencent.ig`. This is the whitelist key matched against the active foreground package detected via Native Binder ProcessObserver (`gamelist.find(pkg)`). No wildcards, no partial match. |
-| `cpu_governor` | string | **Yes** | — | Yes | CPU governor applied for this game. Passed straight to the profile writer (`tick.rs:223-225`). An empty string falls back to the global `balance_governor` (`tick.rs:266-269`). Raw kernel governor name; not validated against the device. |
-| `enable_dnd` | bool | **Yes** | — | Yes | `true` → request Priority Do-Not-Disturb while foreground; `false` → All/normal notifications (`tick.rs:296-300`). If a client omits it during mutation, the daemon treats it as `true` (`tick.rs:226`). |
-| `target_fps` | integer **or** integer array | No | `None` (FAS keeps its current target) | Yes | FAS frame-rate target. Accepts **two shapes** — see [The `target_fps` field](#the-target_fps-field-single-value-or-array) below. Applied to the FAS controller when set (`tick.rs:159-170`). |
-| `refresh_rate` | integer (Hz) | No | `None` (no display override) | Yes | Requested display refresh rate while foreground. Applied only when it differs from the currently applied rate (`tick.rs:287-293`); released back to automatic on exit by requesting `0` (`tick.rs:315-320`). |
-| `mode` | string | No | `None` → **Performance** | Yes | Profile for this game. Parsed **case-insensitively**: `powersave` → Powersave, `balance` → Balance, `fast` → Fast, **any other value _or_ missing → Performance** (`tick.rs`). So a typo like `mode = "perf"` silently resolves to Performance, not an error. |
-| `ceiling` | string | No | `None` (no ceiling override) | Yes | Frequency-ceiling level for this game. Parsed to `CeilingLevel`; an **unparseable value is dropped to no-override**, not an error (`tick.rs:282-285`). |
+| `cpu_governor` | string | **Yes** | — | Yes | CPU governor applied for this game. Passed straight to the profile writer (`src/daemon/pipeline/apply.rs`). An empty string falls back to the global `balance_governor`. Raw kernel governor name; not validated against the device. |
+| `enable_dnd` | bool | **Yes** | — | Yes | `true` → request Priority Do-Not-Disturb while foreground; `false` → All/normal notifications via Native Binder. If a client omits it during mutation, the daemon treats it as `true`. |
+| `target_fps` | integer **or** integer array | No | `None` (FAS keeps its current target) | Yes | FAS frame-rate target. Accepts **two shapes** — see [The `target_fps` field](#the-target_fps-field-single-value-or-array) below. Applied to the FAS controller when set (`src/daemon/pipeline/fas.rs`). |
+| `refresh_rate` | integer (Hz) | No | `None` (no display override) | Yes | Requested display refresh rate while foreground. Applied only when it differs from the currently applied rate via Native Binder; released back to automatic on exit by requesting `0`. |
+| `mode` | string | No | `None` → **Performance** | Yes | Profile for this game. Parsed **case-insensitively**: `powersave` → Powersave, `balance` → Balance, `fast` → Fast, **any other value _or_ missing → Performance** (`src/daemon/pipeline/decide.rs`). So a typo like `mode = "perf"` silently resolves to Performance, not an error. |
+| `ceiling` | string | No | `None` (no ceiling override) | Yes | Frequency-ceiling level for this game. Parsed to `CeilingLevel`; an **unparseable value is dropped to no-override**, not an error. |
 
 :::note Where the enum values are defined
-`mode` values map to `ProfileMode` (`src/common/types.rs:14-16`). `ceiling`
-values map to `CeilingLevel` (`src/core/tweaks/ceiling.rs:20-24`). For what each
+`mode` values map to `ProfileMode` (`src/common/types.rs`). `ceiling`
+values map to `CeilingLevel` (`src/platform/cpu/ceiling.rs`). For what each
 profile actually writes to the kernel, see
 [Architecture overview → What each static profile changes](/architecture/overview/#what-each-static-profile-changes).
 :::
@@ -189,5 +188,5 @@ mutation.
 - `mode` / `ceiling` accepted values, if new profiles or ceiling levels are
   added.
 
-Re-verify against `src/core/config/gamelist.rs`, `src/daemon/tick.rs`, and
+Re-verify against `src/core/config/gamelist.rs`, `src/daemon/pipeline/`, and
 `src/daemon/ipc/`.

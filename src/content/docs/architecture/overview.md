@@ -32,7 +32,7 @@ The Android manager owns user configuration, interactive overlay presentation, a
 
 ## Binary Execution Workflow
 
-The installed module does not launch the daemon through the Android app. At boot, `module/service.sh` waits for Android's `sys.boot_completed`, stops any stale daemon instances, removes leftover socket files, and launches `/data/adb/modules/auriya/system/bin/auriya` with the installed settings and gamelist paths. Standard output and errors are captured cleanly via the zero-allocation logging engine directly into `/data/adb/auriya/auriya.log`.
+The installed module does not launch the daemon through the Android app. At boot, `module/service.sh` waits for Android's `sys.boot_completed`, stops any stale daemon instances, removes leftover socket files, and launches `/data/adb/modules/auriya/system/bin/auriya` with the installed settings and gamelist paths. Standard output and errors are captured cleanly via the zero-allocation logging engine directly into `/data/adb/auriya/daemon.log`.
 
 ```mermaid
 flowchart TD

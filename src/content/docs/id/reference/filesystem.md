@@ -26,8 +26,9 @@ Konstanta path didefinisikan pada `src/platform/common/mod.rs` dan `src/core/con
 
 | Path | Ditulis oleh | Fungsi |
 | :--- | :--- | :--- |
-| `auriya.log` | DmesgLogger | Log berformat kernel dmesg dengan timestamp boottime presisi (`[   12.345678] [INFO] ...`). Otomatis dirotasi saat melebihi 1 MB. |
-| `auriya.log.1` | DmesgLogger | Arsip log hasil rotasi sebelumnya. |
+| `daemon.log` | DmesgLogger | Log berformat kernel dmesg dengan timestamp boottime presisi (`[ 1234.567890] [info] ...`). Otomatis dirotasi saat melebihi 2 MB. |
+| `daemon.log.old` | DmesgLogger | Arsip log hasil rotasi sebelumnya. |
+| `restart.log` | `service.sh` | Tangkapan log saat proses restart latar belakang dijalankan oleh service.sh. |
 
 ### Direktori Modul — `/data/adb/modules/auriya/`
 

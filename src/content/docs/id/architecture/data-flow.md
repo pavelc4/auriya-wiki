@@ -61,7 +61,7 @@ flowchart TD
     svc --> c3["Jalankan biner auriya dengan --settings dan --gamelist"]
 
     c3 --> d1["Muat settings.toml & gamelist.toml"]
-    d1 --> d2["Inisialisasi DmesgLogger ke /data/adb/auriya/auriya.log"]
+    d1 --> d2["Inisialisasi DmesgLogger ke /data/adb/auriya/daemon.log"]
     d2 --> d3["Hubungkan BinderClient ke Android servicemanager"]
     d3 --> d4["Daftarkan ProcessObserver ke IActivityManager"]
     d4 --> d5["Buka /dev/socket/auriya.sock"]

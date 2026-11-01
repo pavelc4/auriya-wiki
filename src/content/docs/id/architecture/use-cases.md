@@ -9,9 +9,9 @@ Siapa yang melakukan apa dengan Auriya, dan jalur yang dilalui oleh setiap kapab
 | --- | --- |
 | **Pengguna** | Orang yang mengoperasikan ponsel — menginstal, mengonfigurasi, dan bermain game. |
 | **Aplikasi Manajer** | Antarmuka Compose UI (`dev.auriya.app`). Menulis konfigurasi, mengirim perintah, dan merender telemetri. |
-| **Companion** | Layanan `AuriyaSysMon`. Mengamati status Android dan menjalankan aksi framework. |
-| **Daemon** | `auriya` (berjalan sebagai root). Bertanggung jawab atas penjadwalan, tweak sistem, IPC, dan telemetri. |
-| **Kernel** | Node `/proc` + `/sys` yang dibaca/ditulis oleh daemon. |
+| **Daemon** | `auriya` (berjalan sebagai root). Mengelola penjadwalan, tweak sistem, IPC, dan Native Binder IPC. |
+| **Framework Android** | Layanan sistem OS (`IActivityManager`, `IPowerManager`, dll.) yang diakses via Binder. |
+| **Kernel** | Node `/proc`, `/sys`, dan eBPF Uprobe yang dibaca/ditulis oleh daemon. |
 
 ## Peta Kasus Penggunaan (Use-Case Map)
 

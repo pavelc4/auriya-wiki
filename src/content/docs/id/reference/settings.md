@@ -15,7 +15,7 @@ Dilacak ke commit Auriya [`10fe7c6`](https://github.com/pavelc4/auriya/tree/10fe
 | Parameter Daemon | `auriya --settings <path>` | `module/service.sh` |
 | Format Data | TOML | `Settings::load`, `settings.rs:96-103` |
 | Ditulis Oleh | **Aplikasi Manajer** (Kotlin `TomlParser.serializeSettings`), `TomlParser.kt:109-134` | — |
-| Dibaca Oleh | **Daemon Rust** saat startup dan saat terjadi perubahan file | `main.rs:11`, `src/daemon/run.rs:288-317` |
+| Dibaca Oleh | **Daemon Rust** saat startup dan saat terjadi perubahan file | `main.rs`, `src/daemon/engine/` |
 
 :::note Aplikasi Adalah Otoritas Konfigurasi
 Hingga rilis ini, CLI (`auriyactl`) **tidak** memiliki perintah untuk mengedit `settings.toml`. File ini ditulis oleh aplikasi manajer dan dibaca ulang oleh daemon (sebagian kunci live, sebagian besar saat startup — lihat [Perilaku reload](#perilaku-reload-pemuatan-ulang)).
