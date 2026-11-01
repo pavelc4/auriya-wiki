@@ -65,12 +65,14 @@ lower-cased downstream).
 | `GET_FPS` | `GETFPS` | — |
 | `GET_SUPPORTED_RATES` | `GETRATES` | — |
 | `GET_STATS` | `GETSTATS` | — |
+| `STREAM_STATS` | `STREAMSTATS` | `[interval_ms]` |
 | `INJECT` | — | `<package>` |
 | `CLEAR_INJECT` | `CLEARINJECT` | — |
 | `GETPID` | `GET_PID` | — |
 | `PING` | — | — |
 | `QUIT` | — | — |
 | `SET_PROFILE` | `SETPROFILE` | `<FAST\|PERFORMANCE\|BALANCE\|POWERSAVE\|1\|2\|3\|4>` |
+| `SET_GOVERNOR` | `SETGOVERNOR` | `<governor>` |
 | `ADD_GAME` | `ADDGAME` | `<package>` |
 | `REMOVE_GAME` | `REMOVEGAME` | `<package>` |
 | `UPDATE_GAME` | `UPDATEGAME` | `<package> [gov= dnd= fps= fps_array= rate= mode= ceiling=]` |
@@ -99,6 +101,7 @@ marks interpolated values.
 | `GET_FPS` | `FPS={measured:.1} TARGET={target}` (measured `0` if none) | — |
 | `GET_SUPPORTED_RATES` | JSON array of unique refresh rates, e.g. `[60,90,120]` (deduped/sorted from cached display modes) | `ERR JSON {e}` |
 | `GET_STATS` | Single-line JSON perf snapshot (fps/thermal/battery/cpu/gpu/session) — full schema in [Stats API](/reference/stats-api/) | `ERR JSON {e}` |
+| `STREAM_STATS [ms]` | Continuous JSON streaming of `StatsSnapshot` at specified interval (default: 1000ms, clamped 200–5000ms) until client disconnects | `ERR JSON {e}` |
 | `STATUS` | See [STATUS format](#status-response) below | — |
 
 #### STATUS response
@@ -130,7 +133,7 @@ One `CORE_{id}` line is emitted per online/known core. See
 | `ENABLE` | `OK ENABLED` | Sets the atomic enabled flag (`Ordering::Release`). |
 | `DISABLE` | `OK DISABLED` | Clears it. |
 | `SETLOG <LEVEL>` | `OK SET_LOG` | Live-reloads the `tracing` filter (`run.rs`). Bad level → `ERR usage: SETLOG <TRACE\|DEBUG\|INFO\|WARN\|ERROR>`. |
-| `INJECT <pkg>` | `OK INJECT` | Forces a foreground package for debugging (overrides the companion). |
+| `INJECT <pkg>` | `OK INJECT` | Forces a foreground package for debugging (overrides Native Binder ProcessObserver). |
 | `CLEAR_INJECT` | `OK CLEAR_INJECT` | Clears the override. |
 
 ### Configuration lifecycle
@@ -154,6 +157,7 @@ which does the kill/relaunch itself — see [Command reference](/reference/comma
 | Command | Success | Errors |
 | --- | --- | --- |
 | `SET_PROFILE <MODE>` | `OK SET_PROFILE {Mode}` | `ERR SET_PROFILE {e}` on apply failure; `ERR usage: SETPROFILE <…>` on bad token |
+| `SET_GOVERNOR <gov>` | `OK SET_GOVERNOR {gov}` | Changes cached CPU governor for balance mode |
 | `SET_FPS <n>` | `OK SET_FPS {n}` | `ERR usage: SET_FPS <number>` on non-integer |
 
 `SET_PROFILE` takes a **process-wide profile lock** before applying, so
@@ -193,10 +197,7 @@ mode `performance`), not the shipped example values — see
 
 ## Direction of data flow
 
-Commands and status flow **into** the daemon over this socket. Companion-observed
-state (focused app, screen/battery/zen) flows the **other** way — the companion
-writes `/data/adb/.config/auriya/system_status`, which the daemon watches. See
-[Data flow](/architecture/data-flow/) and [Game detection](/internals/game-detection/).
+Commands and status flow **into** and **out of** the daemon over this socket. Foreground application lifecycles and system state are monitored directly through Native Binder IPC (registering an `IProcessObserver` with Android's `IActivityManager` and querying `IPowerManager`, `IDisplayManager`, `INotificationManager`, and `IWifiManager`), completely in memory with zero disk writes. See [Native Binder IPC](/internals/binder-ipc/) and [Data flow](/architecture/data-flow/).
 
 ## Likely to drift first
 

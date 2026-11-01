@@ -14,19 +14,16 @@ at commit `10fe7c6`.
 ## What `uninstall.sh` does, in order
 
 1. **Stops the daemon** — `SIGTERM` `auriya`, wait up to 5 s, then `SIGKILL`.
-2. **Stops the companion** — the same TERM→KILL sequence for the `AuriyaSysMon`
-   process.
-3. **Force-stops and uninstalls the packages** — `am force-stop` then
-   `pm uninstall` for `dev.auriya.app`, `dev.auriya.app.debug`, and
-   `dev.auriya.service`. Each uninstall is retried up to 3 times with a 15 s
+2. **Force-stops and uninstalls the manager app** — `am force-stop` then
+   `pm uninstall` for `dev.auriya.app` and `dev.auriya.app.debug`. Each uninstall is retried up to 3 times with a 15 s
    timeout, because `pm uninstall` can hang.
-4. **Deletes runtime data**:
+3. **Deletes runtime data**:
    - `/dev/socket/auriya.sock`
    - `/data/adb/.config/auriya` — **all config**, including your `settings.toml`
      and `gamelist.toml`
    - `/data/adb/auriya` — all logs
    - the KernelSU/APatch symlinks (`/data/adb/ksu/bin/*`, `/data/adb/ap/bin/*`)
-5. **Countdown** — a short "Do not reboot" countdown so Android can finish the
+4. **Countdown** — a short "Do not reboot" countdown so Android can finish the
    package removals, then "Safe to reboot".
 
 The module directory itself (`/data/adb/modules/auriya`) is removed by the root

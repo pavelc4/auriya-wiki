@@ -165,7 +165,7 @@ export default defineConfig({
           translations: { id: 'Internal' },
           items: [
             { label: 'IPC Protocol', slug: 'internals/ipc-protocol' },
-            { label: 'Companion Service', slug: 'internals/companion' },
+            { label: 'Native Binder IPC', slug: 'internals/binder-ipc' },
             { label: 'FPS Detection', slug: 'internals/fps-detection' },
             { label: 'Kala Frame Probe', slug: 'internals/kala-research' },
             { label: 'Game Detection', slug: 'internals/game-detection' },

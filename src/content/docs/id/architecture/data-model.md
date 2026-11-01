@@ -1,19 +1,21 @@
 ---
 title: "Model Data"
 ---
-Auriya tidak menggunakan database konvensional — seluruh "entitas" datanya berupa file konfigurasi, snapshot memori (RAM), dan wire payload yang melintasi batas antara Rust ↔ Android. Halaman ini memetakan seluruh entitas: apa fungsinya, **di mana lokasinya**, dan **ke arah mana data disinkronkan**. Prinsip paling krusial di sini adalah **keselarasan skema Rust ↔ Kotlin (schema parity)** untuk entitas konfigurasi — kedua sisi harus memiliki struktur yang identik agar field tidak diabaikan secara diam-diam (karena tidak ada `deny_unknown_fields`).
+Auriya tidak menggunakan basis data eksternal — "entitas" utamanya berupa file konfigurasi, snapshot status dalam memori, serta payload data yang melintasi batas antara Rust dan Android. Halaman ini memetakan: apa masing-masing entitas tersebut, **di mana ia berada**, dan **ke mana arah sinkronisasinya**. Prinsip terpenting di sini adalah **keselarasan skema Rust ↔ Kotlin** untuk entitas konfigurasi — kedua sisi harus memiliki struktur field yang identik agar tidak ada data yang terabaikan secara diam-diam.
 
 :::info Diverifikasi langsung terhadap kode sumber
-Rust: `src/core/config/`, `src/core/system_status/`, `src/core/cmd_writer/`, `src/daemon/state.rs`, `src/core/stats/`, `src/core/telemetry/`. Kotlin: `android/shared/src/main/kotlin/dev/auriya/shared/model/` + `.../config/TomlParser.kt`.
+Dilacak ke Auriya v2.2.0.
+Rust: `src/core/config/`, `src/daemon/context.rs`, `src/core/stats/`, `src/core/telemetry/`, `src/platform/binder/`.
+Kotlin: `android/shared/src/main/kotlin/dev/auriya/shared/model/` + `.../config/TomlParser.kt`.
 :::
 
-## Peta Entitas (Kepemilikan & Arah Sinkronisasi)
+## Peta Entitas (Pemilik & Arah Sinkronisasi)
 
 ```mermaid
 flowchart LR
     subgraph persisted ["Konfigurasi Tersimpan - Rust dan Kotlin Harus Selaras"]
         direction LR
-        kt["Model Kotlin (app)<br/>Settings.kt, TomlParser.kt"]
+        kt["Model Kotlin (aplikasi)<br/>Settings.kt, TomlParser.kt"]
         toml[("settings.toml<br/>gamelist.toml")]
         rs["Struct Rust<br/>settings.rs, gamelist.rs (serde)"]
         kt -->|menulis| toml
@@ -21,111 +23,99 @@ flowchart LR
         rs -.->|"daemon menulis ulang gamelist saat ada mutasi IPC"| toml
         toml -->|membaca| kt
     end
-    kt <-->|"skema harus cocok field demi field,<br/>atau field akan diabaikan tanpa peringatan"| rs
+    kt <-->|"skema harus persis per field,<br/>atau nilai akan diabaikan tanpa error"| rs
 
-    subgraph runtime ["Runtime / Wire - Tidak Disimpan Permanen"]
+    subgraph runtime ["Runtime / Wire - Tanpa Penulisan Disk"]
         direction LR
-        comp["Companion"] -->|menulis| ss["SystemStatus<br/>(file system_status)"]
-        ss --> cs["CurrentState<br/>(per-tick, di RAM)"]
-        cs --> stats["StatsSnapshot<br/>(GET_STATS, saat diminta)"]
-        stats -->|"JSON melalui socket"| app["Aplikasi (kartu UI)"]
-        fb["FrameBuffer<br/>(deque FAS)"] --> fps["FpsStats (dihitung)"]
-        fps --> stats
-        daemon["Daemon"] -->|"DnD, refresh rate"| cmd["Cmd<br/>(file auriya_cmd)"]
-        cmd --> comp
+        am["Native Binder IPC<br/>(IActivityManager)"] -->|ProcessObserver| pe["ProcessEvent<br/>(Channel Tokio)"]
+        pe --> ctx["DaemonContext<br/>(status dalam memori)"]
+        fb["FrameBuffer<br/>(antrean FAS)"] --> fps["FpsStats"]
+        hub["TelemetryHub<br/>(sysfs / binder)"] --> telem["Telemetri Hardware"]
+        ctx & fps & telem --> stats["StatsSnapshot<br/>(Envelope ApiResponse)"]
+        stats -->|"JSON melalui Unix socket"| app["Aplikasi Manajer / Overlay"]
+        ctx -->|"RPC Native Binder<br/>(DnD, refresh rate, Wi-Fi)"| android["Framework OS Android"]
     end
 ```
 
-## Entitas Konfigurasi (Rust ↔ Kotlin — Harus Selalu Sinkron)
+## Entitas Konfigurasi (Rust ↔ Kotlin)
 
-Entitas ini memiliki **dua definisi otoritatif** — struct Rust (yang dikonsumsi oleh daemon) dan data class Kotlin (yang dibaca/ditulis oleh aplikasi manajer). Keduanya dihubungkan oleh file TOML. Menjaga kesamaan struktur keduanya adalah keharusan mutlak.
+Entitas ini memiliki **dua definisi otoritatif** — satu struct Rust (dikonsumsi oleh daemon) dan satu data class Kotlin (dibaca dan ditulis oleh aplikasi). Keduanya dihubungkan oleh file TOML.
 
 ### `Settings` ↔ `settings.toml` ↔ `Settings.kt`
 
-| Grup Konfigurasi | Rust (`settings.rs`) | Kotlin (`Settings.kt`) | Keterangan |
+| Grup | Rust (`settings.rs`) | Kotlin (`Settings.kt`) | Keterangan |
 | --- | --- | --- | --- |
-| `[daemon]` | `DaemonConfig { log_level, check_interval_ms, default_mode }` | `DaemonConfig(logLevel, checkIntervalMs, defaultMode)` | Selaras (Parity) |
-| `[cpu]` | `CpuConfig { default_governor }` | `CpuConfig(defaultGovernor)` | Selaras (Parity) |
-| `[dnd]` | `DndConfig { default_enable }` | `DndConfig(defaultEnable)` | Selaras (Parity) |
-| `[fas]` | `FasConfig { enabled, default_mode, thermal_threshold, poll_interval_ms, target_fps }` | `FasConfig(enabled, defaultMode, thermalThreshold, pollIntervalMs, targetFps)` | Selaras (semua 5 field) |
-| `[dynamic_governor]` | `DynamicGovernorConfig { enabled, cv_threshold, debounce_frames }` | `DynamicGovernorConfig(enabled, cvThreshold, debounceFrames)` | Selaras (Parity) |
-| `[modes.*]` | `HashMap<String, FasMode { margin, thermal_threshold }>` | `Map<String, FasMode(margin, thermalThreshold)>` | Selaras (Parity) |
+| `[daemon]` | `DaemonConfig { log_level, check_interval_ms, default_mode }` | `DaemonConfig(logLevel, checkIntervalMs, defaultMode)` | Selaras |
+| `[cpu]` | `CpuConfig { default_governor }` | `CpuConfig(defaultGovernor)` | Selaras |
+| `[dnd]` | `DndConfig { default_enable }` | `DndConfig(defaultEnable)` | Selaras |
+| `[fas]` | `FasConfig { enabled, default_mode, thermal_threshold, poll_interval_ms, target_fps }` | `FasConfig(enabled, defaultMode, thermalThreshold, pollIntervalMs, targetFps)` | Selaras (kelima nilai) |
+| `[dynamic_governor]` | `DynamicGovernorConfig { enabled, cv_threshold, debounce_frames }` | `DynamicGovernorConfig(enabled, cvThreshold, debounceFrames)` | Selaras |
+| `[modes.*]` | `HashMap<String, FasMode { margin, thermal_threshold }>` | `Map<String, FasMode(margin, thermalThreshold)>` | Selaras |
 
-Arti lengkap setiap kunci konfigurasi dan penggunaannya oleh daemon dijelaskan di [referensi settings](/id/reference/settings/).
+Makna lengkap setiap kunci konfigurasi dapat dilihat di [Referensi settings](/id/reference/settings/).
 
 ### `GameProfile` ↔ `[[game]]` ↔ Kotlin
 
-| Field | Tipe Data | Wajib (Required) | Keterangan |
+| Field | Tipe Data | Wajib? | Keterangan |
 | --- | --- | --- | --- |
-| `package` | string | Ya | Kunci identifikasi whitelist |
-| `cpu_governor` | string | Ya | Governor yang diterapkan |
-| `enable_dnd` | bool | Ya | Status mode Do Not Disturb |
-| `target_fps` | int **atau** int[] | — | Deserializer kustom (`TargetFpsConfig`) |
-| `refresh_rate` | int | — | Target refresh rate layar (Hz) |
+| `package` | string | Ya | Kunci whitelist |
+| `cpu_governor` | string | Ya | |
+| `enable_dnd` | bool | Ya | |
+| `target_fps` | int **atau** int[] | — | Deserializer khusus (`TargetFpsConfig`) |
+| `refresh_rate` | int | — | |
 | `mode` | string | — | `powersave`/`balance`/`performance`/`fast` |
-| `ceiling` | string | — | Batas atas frekuensi CPU/GPU |
+| `ceiling` | string | — | |
 
-Rincian selengkapnya: [referensi gamelist](/id/reference/gamelist/).
+Rincian lengkap: [Referensi gamelist](/id/reference/gamelist/).
 
-:::warning Aturan Sinkronisasi Skema (Schema-Sync Rule)
-Tidak ada atribut `#[serde(deny_unknown_fields)]`. Jika Anda menambahkan kunci hanya di salah satu sisi:
-- Kunci ada di file TOML tetapi tidak ada di struct Rust → **diabaikan secara diam-diam** saat dimuat;
-- Kunci ditulis oleh aplikasi tetapi tidak dibaca oleh daemon → **konfigurasi mati** (berhasil diparsing tetapi tidak berefek apa-apa).
+:::warning Aturan Sinkronisasi Skema
+Parser Rust tidak mengaktifkan `#[serde(deny_unknown_fields)]`. Jika field baru hanya ditambahkan pada satu sisi:
+- Field ada di TOML tapi tidak ada di struct Rust $\rightarrow$ **diabaikan secara diam-diam** saat dimuat.
+- Field ditulis oleh aplikasi tapi tidak dibaca daemon $\rightarrow$ **konfigurasi mati** (berhasil diparse, tanpa efek nyata).
 
-Oleh karena itu, penambahan setelan baru memerlukan **perubahan di tiga tempat**: struct Rust (+ implementasi penggunaannya), nilai default di `settings.toml`/`gamelist.toml`, dan model Kotlin + `TomlParser`. Jangan menambahkan field yang hanya digunakan oleh satu sisi. Inilah mengapa opsi khusus UI per-game (seperti tombol auto-record) disimpan di SharedPreferences aplikasi, **bukan** di `gamelist.toml`.
+Oleh karena itu, penambahan setelan baru memerlukan pembaruan di 3 tempat: struct Rust, default TOML, dan model Kotlin + `TomlParser`. Pengaturan yang hanya digunakan oleh UI (misalnya sakelar auto-record) disimpan di DataStore Preferences aplikasi, **bukan** di `gamelist.toml`.
 :::
 
-## Entitas Runtime / Wire (Tanpa Penyimpanan Permanen)
+## Entitas Runtime / Wire (Tanpa Penyimpanan Disk)
 
-Entitas ini bersifat transien — dihitung setiap tick atau setiap ada permintaan, dan tidak pernah disimpan ke media penyimpanan secara permanen.
+Entitas ini bersifat transien — dihitung setiap tick atau setiap ada permintaan, dan tidak pernah ditulis ke media penyimpanan disk.
 
-### `SystemStatus` (Companion → Daemon)
+### `ProcessEvent` (Native Binder $\rightarrow$ Daemon)
 
-`src/core/system_status/mod.rs`. Diparsing dari file `system_status`; seluruh field bertipe `Option` (mendukung pembaruan parsial).
+`src/daemon/pipeline.rs`. Didistribusikan secara asinkron dari `ProcessObserver` (`src/platform/binder/observer.rs`) atau `PidTracker` (`src/core/session/tracker.rs`) melalui channel bounded Tokio mpsc.
 
-| Field | Tipe Data |
-| --- | --- |
-| `focused_app` | `Option<String>` |
-| `focused_pid` | `Option<i32>` |
-| `focused_uid` | `Option<i32>` |
-| `screen_awake` | `Option<bool>` |
-| `battery_saver` | `Option<bool>` |
-| `zen_mode` | `Option<u8>` |
+| Varian | Payload | Asal Usul |
+| --- | --- | --- |
+| `ForegroundChanged` | `{ pid: i32, pkg: String }` | Callback `IProcessObserver.onForegroundActivitiesChanged` |
+| `PidExited` | `{ pid: i32 }` | Thread watcher `pidfd_open` yang menunggu di syscall `poll()` |
 
-### `Cmd` (Daemon → Companion, `auriya_cmd`)
+### `DaemonContext` (Status Dalam Memori)
 
-`src/core/cmd_writer/mod.rs`. Writer berbasis status yang memancarkan ulang seluruh status pada setiap penulisan.
+`src/daemon/context.rs`. Wadah status terpusat yang thread-safe dan dibagikan antara tugas pipeline Tokio dan handler IPC socket Unix. Menyimpan:
+- Flag atomic (`enabled`)
+- Status profil aktif dan override manual (`override_foreground`, `active_profile`)
+- Pelacak foreground (`current_pkg`, `current_pid`, `is_game`)
+- Referensi pengontrol (controller FAS, klien Binder, Gamelist, Settings, Logger)
 
-| Field | Tipe Data |
-| --- | --- |
-| `dnd` | `Option<DndFilter>` (All / Priority) |
-| `refresh_rate` | `Option<u32>` (0 = kembalikan ke setelan default) |
+### `ApiResponse<T>` & `StatsSnapshot` (`GET_STATS` / `STREAM_STATS`)
 
-### `CurrentState` (Dalam Memori, Per-Tick)
+`src/core/stats/snapshot.rs`. Disusun saat ada permintaan atau streaming kontinu dari `DaemonContext` + `TelemetryHub` + `FrameBuffer`. Dibungkus dalam envelope standar `ApiResponse<StatsSnapshot>`:
 
-`src/daemon/state.rs`. Diperbarui setiap tick; dibaca oleh perintah IPC `STATUS` / `GET_STATS`. Menyimpan informasi `pkg`, `pid`, `screen_awake`, `battery_saver`, `profile`, `companion_alive`, `cpu_telemetry`, `gpu_telemetry`, `thermal_telemetry`, `fps`, `fps_source`, dan `game_session` (bernilai true hanya untuk game yang terdaftar di whitelist — pemicu pencatatan benchmark).
+```json
+{
+  "status": "ok",
+  "data": { "daemon": {...}, "binder": {...}, "fps": {...}, ... }
+}
+```
 
-### `StatsSnapshot` (`GET_STATS`, Dihitung Saat Diminta)
-
-`src/core/stats/mod.rs`. Disusun per permintaan dari `CurrentState` + snapshot segar `BatterySnapshot` + statistik FPS dari `FrameBuffer` FAS. Diserialisasi ke format JSON dan dikelompokkan sesuai kartu tampilan UI. Ini adalah **kontrak stabil untuk aplikasi manajer** — skema dan aturan nilainya ada di [API Stats](/id/reference/stats-api/).
-
-### Snapshot Telemetri (Pembacaan Titik, Per-Tick atau Per-Permintaan)
-
-`CpuSnapshot`, `GpuSnapshot`, `ThermalSnapshot` (`src/core/telemetry/`) — disampel setiap tick ke dalam `CurrentState`. `BatterySnapshot` (`telemetry/battery.rs`) — dibaca segar setiap kali ada panggilan `GET_STATS`. Seluruh field bersifat best-effort `Option`.
+Aplikasi mendecode skema ini secara langsung untuk merender kartu tampilan metrik dan floating HUD. Skema lengkap ada di [API Stats](/id/reference/stats-api/).
 
 ## Ikhtisar Siklus Hidup Entitas
 
 | Entitas | Dibuat Oleh | Lokasi Penyimpanan | Dibaca Oleh | Disimpan Permanen? |
 | --- | --- | --- | --- | --- |
-| `Settings` / `GameProfile` | Aplikasi (atau default installer) | TOML di penyimpanan internal | Daemon (saat startup/watch) | Ya (file) |
-| `SystemStatus` | Companion service | File `system_status` | Daemon (melalui watcher) | Ya (file sementara) |
-| `Cmd` | Daemon | File `auriya_cmd` | Companion (melalui watcher) | Ya (file sementara) |
-| `CurrentState` | Tick daemon | RAM | Handler IPC | Tidak (hanya di RAM) |
-| `StatsSnapshot` | Handler IPC | RAM → JSON | Aplikasi manajer | Tidak (per permintaan) |
-| `current_profile` | Daemon | File (`1`/`2`/`3`) | Pembaca legacy | Ya (file) |
-
-## Lihat Juga
-
-- [Aliran data](/id/architecture/data-flow/) — bagaimana entitas ini bergerak saat runtime.
-- [Komponen](/id/architecture/components/) — proses-proses yang memilikinya.
-- [settings](/id/reference/settings/) · [gamelist](/id/reference/gamelist/) · [API Stats](/id/reference/stats-api/) — spesifikasi mendalam di tingkat field.
+| `Settings` / `GameProfile` | Aplikasi (atau default installer) | TOML di file konfigurasi | Daemon (saat startup/watch) | Ya (file) |
+| `ProcessEvent` | Native Binder / pidfd | Channel Tokio | Pipeline daemon | Tidak (aliran di RAM) |
+| `DaemonContext` | Saat daemon boot | RAM | Pipeline & handler IPC | Tidak (hanya di RAM) |
+| `StatsSnapshot` | Handler IPC | RAM $\rightarrow$ JSON socket | Aplikasi manajer / HUD | Tidak (per permintaan) |
+| `ApiResponse<T>` | Handler IPC | RAM $\rightarrow$ wire | Aplikasi / CLI | Tidak (envelope wire) |

@@ -1,123 +1,138 @@
 ---
-title: "Telemetry Protocol & FPS Recorder (GET_STATS)"
+title: "Telemetry Protocol (GET_STATS)"
 ---
-Auriya exposes an internal performance snapshot that the manager app polls to render its
-telemetry cards (FPS, temps, battery, CPU/GPU clocks) and to drive per-game FPS
-recording.
+Auriya exposes real-time hardware telemetry and frame pacing statistics over `/dev/socket/auriya.sock`. The Jetpack Compose manager app and floating overlay HUD consume this stream to render metric cards, graphs, and benchmark session records.
 
-:::info Internal Daemon Protocol
-The `GET_STATS` payload is an **internal IPC communication format** designed specifically between the Auriya Rust daemon and the Auriya Android manager app. It is not intended as a generic plug-and-play public API for external projects without adaptation.
+:::info Standardized JSON Envelope
+Starting in v2.2.0, all IPC responses are enclosed in the standardized `ApiResponse<T>` envelope format (`{"status":"ok","data":{...}}` or `{"status":"error","message":"..."}`).
 :::
 
-## Transport
+## Transport & Access
 
-| Fact | Value |
-| --- | --- |
-| Command | `GET_STATS` (alias `GETSTATS`) |
-| Channel | Unix socket `/dev/socket/auriya.sock` (see [IPC protocol](/internals/ipc-protocol/)) |
-| Response | one line of JSON, then the connection closes on `QUIT` |
-| Cost | computed **on request** — the daemon accumulates nothing between polls |
+| Parameter | Specification |
+| :--- | :--- |
+| **Command** | `GET_STATS` |
+| **Transport** | Unix domain socket `/dev/socket/auriya.sock` (mode `0666`) |
+| **Response** | Single-line JSON containing the `ApiResponse<StatsSnapshot>` envelope |
+| **Performance** | Computed on-demand with zero background buffer allocation when no clients are polling |
 
-From a root shell:
+From any root shell or terminal:
 
 ```console
 $ printf 'GET_STATS\nQUIT\n' | nc -U /dev/socket/auriya.sock
-OK AURIYA IPC
-{"fps":{"avg":118.0,...},"thermal":{...},...}
-BYE
+{"status":"ok","data":{"fps":{"avg":119.4,"peak":120.2,"low_1pct":114.2,"low_0_1pct":98.6,...},"thermal":{...},"daemon":{...},"binder":{...}}}
 ```
 
-## JSON schema (one group = one UI card)
+## JSON Payload Schema
 
 ```json
 {
-  "fps":     { "avg": 118.0, "peak": 258.9, "low_1pct": 78.5, "jank": 2, "frames": 600 },
-  "thermal": { "cpu_c": 64.7, "gpu_c": null, "battery_c": 41.5 },
-  "battery": { "pct": 100, "current_ma": 573, "voltage_v": 4.23, "status": "Charging", "health": "Good" },
-  "cpu":     { "load_pct": 60.0, "cores": [ { "id": 0, "khz": 1804800, "gov": "walt", "cluster": "Little", "online": true } ] },
-  "gpu":     { "mhz": 580, "load_pct": null, "vendor": "kgsl" },
-  "session": { "pkg": "com.mobile.legends", "profile": "performance", "active": true }
+  "status": "ok",
+  "data": {
+    "daemon": {
+      "version": "2.2.0",
+      "pid": 1337,
+      "rss_mb": 5.4,
+      "uptime_secs": 3600,
+      "active_profile": "performance",
+      "version_code": "52",
+      "commit": "9aef31b",
+      "arch": "aarch64"
+    },
+    "binder": {
+      "operational": true,
+      "screen_interactive": true,
+      "is_floating": false,
+      "wifi_low_latency": true,
+      "statusbar_locked": false,
+      "dnd_mode": 2,
+      "refresh_rate_hz": 120.0
+    },
+    "system": {
+      "uptime_secs": 86400,
+      "ram_total_mb": 11500,
+      "ram_avail_mb": 4200
+    },
+    "session": {
+      "pkg": "com.miHoYo.GenshinImpact",
+      "profile": "fast",
+      "active": true,
+      "is_game": true
+    },
+    "fps": {
+      "current": 60.0,
+      "min": 54.2,
+      "max": 60.5,
+      "avg": 59.8,
+      "peak": 61.2,
+      "low_1pct": 57.1,
+      "low_0_1pct": 52.4,
+      "dropped_frames": 3,
+      "jank": 1,
+      "frames": 1800
+    },
+    "cpu": {
+      "load_pct": 48.5,
+      "cores": [
+        { "id": 0, "khz": 1804800, "gov": "schedutil", "cluster": "Little", "online": true, "load_pct": 35.0 },
+        { "id": 4, "khz": 2400000, "gov": "performance", "cluster": "Big", "online": true, "load_pct": 62.0 },
+        { "id": 7, "khz": 2841600, "gov": "performance", "cluster": "Prime", "online": true, "load_pct": 78.0 }
+      ],
+      "available_governors": ["schedutil", "performance", "powersave"]
+    },
+    "gpu": {
+      "mhz": 680,
+      "load_pct": 74,
+      "vendor": "kgsl"
+    },
+    "thermal": {
+      "cpu_c": 56.4,
+      "gpu_c": 52.0,
+      "battery_c": 38.5,
+      "sconfig_supported": false
+    },
+    "battery": {
+      "pct": 82,
+      "current_ma": -450,
+      "voltage_v": 4.12,
+      "status": "Discharging",
+      "health": "Good"
+    }
+  }
 }
 ```
 
-### Field reference
+## Field Reference
 
-| Group | Field | Meaning |
-| --- | --- | --- |
-| `fps` | `avg` | Mean FPS over the window (`1 / mean frametime`). |
-| | `peak` | Fastest single frame (`1 / min frametime`). |
-| | `low_1pct` | Mean FPS of the worst 1% of frames — the stutter metric. |
-| | `jank` | Frames slower than `target × 1.5`. |
-| | `frames` | Sample count the window was computed from. |
-| `thermal` | `cpu_c` / `gpu_c` / `battery_c` | °C. `battery_c` lives here (it is a temperature), not in `battery`. |
-| `battery` | `pct` | Charge 0–100 %. |
-| | `current_ma` | Instantaneous current. **Sign is device-specific** — use `status`, not the sign, for direction. |
-| | `voltage_v` | Terminal voltage. |
-| | `status` / `health` | e.g. `Charging` / `Good`. |
-| `cpu` | `load_pct` | Overall CPU load. |
-| | `cores[]` | Per-core `id`, `khz` (clock), `gov` (governor), `cluster` (`Little`/`Big`/`Prime`), `online`. |
-| `gpu` | `mhz` / `load_pct` / `vendor` | GPU clock, busy %, driver. |
-| `session` | `pkg` | Foreground package. |
-| | `profile` | Active profile (`performance`/`balance`/`powersave`). |
-| | `active` | **`true` only when a whitelisted game with a live PID is running.** When `true`, `pkg` is that game. This is the record trigger. |
+### `daemon`
+- **`version`**: Semantic version string (e.g. `2.2.0`).
+- **`rss_mb`**: Current memory RSS footprint in megabytes (typically ~5.5 MB).
+- **`active_profile`**: Current profile state (`fast`, `performance`, `balance`, `powersave`).
+- **`commit`**: Short Git commit hash of the running build.
 
-### Null rules (must handle)
+### `binder`
+- **`operational`**: True if direct connection to Android `servicemanager` is healthy.
+- **`screen_interactive`**: Screen status queried via `IPowerManager.isInteractive()`.
+- **`is_floating`**: True if current foreground activity is in freeform/floating window mode.
+- **`wifi_low_latency`**: True if `acquireWifiLock` low-latency lock is held via `IWifiManager`.
+- **`dnd_mode`**: Active Do Not Disturb filter (`1` for All, `2` for Priority gaming).
+- **`refresh_rate_hz`**: Active display refresh rate queried from `IDisplayManager`.
 
-- **`fps` is `null`** when no game is running (idle) — render the FPS card as
-  "inactive", not "0".
-- **Any field can be `null`** when the device does not expose that node (e.g.
-  `gpu_c`, `gpu.load_pct` on some SoCs). Each card renders independently and skips
-  null fields — never crash on a null.
-- **`session.active == false`** means no managed game (could be another app in the
-  foreground). Only `active == true` is a game session.
+### `fps` (Frame Pacing & Performance)
+- **`avg`**: Window mean frame rate ($1 / \text{mean frame duration}$).
+- **`low_1pct`**: Mean frame rate of the slowest 1% of frames (primary stutter index).
+- **`low_0_1pct`**: Mean frame rate of the slowest 0.1% of frames (extreme hitch index).
+- **`dropped_frames`**: Number of frames presentation-time weighted as dropped.
+- **`jank`**: Frames where rendering duration exceeded $1.5\times$ target frame interval.
 
-## Recommended access method (for the UI)
+### `cpu` & `gpu`
+- **`cpu.load_pct`**: Global CPU utilization aggregated across all cores.
+- **`cpu.cores[]`**: Per-core frequency (`khz`), governor (`gov`), cluster classification (`Little`/`Big`/`Prime`), online status, and load percentage.
+- **`gpu.mhz`**: Active GPU frequency step.
+- **`gpu.load_pct`**: Active GPU busy percentage.
 
-The socket is root-only (app-uid cannot open it under SELinux), so poll it through
-the app's existing libsu root shell — the same pattern `OverlayService` already
-uses. **Do not write a raw `LocalSocket` client.**
-
-```kotlin
-// Persistent root shell (libsu). Poll on a coroutine loop.
-fun fetchStats(): Stats? {
-    val raw = RootShell.run("printf 'GET_STATS\\nQUIT\\n' | timeout 2 nc -U /dev/socket/auriya.sock")
-    val json = raw?.lineSequence()?.firstOrNull { it.startsWith("{") } ?: return null
-    return Json { ignoreUnknownKeys = true }.decodeFromString<Stats>(json)  // kotlinx.serialization
-}
-```
-
-- Poll cadence: reuse the existing `update_interval_ms` pref (default 1000 ms).
-  ~1 Hz is the design point; higher is unnecessary and the daemon computes
-  on-request anyway.
-- Parse with `ignoreUnknownKeys = true` so future daemon fields never break the UI.
-
-## FPS auto-record (app-side)
-
-Auto-record is orchestrated **in the manager app**, not the daemon — `GET_STATS`
-already provides everything needed:
-
-- **Enable/disable per whitelisted game** — store as an app preference keyed by
-  package. Do **not** add a field to `gamelist.toml`; the daemon does not consume
-  it and it would be dead config. The whitelist itself *is* `gamelist.toml`.
-- **Trigger** — watch `session.active`. On `false → true` (and the game has
-  auto-record enabled), start a recording buffer for `session.pkg`; while `true`,
-  append each poll's `fps` (plus any telemetry you want) with a timestamp; on
-  `true → false`, finalize a session summary (avg, min `low_1pct`, max `cpu_c`,
-  total `jank`, duration).
-- **Run it in a foreground service** (like `OverlayService`) so recording
-  continues while the game — not the app UI — is in the foreground.
-- **Store recordings in the app's own sandbox** (`filesDir` / Room / DataStore).
-  Never write under `/data/adb`.
-
-### Resolution ceiling
-
-Poll-based recording is ~1 sample/second (coarse) — right for a session FPS graph
-and summary. **Per-frame traces are not available this way**; that would require a
-new daemon streaming API (out of scope today). Flag it if the product needs
-frame-level detail.
-
-## See also
-
-- [IPC protocol](/internals/ipc-protocol/) — the socket and every command.
-- [FPS detection](/internals/fps-detection/) — where the FPS numbers come from.
-- [Performance tuning](/getting-started/performance-tuning/) — FAS modes & values.
+### `thermal` & `battery`
+- **`thermal.cpu_c` / `gpu_c` / `battery_c`**: Temperatures in degrees Celsius.
+- **`battery.pct`**: Remaining battery percentage (0–100%).
+- **`battery.current_ma`**: Instantaneous current in milliamperes.
+- **`battery.voltage_v`**: Battery terminal voltage.

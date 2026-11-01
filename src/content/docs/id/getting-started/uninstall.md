@@ -10,14 +10,13 @@ Dilacak ke [`module/uninstall.sh`](https://github.com/pavelc4/auriya/blob/10fe7c
 ## Urutan Tindakan yang Dijalankan `uninstall.sh`
 
 1. **Menghentikan Daemon** — Mengirim sinyal `SIGTERM` ke binary `auriya`, menunggu hingga 5 detik, lalu mengirim `SIGKILL` jika diperlukan.
-2. **Menghentikan Companion** — Urutan TERM→KILL yang sama untuk proses `AuriyaSysMon`.
-3. **Menghentikan dan Menghapus Paket Aplikasi** — Menjalankan `am force-stop` kemudian `pm uninstall` untuk `dev.auriya.app`, `dev.auriya.app.debug`, dan `dev.auriya.service`.
-4. **Menghapus Data Runtime & Konfigurasi**:
+2. **Menghentikan dan Menghapus Paket Aplikasi Manajer** — Menjalankan `am force-stop` kemudian `pm uninstall` untuk `dev.auriya.app` dan `dev.auriya.app.debug`.
+3. **Menghapus Data Runtime & Konfigurasi**:
    - Socket IPC `/dev/socket/auriya.sock`
    - Direktori konfigurasi `/data/adb/.config/auriya` — **seluruh konfigurasi**, termasuk `settings.toml` dan `gamelist.toml`
    - Direktori log `/data/adb/auriya`
    - Symlink KernelSU/APatch (`/data/adb/ksu/bin/*`, `/data/adb/ap/bin/*`)
-5. **Hitung Mundur Aman** — Memberikan jeda waktu beberapa detik agar Android menyelesaikan penghapusan paket sebelum muncul pesan "Safe to reboot".
+4. **Hitung Mundur Aman** — Memberikan jeda waktu beberapa detik agar Android menyelesaikan penghapusan paket sebelum muncul pesan "Safe to reboot".
 
 Direktori modul fisik (`/data/adb/modules/auriya`) dihapus oleh manajer root setelah proses reboot selesai.
 

@@ -1,112 +1,76 @@
 ---
 title: "Game Detection"
 ---
-"Game detection" is how the daemon decides **which package is in the
-foreground**, whether it is one Auriya manages, and whether its process is still
-alive. Auriya does **not** scan the system itself — the Android companion service
-supplies the focused package/PID, and the daemon validates and tracks it.
+"Game detection" is how the daemon decides **which package is in the foreground**, whether it is one Auriya manages, and whether its process is still alive. Auriya receives foreground activity changes directly from Android's framework via Native Binder IPC (`IProcessObserver`), validates process identity via `/proc/<pid>/cmdline`, and tracks the active lifecycle.
 
 :::info Verified against source
-Traced to Auriya commit
-[`10fe7c6`](https://github.com/pavelc4/auriya/tree/10fe7c6b56474a00513fec34ebac1376b30e95e6).
+Traced to Auriya v2.2.0.
 Files:
-[`src/core/dumpsys/activity.rs`](https://github.com/pavelc4/auriya/blob/10fe7c6b56474a00513fec34ebac1376b30e95e6/src/core/dumpsys/activity.rs)
-(PID validity/verification),
-[`src/core/pid_tracker.rs`](https://github.com/pavelc4/auriya/blob/10fe7c6b56474a00513fec34ebac1376b30e95e6/src/core/pid_tracker.rs)
-(liveness + exit events),
-[`src/daemon/tick.rs`](https://github.com/pavelc4/auriya/blob/10fe7c6b56474a00513fec34ebac1376b30e95e6/src/daemon/tick.rs)
-(the decision path).
+- [`src/platform/binder/observer.rs`](file:///home/sineva/prjkt/rust/auriya/src/platform/binder/observer.rs) (Native `IProcessObserver` implementation)
+- [`src/platform/procfs.rs`](file:///home/sineva/prjkt/rust/auriya/src/platform/procfs.rs) (PID validity and package name resolution)
+- [`src/core/session/tracker.rs`](file:///home/sineva/prjkt/rust/auriya/src/core/session/tracker.rs) (pidfd liveness and exit events)
+- [`src/daemon/pipeline.rs`](file:///home/sineva/prjkt/rust/auriya/src/daemon/pipeline.rs) (the Ingest $\rightarrow$ Decide $\rightarrow$ Apply $\rightarrow$ FAS pipeline)
 :::
 
 ## Where the foreground package comes from
 
-The companion service observes the Android task stack and writes the focused
-package and PID into `/data/adb/.config/auriya/system_status`. The daemon reads
-that snapshot each tick — it never calls `dumpsys` for foreground detection
-itself (`dumpsys/activity.rs` module comment: the old dumpsys-scanning path was
-removed). See [Data flow](/architecture/data-flow/) and
-[IPC protocol → data flow direction](/internals/ipc-protocol/#direction-of-data-flow).
+In v2.2.0, Auriya registers a native `IProcessObserver` callback directly with Android's `IActivityManager` service over Native Binder IPC (`src/platform/binder/observer.rs`).
 
-An `INJECT <package>` IPC command overrides the companion's focused package for
-debugging; `CLEAR_INJECT` removes the override (see
-[IPC protocol](/internals/ipc-protocol/#state-toggles)).
+```mermaid
+sequenceDiagram
+    participant OS as Android OS (system_server)
+    participant AM as IActivityManager
+    participant OBS as ProcessObserver (Rust)
+    participant PIP as Daemon Pipeline (Tokio)
+
+    Note over OBS,AM: Daemon boot: registerProcessObserver
+    OS->>AM: User switches app / launches game
+    AM->>OBS: onForegroundActivitiesChanged(pid, uid, foregroundActivities)
+    OBS->>OBS: Resolve package via /proc/<pid>/cmdline
+    OBS->>PIP: ProcessEvent::ForegroundChanged { pid, pkg }
+    Note over PIP: Instant zero-latency profile evaluation
+```
+
+Whenever the Android framework switches the active task, `onForegroundActivitiesChanged(pid, uid, foregroundActivities)` fires. The observer immediately resolves the process name via `procfs::verify_pid_package` and dispatches a `ProcessEvent::ForegroundChanged` message through a bounded Tokio mpsc channel directly into the daemon engine.
+
+This event-driven architecture delivers instantaneous zero-latency reaction times without polling files, helper APKs, or background battery drain.
+
+An `INJECT <package>` IPC command overrides the detected foreground package for debugging; `CLEAR_INJECT` removes the override (see [IPC protocol](/internals/ipc-protocol/#state-toggles)).
 
 ## The whitelist
 
-At startup and on every `gamelist.toml` change, the daemon builds a `HashSet` of
-package names from the game list — the "whitelist" (`src/daemon/run.rs:212-217`,
-rebuilt by `rebuild_whitelist`, `run.rs:320-327`). A package is "a game" to
-Auriya iff it is in this set. Matching is **exact** (no wildcards); see
-[gamelist reference](/reference/gamelist/).
+At startup and on every `gamelist.toml` change, the daemon maintains a `HashSet` of package names from the game list: the "whitelist". A package is considered a managed game if and only if it is in this set. Matching is **exact** (no wildcards); see [Gamelist Reference](/reference/gamelist/).
 
 ## PID validity vs. package verification
 
-Two cheap checks in `dumpsys/activity.rs`:
+Two lightweight checks in `src/platform/procfs.rs`:
 
-| Function | Check | Use |
-| --- | --- | --- |
-| `is_pid_valid(pid)` | `pid > 0` **and** `/proc/<pid>` exists | Drop a stale PID reference cheaply. |
-| `verify_pid_package(pid, pkg)` | reads `/proc/<pid>/cmdline`, compares to `pkg` | Sanity-check that a PID really is the expected package. |
+| Function | Check | Purpose |
+| :--- | :--- | :--- |
+| `is_pid_valid(pid)` | `pid > 0` **and** `/proc/<pid>` exists | Cheaply drop stale PID references. |
+| `verify_pid_package(pid, pkg)` | Reads `/proc/<pid>/cmdline` and compares to `pkg` | Sanity-check that a PID really belongs to the expected package. |
 
-`verify_pid_package` matches the process name up to the first `\0` or `:`
-separator, then also accepts a substring match so **isolated processes** named
-`<pkg>:<suffix>` (a common Android pattern) still count as the package
-(`activity.rs`, `verify_pid_package`).
+`verify_pid_package` matches the process name up to the first `\0` or `:` separator, then also accepts a substring match so **isolated processes** named `<pkg>:<suffix>` (a common Android architecture pattern) still count as the parent package (`src/platform/procfs.rs`).
 
 ## Liveness tracking and instant exit
 
-Once a whitelisted game's PID is validated, the daemon spawns a `PidTracker`
-(`pid_tracker.rs`). It serves two roles:
+Once a whitelisted game's PID is validated, the daemon spawns a `PidTracker` (`src/core/session/tracker.rs`). It serves two roles:
 
-1. **Cheap poll** — `PidTracker::is_alive()` is a non-blocking probe the tick loop
-   uses on the fast path.
-2. **Instant exit event** — a background thread blocks until the process actually
-   dies and then pushes a `DaemonEvent::PidExited`, so the daemon re-evaluates
-   *immediately* instead of waiting for the next timer tick.
+1. **Cheap poll** — `PidTracker::is_alive()` is a non-blocking probe the pipeline loop uses on the fast path.
+2. **Instant exit event** — a background thread blocks until the process actually dies and then pushes a `ProcessEvent::PidExited`, so the daemon re-evaluates *immediately* instead of waiting for the next timer tick.
 
-Two kernel paths, chosen at runtime:
+Two kernel paths, chosen dynamically at runtime:
 
-- **`pidfd_open` (Linux ≥ 5.3)** — the tracker opens a pidfd via raw syscall
-  (number `434` on aarch64, `439` on x86-64) and blocks in `poll()` on it. Zero
-  wakeups until the process exits. `is_alive` is a non-blocking `poll` on the same
-  fd (`pid_tracker.rs`, `open_pidfd`, `pidfd_is_alive`).
-- **`/proc` fallback** — on older kernels, the watcher polls `/proc/<pid>` every
-  **150 ms** (`wait_proc_poll`, `POLL_INTERVAL_MS = 150`), and `is_alive` falls
-  back to a `/proc/<pid>` existence check.
+- **`pidfd_open` (Linux $\ge$ 5.3)** — the tracker opens a pidfd via raw syscall (number `434` on aarch64, `439` on x86-64) and blocks in `poll()` on it. Zero wakeups until the process exits. `is_alive` is a non-blocking `poll` on the same fd (`open_pidfd`, `pidfd_is_alive`).
+- **`/proc` fallback** — on older kernels, the watcher polls `/proc/<pid>` every **150 ms** (`POLL_INTERVAL_MS = 150`), and `is_alive` falls back to a `/proc/<pid>` existence check.
 
-An `eventfd` lets `Drop` interrupt the blocked watcher the instant the daemon
-stops tracking (e.g. on game switch), so no thread lingers (`pid_tracker.rs`,
-`Drop`, `make_eventfd`). The exit event is sent with `try_send`, not
-`blocking_send`: if the channel is full the event is dropped and the next tick
-catches the exit via `is_alive` — deliberately chosen to avoid a deadlock where
-`Drop` runs on the same tokio worker that drains the channel (`track_loop`
-comment).
+An `eventfd` lets `Drop` interrupt the blocked watcher the instant the daemon stops tracking (e.g. on game switch), ensuring no lingering background threads (`tracker.rs`). The exit event is sent with `try_send`, not `blocking_send`: if the channel is full the event is dropped and the next tick catches the exit via `is_alive` to avoid deadlocks.
 
-:::note This is a real-device-tested path
-`pid_tracker.rs` ships with tests that spawn a child, track it, kill it, and
-assert the `PidExited` event arrives (`detects_child_process_exit`) and measures
-exit→event latency (`pidfd_exit_latency`, target well under 100 ms). They
-exercise the actual `pidfd_open`/`poll` path on the target kernel.
-:::
+## How detection drives the pipeline
 
-## How detection drives the tick
+Each tick resolves the package and PID state (`src/daemon/pipeline.rs`):
 
-Each tick resolves the package/PID, then (`process_tick_logic`,
-`src/daemon/tick.rs`):
-
-- **Same package, PID still alive** → fast path: the profile is *not* reapplied;
-  only FAS may adjust within the session (see
-  [Profile scheduler](/internals/profile-scheduler/)).
-- **New package, or previous PID exited** → full re-evaluation.
-- **Whitelisted package with a valid PID** → enter/refresh the game session.
-- **Not whitelisted, or PID invalid/missing, or no foreground package** → clear
-  game state and apply the default profile.
-
-The exact branch order and what each branch writes are documented in
-[Profile scheduler](/internals/profile-scheduler/).
-
-## Likely to drift first
-
-The `pidfd_open` syscall numbers, the 150 ms fallback interval, and the
-isolated-process (`pkg:suffix`) matching rule. Re-verify against
-`src/core/pid_tracker.rs` and `src/core/dumpsys/activity.rs`.
+- **Same package, PID still alive** $\rightarrow$ fast path: static tweaks are *not* reapplied; only FAS adjusts within the active session (see [Profile scheduler](/internals/profile-scheduler/)).
+- **New package, or previous PID exited** $\rightarrow$ full re-evaluation.
+- **Whitelisted package with a valid PID** $\rightarrow$ enter/refresh the game session (engage gaming tweaks, Wi-Fi low-latency lock, DnD, and FAS controller).
+- **Not whitelisted, or PID invalid/missing, or no foreground package** $\rightarrow$ clear game state and restore the default profile.

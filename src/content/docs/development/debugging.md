@@ -1,107 +1,84 @@
 ---
 title: "Debugging"
 ---
-A boundary-first playbook. Auriya spans five boundaries — Android UI, companion
-service, the Unix socket, daemon subsystems, and kernel nodes — and a symptom
-usually points at one. Identify the boundary, then use the matching tool below.
+A boundary-first playbook. Auriya spans four boundaries — the Android Manager UI, the Unix domain socket, Native Binder IPC with the Android OS framework, and direct kernel `/sys` & `/proc` nodes. A symptom usually points at one boundary. Identify the boundary, then use the matching diagnostic below.
 
 ## Logs first
 
-| Log | Path | What it holds |
-| --- | --- | --- |
-| Daemon | `/data/adb/auriya/daemon.log` (+ `.1`, `.2`) | Daemon stdout/stderr, tee'd by `service.sh`. |
-| Companion | `/data/adb/auriya/companion.log` (+ `.1`) | `AuriyaSysMon` output. |
-| Restart | `/data/adb/auriya/restart.log` | Output of `service.sh` when relaunched by `auriyactl restart`. |
-| logcat | `logcat -s auriya` | The daemon and scripts also log under the `auriya` tag. |
+| Log | Path | Format & Details |
+| :--- | :--- | :--- |
+| Daemon | `/data/adb/auriya/daemon.log` (+ `.1`, `.2`) | Direct zero-allocation writer with dmesg-style boottime timestamps: `[ 1234.567890] [info] ...`. Auto-rotates at 2 MB. |
+| Restart | `/data/adb/auriya/restart.log` | Output captured during daemon restarts triggered by `service.sh`. |
+| Logcat | `logcat -s auriya` | Android system logcat messages from daemon startup and shell hooks. |
 
 Paths are from the [Filesystem reference](/reference/filesystem/#logs--dataadbauriya).
 
 ## Adjust log verbosity
 
-The daemon's level comes from `settings.daemon.log_level` at startup
-([settings](/reference/settings/#daemon)). To change it **at runtime without a
-restart**, use IPC (this is the only settings value with a live runtime toggle):
+The daemon's log level comes from `settings.daemon.log_level` at startup
+([Settings](/reference/settings/#daemon)). To change it **at runtime without a
+restart**, use IPC:
 
 ```bash
-auriyactl set-log debug     # or info | warn | error
+auriyactl set-log debug     # or info | warn | error | trace
 ```
 
 `log_level` is **not** re-read on config reload — `set-log` is the live path
-([settings → reload behavior](/reference/settings/#reload-behavior)).
+([Settings → reload behavior](/reference/settings/#reload-behavior)).
 
 ## Boundary-by-boundary
 
-### Is the daemon even up?
+### 1. Is the daemon even up?
 
 ```bash
 auriyactl ping        # → "Daemon is alive (PONG)"
 auriyactl status      # → status block, or "Daemon: Not running"
 ```
 
-`Not running` → the boot sequence failed. Check `daemon.log` and `companion.log`.
-Common causes are enumerated by `service.sh`'s own error messages (missing
-binary, missing companion APK, missing config, or the companion not producing
-`system_status` within 10 s).
+`Not running` $\rightarrow$ the boot sequence failed. Inspect `/data/adb/auriya/daemon.log`.
+Common causes include missing configuration files, corrupted binary SHA256 checksums, or missing root privileges on the Unix socket.
 
-### Socket / IPC
+### 2. Socket / IPC
 
-Talk to the socket directly to see the **raw** protocol (the CLI shows only a
-subset of `STATUS`):
+Talk to the socket directly to observe raw protocol transactions:
 
 ```bash
 printf 'STATUS\nQUIT\n' | nc -U /dev/socket/auriya.sock
+printf 'GET_STATS\nQUIT\n' | nc -U /dev/socket/auriya.sock
 ```
 
-Full command and response reference: [IPC protocol](/internals/ipc-protocol/).
-`ERR …` replies are documented there.
+Full command and response reference: [IPC Protocol](/internals/ipc-protocol/).
+All modern queries return responses enclosed in the `ApiResponse<T>` envelope format.
 
-### Foreground / game detection
+### 3. Foreground / game detection
 
-If a game is not being picked up, inspect the companion snapshot and the daemon's
-resolved state:
+If a game is not being recognized:
 
 ```bash
-cat /data/adb/.config/auriya/system_status   # focused_app/pid, screen, battery, zen
-auriyactl get-pid                            # daemon's resolved PKG/PID
-auriyactl inject com.your.game               # force a package (debug); clear-inject to undo
+auriyactl get-pid                      # daemon's resolved PKG and PID
+auriyactl get-stats                    # inspect data.binder and data.session
+auriyactl inject com.your.game         # force a package (debug); clear-inject to undo
 ```
 
-See [Game detection](/internals/game-detection/). If `system_status` is stale or
-empty, the problem is the **companion**, not the daemon.
+Auriya receives foreground changes directly from Android's `IActivityManager` via Native Binder IPC (`ProcessObserver`). If `data.binder.operational` is `false`, check `daemon.log` for Binder initialization warnings.
 
-### Profile not applying / wrong profile
+### 4. Profile not applying / wrong profile
 
-- Confirm the package is whitelisted (`auriyactl list-games`).
-- Remember the [decision order](/internals/profile-scheduler/#decision-order):
-  screen-off/battery-saver wins over everything; a per-game `mode` typo silently
-  resolves to Performance.
-- The daemon only writes when the target profile differs from the current one
-  ([idempotence guard](/internals/profile-scheduler/#the-idempotence-guard)) — so
-  "nothing happened" can be correct.
-- Check `/data/adb/.config/auriya/current_profile` (`1`/`2`/`3`) for the
-  last-applied profile.
+- Confirm the package is in the whitelist (`auriyactl list-games`).
+- Remember the [decision order](/internals/profile-scheduler/#decision-order): screen-off or battery-saver overrides gaming profiles.
+- The daemon only writes when the target profile differs from the current one ([idempotence guard](/internals/profile-scheduler/#the-idempotence-guard)).
+- Inspect `data.daemon.active_profile` in `auriyactl get-stats` to verify the active state.
 
-### Kernel node / tweak not taking effect
+### 5. Kernel node / tweak not taking effect
 
-Tweaks are **best-effort**: a missing node is skipped silently
+Tweaks are **best-effort**: a missing node is skipped silently without errors
 ([System tweaks](/internals/system-tweaks/#guarded-best-effort-writes)). Raise
-the log level to `debug` to see which paths were found and written. If a vendor
-service is fighting Auriya, that is what
-[vendor lock](/internals/system-tweaks/#vendor-lock--stopping-vendor-services-from-fighting-back)
-addresses — verify the relevant `VENDOR_PATHS` node exists on your device.
+the log level to `debug` (`auriyactl set-log debug`) to see which sysfs paths were discovered and written. If an OEM service is fighting Auriya, verify that the relevant [Vendor Lock](/internals/system-tweaks/#vendor-lock--stopping-vendor-services-from-fighting-back) node exists on your device.
 
 ## Restarting cleanly
 
 ```bash
-auriyactl restart     # kills daemon+companion, clears socket/status/lock, re-runs service.sh
+auriyactl restart
 ```
 
-This is a **local** operation (not the IPC `RESTART`); it needs root and an
-installed device. See [Command reference](/reference/commands/#restart-is-local-not-an-ipc-command).
-
-## Reporting an issue
-
-Capture: the command and its response, the active package, root manager, ROM,
-kernel version, and the relevant `settings.toml` / `gamelist.toml` — **without**
-publishing private device identifiers. Root, `/proc`/`/sys` writes, the socket,
-and shell commands are trust boundaries; scrub sensitive identifiers and logs accordingly.
+`auriyactl restart` is a native Rust command that gracefully terminates the existing daemon process via `SIGTERM`, cleans stale sockets, and relaunches `service.sh`. See [Command reference](/reference/commands/#restart-is-local-not-an-ipc-command).

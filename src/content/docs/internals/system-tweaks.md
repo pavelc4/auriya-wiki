@@ -2,35 +2,30 @@
 title: "System Tweaks"
 ---
 The tweak layer is where the daemon actually touches the device: guarded writes
-to `/proc` and `/sys`, plus a few actions that must be routed through Android via
-the companion. Everything here is **best-effort and device-dependent** — a node
+to `/proc` and `/sys`, plus framework actions routed directly through Android via
+Native Binder IPC. Everything here is **best-effort and device-dependent** — a node
 that does not exist is skipped, never fatal.
 
 :::info Verified against source
-Traced to Auriya commit
-[`10fe7c6`](https://github.com/pavelc4/auriya/tree/10fe7c6b56474a00513fec34ebac1376b30e95e6),
-[`src/core/tweaks/`](https://github.com/pavelc4/auriya/tree/10fe7c6b56474a00513fec34ebac1376b30e95e6/src/core/tweaks)
-and
-[`src/core/cmd_writer/mod.rs`](https://github.com/pavelc4/auriya/blob/10fe7c6b56474a00513fec34ebac1376b30e95e6/src/core/cmd_writer/mod.rs).
+Traced to Auriya v2.2.0.
+Files:
+- [`src/platform/`](file:///home/sineva/prjkt/rust/auriya/src/platform/) (Hardware and kernel subsystem adapters)
+- [`src/platform/binder/actuators.rs`](file:///home/sineva/prjkt/rust/auriya/src/platform/binder/actuators.rs) (Native Binder IPC actuators)
+- [`src/core/profile/apply.rs`](file:///home/sineva/prjkt/rust/auriya/src/core/profile/apply.rs) (Profile execution engine)
 :::
 
 ## Module map
 
-`src/core/tweaks/` (`tweaks/mod.rs`) splits the surface by concern:
+Hardware adapters live under `src/platform/`:
 
 | Module | Responsibility |
 | --- | --- |
-| `paths.rs` | Scans and **caches** sysfs paths once (CPU governors, online, Snapdragon KGSL). |
-| `cpu.rs` | Governor, boost, core onlining, per-core affinity. |
-| `gpu.rs` | GPU performance/balanced mode. |
-| `sched.rs` | Scheduler tunables. |
-| `memory.rs` | Memory / swappiness / cache drop. |
-| `storage.rs` | Block-I/O tunables. |
-| `touchpanel.rs` | Touch "game mode". |
-| `ceiling.rs` | Frequency-ceiling controller (Low/Balance). |
-| `init.rs` | One-shot **general** tweaks applied with the Performance profile. |
-| `vendor/` (`detect.rs`, `mtk.rs`, `snapdragon.rs`) | SoC detection + vendor-specific hooks. |
-| `vendor_lock.rs` | Locks vendor perfmgr nodes so vendor services cannot fight Auriya. |
+| `cpu/` (`governor.rs`, `ceiling.rs`, `topology.rs`) | CPU governor, frequency ceilings, boost, and topology probing. |
+| `gpu/` (`adreno.rs`, `devfreq.rs`) | Adreno KGSL GPU performance/balanced mode and generic devfreq. |
+| `thermal/` (`zones.rs`, `sconfig.rs`) | Multi-SoC thermal sensor monitoring and Xiaomi sconfig mode control. |
+| `vendor/` (`detect.rs`, `snapdragon.rs`, `mtk.rs`) | Dynamic SoC detection and vendor-specific tuning hooks. |
+| `common/` (`init.rs`, `memory.rs`, `sched.rs`, `storage.rs`, `touchpanel.rs`) | Generic OS tweaks (block-I/O, vm/swappiness, scheduler, touchpanel). |
+| `binder/` (`actuators.rs`, `client.rs`, `observer.rs`) | Native Binder RPC client, actuators (DnD, refresh rate, Wi-Fi lock), and process observer. |
 
 Which of these a given profile triggers is the single-source table in
 [Architecture overview → What each static profile changes](/architecture/overview/#what-each-static-profile-changes).
@@ -79,40 +74,16 @@ westwood → cubic`, applies VM/scheduler tunables, and disables several OEM
 "assist"/bloat modules and the OEM battery-saver kernel module (`init.rs`). These
 are OEM-node-dependent and mostly no-ops on a device that lacks them.
 
-## Actions routed through Android — `CmdWriter`
+## Actions routed through Android — Native Binder Actuators
 
-Two decisions cannot be done from the root daemon because they require Android
-framework APIs (`NotificationManager` for Do-Not-Disturb, the display manager for
-refresh rate): **DnD** and **refresh-rate** changes. The daemon serializes these
-to a small command file that the companion service watches and replays through
-the proper APIs (`cmd_writer/mod.rs` module comment).
+Framework-level system settings cannot be toggled via `/sys` or `/proc` because they are owned by Android system services (`notification`, `display`, `wifi`, `activity_task`). Auriya interacts with these services directly via **Native Binder IPC** (`src/platform/binder/actuators.rs`), eliminating intermediate companion processes and disk files:
 
-- File: `/data/adb/.config/auriya/auriya_cmd` (`CMD_FILE`).
-- Wire format (mirrors the companion's `CmdFormat.kt`):
+- **Do Not Disturb (DnD)**: Dispatches `INotificationManager.setInterruptionFilter` via Binder RPC (`1` = `INTERRUPTION_FILTER_ALL` to restore normal notifications; `2` = `INTERRUPTION_FILTER_PRIORITY` during gaming).
+- **Refresh Rate**: Dispatches `IDisplayManager` display configuration calls via Binder RPC, with automatic fallback to Android `settings put system min_refresh_rate` / `peak_refresh_rate`.
+- **Wi-Fi Low-Latency Lock**: Calls `IWifiManager.acquireWifiLock` with `WIFI_MODE_FULL_LOW_LATENCY` (mode `4`) when entering a game session, disabling Wi-Fi power-save polling and packet coalescing to prevent ping spikes.
+- **Floating Window Detection**: Queries `IActivityTaskManager.getAllRootTaskInfos` to detect if the active game is running in a freeform or picture-in-picture window, capping render target to 30 FPS to save power.
 
-  ```text
-  seq 42
-  dnd 1              # 0 = All/off, 1 = Priority
-  refresh_rate 90    # Hz; 0 means "restore previous"
-  ```
-
-- **Stateful re-emit**: the companion reads the *whole* file each time (it is one
-  command, not a queue). Two quick single-field writes — `dnd` then
-  `refresh_rate` on a game switch — would otherwise clobber each other, so the
-  writer remembers the last value of every field and re-emits the **full** state
-  on each write (`CmdWriter::write`).
-- **Atomic delivery**: written to `.auriya_cmd.tmp` then `rename`d, so the
-  companion's inotify watcher only sees a complete payload
-  (`CmdWriter::write`). `seq` is a process-monotonic counter for dedup.
-
-There is one process-wide writer (`shared()`); using more than one would reset the
-`seq` counter and break the companion's dedup.
-
-:::note There is a fallback for a dead companion
-When the companion is considered dead, refresh-rate and DnD requests fall back to
-Android `settings put` invocations from the daemon (see
-[Architecture overview → Control and status paths](/architecture/overview/#control-and-status-paths)).
-:::
+All Binder client RPCs run directly in memory with zero disk writes, ensuring sub-millisecond execution times.
 
 ## SoC detection
 

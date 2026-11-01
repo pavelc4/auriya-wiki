@@ -42,19 +42,19 @@ flowchart LR
     daemon -->|menulis ulang| gl[("gamelist.toml")]
     daemon -->|JSON| app
 
-    comp["Companion"] -->|"mendeteksi foreground,<br/>menulis system_status"| daemon
-    play(("Bermain Game")) --> comp
+    binder["Native Binder IPC<br/>(IActivityManager)"] -->|"mendeteksi pergantian aplikasi"| daemon
+    play(("Bermain Game")) --> binder
     daemon -->|"profil + FAS + pasang eBPF"| kernel
 
-    boot(("Booting")) --> svc["service.sh menjalankan<br/>Companion + Daemon (otomatis)"]
+    boot(("Booting")) --> svc["service.sh menjalankan<br/>Daemon secara langsung (otomatis)"]
 ```
 
 ## Alur Kasus Penggunaan
 
 ### UC-1 · Instalasi & Penggunaan Pertama
 **Aktor:** Pengguna → Root Manager → `customize.sh` → Aplikasi.
-1. Flash file ZIP modul; `customize.sh` memverifikasi arsitektur/checksum, menyalin APK daemon + companion, memasang aplikasi via `pm install`, dan meletakkan file default TOML.
-2. Reboot ponsel. `service.sh` otomatis menjalankan companion + daemon.
+1. Flash file ZIP modul; `customize.sh` memverifikasi arsitektur/checksum, memasang biner `auriya` daemon dan `auriyactl` ke `system/bin`, memasang aplikasi via `pm install`, dan meletakkan file default TOML.
+2. Reboot ponsel. `service.sh` otomatis menjalankan daemon `auriya`.
 3. Buka aplikasi manajer, berikan izin root. Lihat [Instalasi](/id/getting-started/installation/), [Menjalankan Pertama Kali](/id/getting-started/first-run/).
 
 ### UC-2 · Mengatur Profil Global
@@ -62,7 +62,7 @@ flowchart LR
 1. Pengguna memilih profil di UI (atau melalui tile QS/widget).
 2. Aplikasi mengirim: `echo 'SET_PROFILE PERFORMANCE' | nc -U …sock` (`UiViewModel.kt`).
 3. Daemon mengambil lock profil, menerapkan governor/GPU/tweak → `/proc`,`/sys`.
-4. Daemon membalas `OK SET_PROFILE Performance`. Lihat [IPC](/id/internals/ipc-protocol/#kontrol-profil).
+4. Daemon membalas `OK SET_PROFILE Performance`. Lihat [IPC](/id/internals/ipc-protocol/#4-kontrol-profil).
 
 ### UC-3 · Menambah / Mengedit Game
 **Aktor:** Pengguna → Aplikasi → Daemon → `gamelist.toml`.
@@ -76,9 +76,9 @@ flowchart LR
 2. Aplikasi menulis ke `settings.toml`. Kunci live (`cpu.default_governor`, `daemon.default_mode`, `check_interval_ms`) langsung diterapkan saat dimuat ulang; kunci FAS berlaku setelah restart daemon. Lihat [Tuning Performa](/id/getting-started/performance-tuning/).
 
 ### UC-5 · Bermain Game (Otomatis, Tanpa Tindakan Pengguna)
-**Aktor:** Companion → Daemon → Kernel.
-1. Game masuk ke latar depan (foreground); companion menulis file `system_status`.
-2. Watcher daemon memicu tick instan; jika paket terdaftar di whitelist dengan PID aktif, daemon memulai sesi game: mengunci node vendor, menerapkan profil game, memasang probe frame eBPF, serta meminta mode DnD/refresh rate via `auriya_cmd`.
+**Aktor:** Framework OS → Daemon → Kernel.
+1. Game masuk ke latar depan (foreground); `IActivityManager` Android memanggil `ProcessObserver.onForegroundActivitiesChanged` melalui Native Binder IPC.
+2. Engine daemon menerima event melalui channel Tokio; jika paket terdaftar di whitelist dengan PID aktif, daemon memulai sesi game: mengunci node vendor, menerapkan profil game, mengaktifkan low-latency lock Wi-Fi, memasang probe frame eBPF, serta meminta mode DnD/refresh rate via Native Binder RPC.
 3. Setiap tick FAS membaca frame dan menyesuaikan frekuensi CPU/GPU. Saat keluar dari game, status dibersihkan dan profil default dipulihkan. Lihat [Penjadwal profil](/id/internals/profile-scheduler/), [Deteksi game](/id/internals/game-detection/).
 
 ### UC-6 · Melihat Telemetri Live

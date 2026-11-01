@@ -1,85 +1,158 @@
 ---
-title: "Protokol Telemetri & Perekam FPS (GET_STATS)"
+title: "Protokol Telemetri (GET_STATS)"
 ---
-Auriya mengekspos snapshot performa internal yang di-polling oleh aplikasi manajer untuk merender kartu telemetri (FPS, suhu, status baterai, clock CPU/GPU) serta menggerakkan fitur perekaman FPS per-game.
+Auriya mengekspos telemetri perangkat keras dan statistik frame pacing secara real-time melalui `/dev/socket/auriya.sock`. Aplikasi manajer Jetpack Compose dan floating overlay HUD membaca stream ini untuk merender kartu metrik, grafik, serta rekaman sesi benchmark.
 
-:::info Protokol Internal Daemon
-Payload `GET_STATS` adalah **format komunikasi IPC internal** yang dirancang khusus antara daemon Rust Auriya dan aplikasi Android manajer Auriya. Format ini bukan ditujukan sebagai API publik umum untuk proyek eksternal tanpa adaptasi.
+:::info Standarisasi Envelope JSON
+Mulai v2.2.0, seluruh respons IPC dibungkus dalam format envelope standar `ApiResponse<T>` (`{"status":"ok","data":{...}}` atau `{"status":"error","message":"..."}`).
 :::
 
-## Lapisan Transportasi
+## Transport & Akses
 
-| Properti | Nilai |
-| --- | --- |
-| Perintah IPC | `GET_STATS` (alias `GETSTATS`) |
-| Saluran Komunikasi | Socket Unix `/dev/socket/auriya.sock` (lihat [Protokol IPC](/id/internals/ipc-protocol/)) |
-| Format Respons | Satu baris string JSON, lalu koneksi ditutup dengan perintah `QUIT` |
-| Beban Komputasi | Dihitung **hanya saat diminta** — daemon tidak mengakumulasikan data antar polling |
+| Parameter | Spesifikasi |
+| :--- | :--- |
+| **Perintah** | `GET_STATS` (alias `GETSTATS`) atau `STREAM_STATS [interval_ms]` |
+| **Transport** | Unix domain socket `/dev/socket/auriya.sock` (mode `0666`) |
+| **Format Respons** | String JSON satu baris dengan envelope `ApiResponse<StatsSnapshot>` |
+| **Performa** | Dihitung on-demand dengan zero-allocation buffer saat tidak ada client yang melakukan polling |
 
-Contoh kueri dari root shell:
+Contoh kueri dari terminal atau root shell:
 
 ```console
 $ printf 'GET_STATS\nQUIT\n' | nc -U /dev/socket/auriya.sock
-OK AURIYA IPC
-{"fps":{"avg":118.0,...},"thermal":{...},...}
-BYE
+{"status":"ok","data":{"fps":{"avg":119.4,"peak":120.2,"low_1pct":114.2,"low_0_1pct":98.6,...},"thermal":{...},"daemon":{...},"binder":{...}}}
 ```
 
-## Skema JSON (Satu Grup = Satu Kartu UI)
+## Skema Payload JSON
 
 ```json
 {
-  "fps":     { "avg": 118.0, "peak": 258.9, "low_1pct": 78.5, "jank": 2, "frames": 600 },
-  "thermal": { "cpu_c": 64.7, "gpu_c": null, "battery_c": 41.5 },
-  "battery": { "pct": 100, "current_ma": 573, "voltage_v": 4.23, "status": "Charging", "health": "Good" },
-  "cpu":     { "load_pct": 60.0, "cores": [ { "id": 0, "khz": 1804800, "gov": "walt", "cluster": "Little", "online": true } ] },
-  "gpu":     { "mhz": 580, "load_pct": null, "vendor": "kgsl" },
-  "session": { "pkg": "com.mobile.legends", "profile": "performance", "active": true }
+  "status": "ok",
+  "data": {
+    "daemon": {
+      "version": "2.2.0",
+      "pid": 1337,
+      "rss_mb": 5.4,
+      "uptime_secs": 3600,
+      "active_profile": "performance",
+      "version_code": "52",
+      "commit": "9aef31b",
+      "arch": "aarch64"
+    },
+    "binder": {
+      "operational": true,
+      "screen_interactive": true,
+      "is_floating": false,
+      "wifi_low_latency": true,
+      "statusbar_locked": false,
+      "dnd_mode": 2,
+      "refresh_rate_hz": 120.0
+    },
+    "system": {
+      "uptime_secs": 86400,
+      "ram_total_mb": 11500,
+      "ram_avail_mb": 4200
+    },
+    "session": {
+      "pkg": "com.miHoYo.GenshinImpact",
+      "profile": "fast",
+      "active": true,
+      "is_game": true
+    },
+    "fps": {
+      "current": 60.0,
+      "min": 54.2,
+      "max": 60.5,
+      "avg": 59.8,
+      "peak": 61.2,
+      "low_1pct": 57.1,
+      "low_0_1pct": 52.4,
+      "dropped_frames": 3,
+      "jank": 1,
+      "frames": 1800
+    },
+    "cpu": {
+      "load_pct": 48.5,
+      "cores": [
+        { "id": 0, "khz": 1804800, "gov": "schedutil", "cluster": "Little", "online": true, "load_pct": 35.0 },
+        { "id": 4, "khz": 2400000, "gov": "performance", "cluster": "Big", "online": true, "load_pct": 62.0 },
+        { "id": 7, "khz": 2841600, "gov": "performance", "cluster": "Prime", "online": true, "load_pct": 78.0 }
+      ],
+      "available_governors": ["schedutil", "performance", "powersave"]
+    },
+    "gpu": {
+      "mhz": 680,
+      "load_pct": 74,
+      "vendor": "kgsl"
+    },
+    "thermal": {
+      "cpu_c": 56.4,
+      "gpu_c": 52.0,
+      "battery_c": 38.5,
+      "sconfig_supported": false
+    },
+    "battery": {
+      "pct": 82,
+      "current_ma": -450,
+      "voltage_v": 4.12,
+      "status": "Discharging",
+      "health": "Good"
+    }
+  }
 }
 ```
 
-### Referensi Field Data
+## Referensi Field Data
 
-| Grup | Field | Makna & Definisi |
-| --- | --- | --- |
-| `fps` | `avg` | Rata-rata FPS dalam rentang jendela (`1 / rata-rata frametime`). |
-| | `peak` | Nilai FPS tercepat pada satu frame (`1 / frametime minimum`). |
-| | `low_1pct` | Rata-rata FPS pada 1% frame terburuk — metrik stutter/patah-patah. |
-| | `jank` | Jumlah frame yang lebih lambat dari `target × 1.5`. |
-| | `frames` | Jumlah sampel frame yang digunakan untuk kalkulasi. |
-| `thermal` | `cpu_c` / `gpu_c` / `battery_c` | Suhu dalam satuan °C. `battery_c` berada di grup ini karena merupakan temperatur. |
-| `battery` | `pct` | Persentase daya baterai 0–100 %. |
-| | `current_ma` | Arus instan dalam mA. Gunakan field `status` untuk menentukan arah pengisian. |
-| | `voltage_v` | Tegangan baterai dalam Volt. |
-| | `status` / `health` | Status baterai, misalnya `Charging` / `Good`. |
-| `cpu` | `load_pct` | Total beban kerja CPU (persentase). |
-| | `cores[]` | Informasi per-core: `id`, `khz` (frekuensi), `gov` (governor), `cluster` (`Little`/`Big`/`Prime`), `online`. |
-| `gpu` | `mhz` / `load_pct` / `vendor` | Frekuensi clock GPU, persentase sibuk (load), driver vendor. |
-| `session` | `pkg` | Nama paket aplikasi yang sedang aktif di latar depan. |
-| | `profile` | Profil performa yang aktif (`performance`/`balance`/`powersave`). |
-| | `active` | **Bernilai `true` hanya saat game di whitelist berjalan dengan PID aktif.** Ini merupakan sinyal pemicu rekaman. |
+### `daemon`
+- **`version`**: String versi semantik daemon (misalnya `2.2.0`).
+- **`rss_mb`**: Jejak memori Resident Set Size (RSS) daemon dalam megabyte (~5.5 MB).
+- **`active_profile`**: Status profil yang aktif (`fast`, `performance`, `balance`, `powersave`).
+- **`commit`**: Short Git commit hash dari biner yang sedang berjalan.
 
-### Aturan Penanganan Nilai Null
+### `binder`
+- **`operational`**: `true` jika koneksi RPC Native Binder ke `servicemanager` Android aktif normal.
+- **`screen_interactive`**: Status interaktivitas layar yang dikueri via `IPowerManager.isInteractive()`.
+- **`is_floating`**: `true` jika aktivitas foreground berada dalam mode jendela mengambang / freeform (`IActivityTaskManager`).
+- **`wifi_low_latency`**: `true` jika lock Wi-Fi latensi rendah aktif melalui `IWifiManager.acquireWifiLock`.
+- **`dnd_mode`**: Filter Do Not Disturb aktif (`1` untuk Semua/Normal, `2` untuk Prioritas Game).
+- **`refresh_rate_hz`**: Refresh rate layar aktif yang dikueri dari `IDisplayManager`.
 
-- **`fps` bernilai `null`** saat tidak ada game yang berjalan (idle) — render kartu FPS sebagai "tidak aktif", bukan "0".
-- **Semua field dapat bernilai `null`** jika kernel perangkat tidak mengekspos node sensor tersebut (misalnya `gpu_c` pada beberapa chipset). Kartu UI harus dapat melewati nilai null tanpa crash.
-- **`session.active == false`** menandakan tidak ada game terkelola yang sedang berjalan.
+### `fps` (Frame Pacing & Performa)
+- **`avg`**: Rata-rata frame rate jendela pengukuran ($1 / \text{rata-rata durasi frame}$).
+- **`low_1pct`**: Rata-rata frame rate dari 1% frame terburuk (indikator utama micro-stutter).
+- **`low_0_1pct`**: Rata-rata frame rate dari 0.1% frame terburuk (indikator hitching ekstrem).
+- **`dropped_frames`**: Estimasi frame yang terlewat berdasarkan durasi presentasi.
+- **`jank`**: Jumlah frame yang durasi render-nya melebihi $1.5\times$ target interval frame.
 
-## Metode Akses yang Disarankan (Sisi Aplikasi Android)
+### `cpu` & `gpu`
+- **`cpu.load_pct`**: Persentase utilisasi beban kerja CPU total lintas semua core.
+- **`cpu.cores[]`**: Informasi frekuensi per core (`khz`), governor (`gov`), klaster (`Little`/`Big`/`Prime`), status online, dan beban per core (`load_pct`).
+- **`gpu.mhz`**: Frekuensi langkah clock GPU yang aktif.
+- **`gpu.load_pct`**: Persentase beban kerja GPU yang aktif.
 
-Socket dilindungi oleh izin root, sehingga diakses melalui root shell bawaan aplikasi (libsu) dengan coroutine:
+### `thermal` & `battery`
+- **`thermal.cpu_c` / `gpu_c` / `battery_c`**: Suhu dalam derajat Celsius.
+- **`battery.pct`**: Persentase kapasitas baterai (0–100%).
+- **`battery.current_ma`**: Arus instan dalam miliampere (negatif saat discharging).
+- **`battery.voltage_v`**: Tegangan baterai dalam Volt.
+
+## Metode Konsumsi di Aplikasi Android
+
+Aplikasi Manajer Auriya membuka socket Unix melalui libsu root shell atau biner client, lalu mendecode respons JSON menggunakan `kotlinx.serialization`:
 
 ```kotlin
-fun fetchStats(): Stats? {
-    val raw = RootShell.run("printf 'GET_STATS\\nQUIT\\n' | timeout 2 nc -U /dev/socket/auriya.sock")
+@Serializable
+data class ApiResponse<T>(
+    val status: String,
+    val data: T? = null,
+    val message: String? = null
+)
+
+fun fetchTelemetry(): StatsSnapshot? {
+    val raw = RootShell.run("printf 'GET_STATS\\nQUIT\\n' | nc -U /dev/socket/auriya.sock")
     val json = raw?.lineSequence()?.firstOrNull { it.startsWith("{") } ?: return null
-    return Json { ignoreUnknownKeys = true }.decodeFromString<Stats>(json)
+    val response = Json { ignoreUnknownKeys = true }.decodeFromString<ApiResponse<StatsSnapshot>>(json)
+    return response.data
 }
 ```
-
-## Auto-Record FPS di Sisi Aplikasi
-
-Fitur auto-record diatur sepenuhnya **di dalam aplikasi manajer**:
-- **Preferensi Per-Game**: Disimpan di SharedPreferences aplikasi berdasarkan nama paket.
-- **Pemicu (Trigger)**: Memantau perubahan `session.active`. Pada transisi `false → true`, aplikasi memulai buffer perekaman; selama `true`, data `fps` disimpan setiap detik; pada `true → false`, aplikasi menyelesaikan ringkasan sesi benchmark (rata-rata FPS, 1% low minimum, suhu puncak CPU, total jank, dan durasi bermain).
-- **Penyimpanan Lokal**: Rekaman disimpan di sandbox internal aplikasi (`filesDir` / Room Database), tidak pernah ditulis ke `/data/adb`.

@@ -1,76 +1,62 @@
 ---
-title: "Referensi Sistem File"
+title: "Referensi Sistem Berkas"
 ---
-Seluruh jalur file yang dibaca, ditulis, atau diinstal oleh Auriya, dikelompokkan berdasarkan **kapan file tersebut ada**. Hal ini penting dipahami karena tata letak file di dalam arsip ZIP *berbeda* dengan tata letak saat terinstal: `customize.sh` menyalin file ke lokasi runtime lalu menghapus direktori staging sementara.
+Seluruh path berkas yang dibaca, ditulis, atau dipasang oleh Auriya pada perangkat Android, dikelompokkan berdasarkan peran dan tahap siklus hidupnya.
 
-:::info Diverifikasi langsung terhadap kode sumber
-Dilacak ke commit Auriya [`10fe7c6`](https://github.com/pavelc4/auriya/tree/10fe7c6b56474a00513fec34ebac1376b30e95e6). Konstanta jalur: [`src/common/constants.rs`](https://github.com/pavelc4/auriya/blob/10fe7c6b56474a00513fec34ebac1376b30e95e6/src/common/constants.rs) dan [`src/core/config/path.rs`](https://github.com/pavelc4/auriya/blob/10fe7c6b56474a00513fec34ebac1376b30e95e6/src/core/config/path.rs).
+:::info Diverifikasi terhadap sumber
+Konstanta path didefinisikan pada `src/platform/common/mod.rs` dan `src/core/config/mod.rs`. Script runtime: `module/customize.sh`, `module/service.sh`, `module/uninstall.sh`.
 :::
 
-## Jalur Runtime (Saat Perangkat Berjalan)
+## Path Runtime (Perangkat Terpasang & Berjalan)
 
-Jalur ini aktif setelah modul terpasang dan sistem telah melakukan booting.
+### Direktori Konfigurasi — `/data/adb/.config/auriya/`
 
-### Konfigurasi dan Status Runtime — `/data/adb/.config/auriya/`
+| Path | Ditulis oleh | Dibaca oleh | Fungsi |
+| :--- | :--- | :--- | :--- |
+| `settings.toml` | Manager App / Pengguna | Daemon | Konfigurasi global daemon, governor default, parameter tuning, dan toggle fitur. Tidak terhapus saat pembaruan modul. |
+| `gamelist.toml` | Manager App / Pengguna / Daemon IPC | Daemon | Whitelist per-game, profil target, batas frekuensi maksimal, dan preferensi refresh rate. Tidak terhapus saat pembaruan modul. |
 
-`CONFIG_DIR`, didefinisikan pada `src/common/constants.rs:3`:
+### Soket Domain Unix Daemon
 
-| Jalur File | Ditulis Oleh | Dibaca Oleh | Fungsi / Tujuan |
-| --- | --- | --- | --- |
-| `settings.toml` | Aplikasi manajer | Daemon (startup + watcher) | Konfigurasi global sistem. Lihat [referensi settings](/id/reference/settings/). |
-| `gamelist.toml` | Aplikasi manajer **dan** Daemon (mutasi IPC) | Daemon (startup + watcher) | Whitelist game dan profil per-aplikasi. Lihat [referensi gamelist](/id/reference/gamelist/). |
-| `system_status` | Companion service | Daemon (watcher file) | Snapshot status Android: aplikasi foreground, status layar/baterai/Zen. |
-| `companion.lock` | Companion service (flock) | Daemon (watcher lock) | File pelacak keaktifan companion; pelepasan lock menandakan companion mati. |
-| `current_profile` | Daemon | Pembaca legacy/skrip eksternal | File kompatibilitas berisi angka `1`/`2`/`3`/`4` untuk Performance/Balance/Powersave/Fast. |
-| `gpu_type` | `customize.sh` (saat instalasi) | — | Tipe GPU terdeteksi (`adreno`/`mali`/`unknown`). |
-| `arch` | `customize.sh` (saat instalasi) | — | ABI perangkat terdeteksi (`arm64-v8a`). |
+| Path | Fungsi |
+| :--- | :--- |
+| `/dev/socket/auriya.sock` | Soket domain Unix lokal untuk seluruh komunikasi IPC client-daemon (`GET_STATS`, `SET_PROFILE`, `INJECT_APP`). Dibuat dengan izin `0666` saat daemon startup; dihapus bersih saat terminasi. |
 
-### Socket IPC Daemon
+### Direktori Log — `/data/adb/auriya/`
 
-| Jalur File | Fungsi / Tujuan |
-| --- | --- |
-| `/dev/socket/auriya.sock` | Unix domain socket untuk seluruh komunikasi IPC (aplikasi manajer & `auriyactl`). Lihat [Protokol IPC](/id/internals/ipc-protocol/). |
+| Path | Ditulis oleh | Fungsi |
+| :--- | :--- | :--- |
+| `auriya.log` | DmesgLogger | Log berformat kernel dmesg dengan timestamp boottime presisi (`[   12.345678] [INFO] ...`). Otomatis dirotasi saat melebihi 1 MB. |
+| `auriya.log.1` | DmesgLogger | Arsip log hasil rotasi sebelumnya. |
 
-### File Log — `/data/adb/auriya/`
+### Direktori Modul — `/data/adb/modules/auriya/`
 
-| Jalur File | Fungsi / Tujuan |
-| --- | --- |
-| `daemon.log` | Output stdout/stderr daemon, dialirkan oleh `service.sh`. |
-| `daemon.log.1`, `daemon.log.2` | File rotasi log daemon (dirotasi saat ukuran melebihi 1 MB). |
-| `companion.log`, `companion.log.1` | Log output companion service dan rotasinya. |
-| `restart.log` | Output saat `service.sh` dipanggil ulang oleh `auriyactl restart`. |
+Direktori root modul yang di-mount ke dalam sistem berkas overlay Android oleh KernelSU, Magisk, atau APatch:
 
-### Pohon Modul Terpasang — `/data/adb/modules/auriya/`
+| Path | Izin | Fungsi |
+| :--- | :--- | :--- |
+| `module.prop` | `0644` | Metadata modul (`id=auriya`, `name`, `version`, `versionCode`, `author`, `description`). |
+| `icon.png` | `0644` | Icon 192x192 PNG yang ditampilkan pada UI aplikasi root manager. |
+| `service.sh` | `0755` | Script latar belakang late-start yang dijalankan saat boot selesai (`sys.boot_completed`). |
+| `action.sh` | `0755` | Script tombol aksi yang dieksekusi saat ditekan di antarmuka root manager. |
+| `uninstall.sh` | `0755` | Script pembersihan yang dijalankan saat modul dihapus. |
+| `system/bin/auriya` | `0755` | Biner daemon aarch64 Rust yang terkompilasi. |
+| `system/bin/auriyactl` | `0755` | Biner CLI kontrol aarch64 Rust yang terkompilasi. |
 
-| Jalur File | Fungsi / Tujuan |
-| --- | --- |
-| `system/bin/auriya` | **Binary daemon utama yang dieksekusi.** Izin eksekusi `0755`. |
-| `system/bin/auriyactl` | Binary CLI kontrol (jika disertakan). |
-| `system/etc/auriya/service.apk` | APK companion service; dijalankan saat boot via `app_process`. |
-| `service.sh` | Skrip booting otomatis melalui hook root manager `service.d`. |
-| `uninstall.sh` | Skrip pembersihan saat modul dihapus. |
-| `module.prop` | Metadata modul Magisk/KernelSU/APatch. |
+### Symlink Integrasi Terminal Root
 
-### Symlink Root Manager (Kondisional)
+| Path Sumber | Tujuan Symlink | Fungsi |
+| :--- | :--- | :--- |
+| `/data/adb/modules/auriya/system/bin/auriya` | `/data/adb/ksu/bin/auriya`<br/>`/data/adb/ap/bin/auriya` | Memungkinkan pemanggilan biner `auriya` langsung dari shell root tanpa mengetik path lengkap. |
+| `/data/adb/modules/auriya/system/bin/auriyactl` | `/data/adb/ksu/bin/auriyactl`<br/>`/data/adb/ap/bin/auriyactl` | Memungkinkan pemanggilan CLI `auriyactl` langsung dari terminal. |
 
-`customize.sh` membuat symlink ke direktori `bin` milik root manager **hanya jika direktori tersebut ada**:
-- KernelSU: `/data/adb/ksu/bin/auriya`, `/data/adb/ksu/bin/auriyactl`
-- APatch: `/data/adb/ap/bin/auriya`, `/data/adb/ap/bin/auriyactl`
+## Path Staging (Hanya Ada di Dalam ZIP Flashable)
 
-## Jalur Staging ZIP (Hanya di Dalam Arsip / Saat Instalasi)
+Path berikut hanya ada secara sementara di dalam arsip ZIP flashable dan langsung dihapus oleh `customize.sh` setelah instalasi:
 
-File-file berikut **hanya** ada di dalam file ZIP dan selama proses eksekusi `customize.sh`. Direktori sementara `libs/` dihapus setelah instalasi selesai:
-
-| Jalur di Dalam ZIP | Perlakuan Saat Instalasi |
-| --- | --- |
-| `libs/aarch64/auriya` | Diverifikasi hash SHA256, disalin ke `system/bin/auriya`, lalu `libs/` dihapus. |
-| `libs/aarch64/auriyactl` | Disalin ke `system/bin/auriyactl` jika ada, lalu dihapus. |
-| `libs/aarch64/checksums.sha256` | Digunakan untuk verifikasi integritas binary. |
-| `libs/companion/service.apk` | Disalin ke `system/etc/auriya/service.apk`, lalu dihapus. |
-| `libs/companion/auriya-app.apk` | Dipasang ke sistem via `pm install` (aplikasi manajer `dev.auriya.app`). |
-| `settings.toml` | Dipindahkan ke `CONFIG_DIR/settings.toml` **hanya jika belum ada file sebelumnya**. |
-| `gamelist.toml` | Dipindahkan ke `CONFIG_DIR/gamelist.toml` **hanya jika belum ada file sebelumnya**. |
-
-## Penghapusan Modul (Uninstall)
-
-Skrip `uninstall.sh` menghentikan proses `auriya` dan companion `AuriyaSysMon`, menghapus aplikasi manajer via `pm uninstall`, serta menghapus `/dev/socket/auriya.sock`, `/data/adb/.config/auriya`, `/data/adb/auriya`, dan seluruh symlink biner.
+| Path di Dalam ZIP | Tujuan Saat Flashing | Fungsi |
+| :--- | :--- | :--- |
+| `libs/aarch64/auriya` | `/data/adb/modules/auriya/system/bin/auriya` | Biner daemon sementara; disalin lalu dihapus. |
+| `libs/aarch64/auriyactl` | `/data/adb/modules/auriya/system/bin/auriyactl` | Biner CLI sementara; disalin lalu dihapus. |
+| `libs/aarch64/checksums.sha256` | Diverifikasi di memori | Checksum SHA256 untuk memverifikasi integritas biner. |
+| `libs/app/auriya-app.apk` | Dipasang via `pm install -r -g` | Aplikasi manager antarmuka; dihapus dari direktori modul setelah instalasi. |

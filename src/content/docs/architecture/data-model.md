@@ -9,9 +9,9 @@ config entities — the two sides must agree or a field is silently dropped (the
 no `deny_unknown_fields`).
 
 :::info Verified against source
-Rust: `src/core/config/`, `src/core/system_status/`, `src/core/cmd_writer/`,
-`src/daemon/state.rs`, `src/core/stats/`, `src/core/telemetry/`. Kotlin:
-`android/shared/src/main/kotlin/dev/auriya/shared/model/` + `.../config/TomlParser.kt`.
+Traced to Auriya v2.2.0.
+Rust: `src/core/config/`, `src/daemon/context.rs`, `src/core/stats/`, `src/core/telemetry/`, `src/platform/binder/`.
+Kotlin: `android/shared/src/main/kotlin/dev/auriya/shared/model/` + `.../config/TomlParser.kt`.
 :::
 
 ## Entity map (who owns what, sync direction)
@@ -30,16 +30,15 @@ flowchart LR
     end
     kt <-->|"schemas must match field-for-field,<br/>or a field is silently dropped"| rs
 
-    subgraph runtime ["Runtime / wire - no persistence"]
+    subgraph runtime ["Runtime / wire - zero disk persistence"]
         direction LR
-        comp["Companion"] -->|writes| ss["SystemStatus<br/>(system_status file)"]
-        ss --> cs["CurrentState<br/>(per-tick, in-memory)"]
-        cs --> stats["StatsSnapshot<br/>(GET_STATS, on request)"]
-        stats -->|"JSON over socket"| app["App (cards)"]
-        fb["FrameBuffer<br/>(FAS deque)"] --> fps["FpsStats (computed)"]
-        fps --> stats
-        daemon["Daemon"] -->|"DnD, refresh rate"| cmd["Cmd<br/>(auriya_cmd file)"]
-        cmd --> comp
+        am["Native Binder IPC<br/>(IActivityManager)"] -->|ProcessObserver| pe["ProcessEvent<br/>(Tokio channel)"]
+        pe --> ctx["DaemonContext<br/>(in-memory state)"]
+        fb["FrameBuffer<br/>(FAS deque)"] --> fps["FpsStats"]
+        hub["TelemetryHub<br/>(sysfs / binder)"] --> telem["Hardware Telemetry"]
+        ctx & fps & telem --> stats["StatsSnapshot<br/>(ApiResponse envelope)"]
+        stats -->|"JSON over Unix socket"| app["Manager App / Overlay"]
+        ctx -->|"Native Binder RPCs<br/>(DnD, rate, Wi-Fi)"| android["Android OS Framework"]
     end
 ```
 
@@ -60,7 +59,7 @@ the TOML file. Keeping them equal is a hard requirement.
 | `[dynamic_governor]` | `DynamicGovernorConfig { enabled, cv_threshold, debounce_frames }` | `DynamicGovernorConfig(enabled, cvThreshold, debounceFrames)` | Parity |
 | `[modes.*]` | `HashMap<String, FasMode { margin, thermal_threshold }>` | `Map<String, FasMode(margin, thermalThreshold)>` | Parity |
 
-Full per-key meaning + which the daemon consumes: [settings reference](/reference/settings/).
+Full per-key meaning + which the daemon consumes: [Settings Reference](/reference/settings/).
 
 ### `GameProfile` ↔ `[[game]]` ↔ Kotlin
 
@@ -74,7 +73,7 @@ Full per-key meaning + which the daemon consumes: [settings reference](/referenc
 | `mode` | string | — | `powersave`/`balance`/`performance`/`fast` |
 | `ceiling` | string | — | |
 
-Full detail: [gamelist reference](/reference/gamelist/).
+Full detail: [Gamelist Reference](/reference/gamelist/).
 
 :::warning The schema-sync rule
 There is no `#[serde(deny_unknown_fields)]`. If you add a key to one side only:
@@ -84,70 +83,49 @@ There is no `#[serde(deny_unknown_fields)]`. If you add a key to one side only:
 So a new setting is a **three-place change**: Rust struct (+ consume it),
 `settings.toml`/`gamelist.toml` default, and the Kotlin model + `TomlParser`.
 Do **not** add a field only one side uses. This is why per-game *UI-only* flags
-(e.g. auto-record enable) live in app SharedPreferences, **not** in `gamelist.toml`.
+(e.g. auto-record enable) live in app DataStore Preferences, **not** in `gamelist.toml`.
 :::
 
 ## Runtime / wire entities (no persistence)
 
-These are transient — computed per tick or per request, never stored.
+These are transient — computed per tick or per request, never stored to disk.
 
-### `SystemStatus` (companion → daemon)
+### `ProcessEvent` (Native Binder → Daemon)
 
-`src/core/system_status/mod.rs`. Parsed from the `system_status` file; all fields
-`Option` (partial writes allowed).
+`src/daemon/pipeline.rs`. Dispatched asynchronously from `ProcessObserver` (`src/platform/binder/observer.rs`) or `PidTracker` (`src/core/session/tracker.rs`) over a bounded Tokio mpsc channel.
 
-| Field | Type |
-| --- | --- |
-| `focused_app` | `Option<String>` |
-| `focused_pid` | `Option<i32>` |
-| `focused_uid` | `Option<i32>` |
-| `screen_awake` | `Option<bool>` |
-| `battery_saver` | `Option<bool>` |
-| `zen_mode` | `Option<u8>` |
+| Variant | Payload | Origin |
+| --- | --- | --- |
+| `ForegroundChanged` | `{ pid: i32, pkg: String }` | `IProcessObserver.onForegroundActivitiesChanged` |
+| `PidExited` | `{ pid: i32 }` | `pidfd_open` watcher thread blocking in `poll()` |
 
-### `Cmd` (daemon → companion, `auriya_cmd`)
+### `DaemonContext` (in-memory state)
 
-`src/core/cmd_writer/mod.rs`. Stateful writer re-emits full state each write.
+`src/daemon/context.rs`. Central thread-safe state container shared by Tokio pipeline tasks and Unix socket IPC handlers. Holds:
+- Atomic flags (`enabled`)
+- Active profile state and manual overrides (`override_foreground`, `active_profile`)
+- Foreground tracking (`current_pkg`, `current_pid`, `is_game`)
+- Controller references (FAS controller, Binder client, Gamelist, Settings, Logger)
 
-| Field | Type |
-| --- | --- |
-| `dnd` | `Option<DndFilter>` (All / Priority) |
-| `refresh_rate` | `Option<u32>` (0 = restore) |
+### `ApiResponse<T>` & `StatsSnapshot` (`GET_STATS` / `STREAM_STATS`)
 
-### `CurrentState` (in-memory, per-tick)
+`src/core/stats/snapshot.rs`. Assembled per request or continuous stream from `DaemonContext` + `TelemetryHub` + `FrameBuffer`. Wrapped inside standard `ApiResponse<StatsSnapshot>` envelope:
 
-`src/daemon/state.rs`. Refreshed every tick; read by IPC `STATUS` / `GET_STATS`.
-Holds `pkg`, `pid`, `screen_awake`, `battery_saver`, `profile`, `companion_alive`,
-`cpu_telemetry`, `gpu_telemetry`, `thermal_telemetry`, `fps`, `fps_source`, and
-`game_session` (true only for a whitelisted game — the record trigger).
+```json
+{
+  "status": "ok",
+  "data": { "daemon": {...}, "binder": {...}, "fps": {...}, ... }
+}
+```
 
-### `StatsSnapshot` (`GET_STATS`, computed on request)
-
-`src/core/stats/mod.rs`. Assembled per request from `CurrentState` + a fresh
-`BatterySnapshot` + FPS stats from the FAS `FrameBuffer`. Serialized to JSON,
-grouped one-per-UI-card. This is the **stable contract for the app** — schema and
-null rules in [Stats API](/reference/stats-api/).
-
-### Telemetry snapshots (point reads, per tick or per request)
-
-`CpuSnapshot`, `GpuSnapshot`, `ThermalSnapshot` (`src/core/telemetry/`) — sampled
-each tick into `CurrentState`. `BatterySnapshot` (`telemetry/battery.rs`) — read
-fresh on each `GET_STATS`. All fields best-effort `Option`.
+The app decodes this schema directly to render UI cards and floating HUD metrics. Detailed schema in [Stats API](/reference/stats-api/).
 
 ## Lifecycle at a glance
 
 | Entity | Created by | Lives in | Read by | Persisted? |
 | --- | --- | --- | --- | --- |
 | `Settings` / `GameProfile` | app (or install defaults) | TOML on disk | daemon (startup/watch) | Yes (file) |
-| `SystemStatus` | companion | `system_status` file | daemon (watch) | Yes (file, transient) |
-| `Cmd` | daemon | `auriya_cmd` file | companion (watch) | Yes (file, transient) |
-| `CurrentState` | daemon tick | RAM | IPC handlers | No (RAM only) |
-| `StatsSnapshot` | IPC handler | RAM → JSON | app | No (per-request) |
-| `current_profile` | daemon | file (`1`/`2`/`3`) | legacy readers | Yes (file) |
-
-## See also
-
-- [Data flow](/architecture/data-flow/) — how these entities move at runtime.
-- [Components](/architecture/components/) — the processes that own them.
-- [settings](/reference/settings/) · [gamelist](/reference/gamelist/) ·
-  [Stats API](/reference/stats-api/) — the field-level specs.
+| `ProcessEvent` | Native Binder / pidfd | Tokio channel | daemon pipeline | No (RAM stream) |
+| `DaemonContext` | daemon boot | RAM | pipeline & IPC handlers | No (RAM only) |
+| `StatsSnapshot` | IPC handler | RAM → JSON socket | app / overlay HUD | No (per-request) |
+| `ApiResponse<T>` | IPC handler | RAM → wire | app / CLI | No (wire envelope) |

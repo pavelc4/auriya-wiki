@@ -30,7 +30,7 @@ Daemon: Running
     FPS:      59.8 SOURCE=ebpf
 ```
 
-Jika muncul `Daemon: Not running`, berarti urutan boot mengalami kendala — periksa `/data/adb/auriya/daemon.log` dan `companion.log` ([Debugging](/id/development/debugging/)). Daftar perintah selengkapnya dapat dilihat di [Referensi perintah](/id/reference/commands/).
+Jika muncul `Daemon: Not running`, berarti urutan boot mengalami kendala — periksa `/data/adb/auriya/daemon.log` ([Debugging](/id/development/debugging/)). Daftar perintah selengkapnya dapat dilihat di [Referensi perintah](/id/reference/commands/).
 
 ## Langkah Selanjutnya
 

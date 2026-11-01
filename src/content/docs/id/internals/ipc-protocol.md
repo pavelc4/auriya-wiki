@@ -52,12 +52,14 @@ BYE
 | `GET_FPS` | `GETFPS` | — |
 | `GET_SUPPORTED_RATES` | `GETRATES` | — |
 | `GET_STATS` | `GETSTATS` | — |
+| `STREAM_STATS` | `STREAMSTATS` | `[interval_ms]` |
 | `INJECT` | — | `<package>` |
 | `CLEAR_INJECT` | `CLEARINJECT` | — |
 | `GETPID` | `GET_PID` | — |
 | `PING` | — | — |
 | `QUIT` | — | — |
 | `SET_PROFILE` | `SETPROFILE` | `<FAST\|PERFORMANCE\|BALANCE\|POWERSAVE\|1\|2\|3\|4>` |
+| `SET_GOVERNOR` | `SETGOVERNOR` | `<governor>` |
 | `ADD_GAME` | `ADDGAME` | `<package>` |
 | `REMOVE_GAME` | `REMOVEGAME` | `<package>` |
 | `UPDATE_GAME` | `UPDATEGAME` | `<package> [gov= dnd= fps= fps_array= rate= mode= ceiling=]` |
@@ -76,6 +78,7 @@ BYE
 | `GET_FPS` | `FPS={measured:.1} TARGET={target}` | — |
 | `GET_SUPPORTED_RATES` | Array JSON refresh rate unik, misal `[60,90,120]` | `ERR JSON {e}` |
 | `GET_STATS` | Snapshot JSON single-line (fps/termal/baterai/cpu/gpu/sesi) — skema lengkap di [API Stats](/id/reference/stats-api/) | `ERR JSON {e}` |
+| `STREAM_STATS [ms]` | Streaming kontinu JSON `StatsSnapshot` pada interval yang ditentukan (default: 1000ms, dibatasi 200–5000ms) hingga client memutuskan koneksi | `ERR JSON {e}` |
 | `STATUS` | Rincian status multi-baris (lihat format di bawah) | — |
 
 #### Format Respons STATUS
@@ -101,7 +104,7 @@ TEMP_CPU={c|N/A} TEMP_GPU={c|N/A}
 | `ENABLE` | `OK ENABLED` | Mengaktifkan flag atomic daemon. |
 | `DISABLE` | `OK DISABLED` | Menonaktifkan flag atomic daemon. |
 | `SETLOG <LEVEL>` | `OK SET_LOG` | Mengubah level log runtime `tracing` secara live (`TRACE`, `DEBUG`, `INFO`, `WARN`, `ERROR`). |
-| `INJECT <pkg>` | `OK INJECT` | Memaksa paket foreground untuk debugging (mengabaikan companion). |
+| `INJECT <pkg>` | `OK INJECT` | Memaksa paket foreground untuk debugging (mengabaikan ProcessObserver Native Binder). |
 | `CLEAR_INJECT` | `OK CLEAR_INJECT` | Menghapus status override inject. |
 
 ### 3. Siklus Hidup Konfigurasi
@@ -116,6 +119,7 @@ TEMP_CPU={c|N/A} TEMP_GPU={c|N/A}
 | Perintah | Sukses | Error |
 | --- | --- | --- |
 | `SET_PROFILE <MODE>` | `OK SET_PROFILE {Mode}` | `ERR SET_PROFILE {e}` |
+| `SET_GOVERNOR <gov>` | `OK SET_GOVERNOR {gov}` | Mengubah governor CPU yang di-cache untuk mode balance |
 | `SET_FPS <n>` | `OK SET_FPS {n}` | `ERR usage: SET_FPS <number>` |
 
 `SET_PROFILE` mengambil lock eksklusif sebelum menerapkan setelan ke kernel. `MODE` yang valid: `FAST`, `PERFORMANCE`, `BALANCE`, `POWERSAVE` (atau angka `4`, `1`, `2`, `3`).
@@ -134,4 +138,4 @@ Seluruh perintah ini menulis perubahan secara atomik ke `gamelist.toml`:
 
 ## Arah Aliran Data
 
-Perintah dan kueri status mengalir **masuk** ke daemon melalui Unix socket ini. Data status yang diamati oleh companion (aplikasi fokus, layar, baterai, Zen) mengalir melalui saluran **berbeda** — companion menulis ke `/data/adb/.config/auriya/system_status` yang dipantau oleh daemon. Lihat [Aliran data](/id/architecture/data-flow/) dan [Deteksi game](/id/internals/game-detection/).
+Perintah dan kueri status mengalir **masuk** dan **keluar** dari daemon melalui Unix domain socket ini. Siklus hidup aplikasi foreground serta status sistem dipantau langsung melalui Native Binder IPC (mendaftarkan `IProcessObserver` ke `IActivityManager` Android serta mengueri `IPowerManager`, `IDisplayManager`, `INotificationManager`, dan `IWifiManager`), sepenuhnya di dalam memori tanpa penulisan file disk sama sekali. Lihat [Native Binder IPC](/id/internals/binder-ipc/) dan [Aliran data](/id/architecture/data-flow/).

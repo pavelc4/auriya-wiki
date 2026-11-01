@@ -1,138 +1,81 @@
 ---
 title: "Aliran Data"
 ---
-Dua jenis aliran independen melintasi ketiga lapisan runtime yang sama: **perintah** (klien meminta perubahan status) dan **telemetri/status** (data observasi sistem dialirkan kembali). Keduanya harus dipahami secara terpisah — perintah bersifat permintaan (request), sedangkan telemetri adalah laporan (report) — dan kegagalan pada setiap batas antarmuka harus tetap terlihat oleh pemanggil.
+Auriya membagi aliran data runtime menjadi dua jalur utama: **perintah kontrol** (permintaan client untuk mengubah profil, konfigurasi, atau state) dan **aliran telemetri** (pembacaan metrik hardware dan statistik performa frame secara real-time). Seluruh interaksi berjalan tanpa penulisan file disk berulang melalui Native Binder IPC dan soket domain Unix.
 
-## End-to-End: Seluruh Sistem Berjalan
-
-Gambaran lengkap saat modul terpasang dan sesi game berjalan di latar depan — siapa berkomunikasi dengan siapa, melalui saluran apa, dengan jalur file/perintah nyata. Setiap panah mewakili salah satu dari empat saluran pada [tabel di bawah ini](#empat-saluran-komunikasi-secara-konkret).
+## Aliran Sistem End-to-End
 
 ```mermaid
 flowchart TD
-    app["Aplikasi Manajer (Compose) / auriyactl<br/><code>dev.auriya.app</code>"]
+    subgraph Client ["Bidang Client"]
+        app["Manager App (Jetpack Compose)<br/><code>dev.auriya.app</code>"]
+        ctl["Control CLI<br/><code>auriyactl</code>"]
+    end
+
     sock["Unix Domain Socket<br/><code>/dev/socket/auriya.sock</code>"]
-    daemon["Daemon Rust (auriya)<br/>Tokio Async Event Loop"]
-    comp["Companion Service (AuriyaSysMon)<br/><code>app_process (root uid)</code>"]
-    kernel["Antarmuka Kernel<br/><code>/proc</code> · <code>/sys</code>"]
 
-    subgraph config_files ["File Konfigurasi & Status"]
-        cfg[("settings.toml<br/>gamelist.toml")]
-        status["system_status"]
-        cmd["auriya_cmd"]
+    subgraph Daemon ["Auriya Rust Daemon (aarch64)"]
+        ipc["IPC Server & Command Dispatcher"]
+        pipeline["Pipeline (Ingest -> Decide -> Apply)"]
+        fas["FAS Controller & FrameBuffer"]
+        binder["Native Binder (rsbinder)"]
     end
 
-    app -->|"menulis config (root)"| cfg
-    cfg -.->|"dipantau oleh"| daemon
-    app -->|"perintah IPC: STATUS, SET_PROFILE, GET_STATS"| sock
-    sock <-->|"request / balasan JSON"| daemon
+    subgraph AndroidOS ["Android OS & Kernel"]
+        fw["Android System Services<br/><code>IActivityManager</code> · <code>INotificationManager</code> · <code>IWifiManager</code>"]
+        kernel["Kernel Sysfs & Procfs<br/><code>/proc/stat</code> · <code>/sys/class/thermal</code> · <code>/sys/devices/system/cpu</code>"]
+    end
 
-    comp -->|"menulis status Android"| status
-    status -.->|"dipantau oleh"| daemon
-    daemon -->|"menulis DnD & refresh rate"| cmd
-    cmd -.->|"dipantau & dieksekusi via API Android"| comp
+    app <-->|"GET_STATS / SET_PROFILE"| sock
+    ctl <-->|"Commands & Dumps"| sock
+    sock <-->|"JSON Request / ApiResponse<T>"| ipc
+    ipc --> pipeline
 
-    daemon -->|"penulisan terproteksi: governor / ceiling / FAS"| kernel
-    kernel -->|"pembacaan telemetri: frek / beban / suhu"| daemon
+    fw -->|"onForegroundActivitiesChanged (Callback)"| binder
+    binder -->|"Event Stream (mpsc)"| pipeline
+    pipeline -->|"RPC: DnD / Refresh Rate / Wi-Fi Lock"| fw
+
+    pipeline --> fas
+    fas -->|"Governors / Frequency Ceilings / Devfreq"| kernel
+    kernel -->|"Pembacaan: Clocks / CPU Load / Suhu"| pipeline
 ```
 
-Aplikasi dan `auriyactl` berkomunikasi dengan daemon **secara langsung** melalui socket Unix untuk perintah dan status. Companion adalah partisipan yang *terpisah*: ia menyuplai status observasi Android ke daemon (`system_status`) dan mengeksekusi tindakan framework Android yang tidak dapat dijangkau langsung oleh daemon root (`auriya_cmd`) — lihat [Tweak sistem → CmdWriter](/id/internals/system-tweaks/#actions-routed-through-android--cmdwriter).
+## Saluran Komunikasi
 
-## Urutan Boot (Cold Start → Tick Pertama)
+| Saluran | Protokol / Media | Arah | Fungsi |
+| :--- | :--- | :--- | :--- |
+| **Unix Domain Socket** | Line-delimited JSON (`/dev/socket/auriya.sock`) | Dua arah | Komunikasi client-ke-daemon: polling status (`GET_STATS`), pergantian profil, injeksi proses, dan debugging. |
+| **Native Binder IPC** | Android IPC native via `rsbinder` (`/dev/binder`) | Dua arah | Komunikasi langsung framework: penerimaan callback foreground (`IActivityManager`), kontrol DnD, refresh rate, dan kunci Wi-Fi low-latency. |
+| **Kernel Sysfs & Procfs** | File descriptor I/O (`/proc`, `/sys`) | Dua arah | Modulasi governor CPU/GPU, pembacaan frekuensi per-core, penggunaan CPU, dan suhu thermal zone. |
+| **Inotify Konfigurasi** | Linux `inotify` watchers | Satu arah (Disk $\rightarrow$ Daemon) | Pemuatan ulang instan `settings.toml` dan `gamelist.toml` saat file disimpan. |
 
-Alur yang terjadi sejak ponsel dinyalakan hingga daemon siap melayani permintaan klien, sesuai `module/service.sh` dan `src/daemon/run.rs` (rincian lengkap: [ringkasan arsitektur → alur eksekusi binary](/id/architecture/overview/#alur-eksekusi-binary)):
+## Urutan Boot (Cold Start)
+
+Urutan cold-start menginisialisasi daemon langsung setelah boot Android selesai:
 
 ```mermaid
 flowchart TD
-    boot([Android boot_completed]) --> svc["service.sh: hentikan proses lama,<br/>hapus socket/status/lock kadaluarsa"]
-    svc --> comp["app_process → jalankan Companion (AuriyaSysMon)"]
-    comp --> cw["Companion menulis system_status awal"]
-    cw --> wait{"system_status<br/>muncul ≤ 10s?"}
-    wait -->|tidak| fail1["boot batal — daemon tidak dijalankan"]
-    wait -->|ya| exec["exec auriya --settings … --gamelist …"]
-    exec --> load{"muat settings.toml<br/>+ gamelist.toml"}
-    load -->|error parsing| fail2["main return — daemon berhenti"]
-    load -->|sukses| trace["inisialisasi tracing (log_level)"]
-    trace --> ebpf["inisialisasi stream frame eBPF<br/>(atau fallback: FPS sysfs, FAS nonaktif)"]
-    ebpf --> build["bangun Daemon: whitelist,<br/>FasController(FasTuning), ceiling, telemetri"]
-    build --> bind["bind /dev/socket/auriya.sock<br/>+ spawn listener IPC"]
-    bind --> watch["jalankan watcher: settings, gamelist,<br/>module-update, companion.lock"]
-    watch --> tick0["jalankan satu tick instan"]
-    tick0 --> loop([masuk ke adaptive event loop])
+    boot([Android sys.boot_completed]) --> svc["module/service.sh"]
+    svc --> c1["Hentikan proses lama auriya"]
+    svc --> c2["Hapus file soket lama /dev/socket/auriya.sock"]
+    svc --> c3["Jalankan biner auriya dengan --settings dan --gamelist"]
+
+    c3 --> d1["Muat settings.toml & gamelist.toml"]
+    d1 --> d2["Inisialisasi DmesgLogger ke /data/adb/auriya/auriya.log"]
+    d2 --> d3["Hubungkan BinderClient ke Android servicemanager"]
+    d3 --> d4["Daftarkan ProcessObserver ke IActivityManager"]
+    d4 --> d5["Buka /dev/socket/auriya.sock"]
+    d5 --> d6["Mulai watcher inotify konfigurasi"]
+    d6 --> loop([Masuk ke event loop Tokio])
 ```
 
-## Kondisi Steady-State: Satu Sesi Game Berjalan
+## Alur Lifecycle & Telemetri
 
-Alur bolak-balik perintah dan telemetri selama game yang terdaftar di whitelist berjalan dan aplikasi memantau metrik:
-
-```mermaid
-sequenceDiagram
-    autonumber
-    actor User as Pengguna / Game
-    participant Comp as Companion (AuriyaSysMon)
-    participant Daemon as Daemon Rust (tick loop)
-    participant Kernel as Kernel (/proc, /sys)
-    participant App as Aplikasi (UI Manajer ~1Hz)
-
-    User->>Comp: Game masuk ke latar depan (foreground)
-    Comp->>Daemon: Tulis system_status (paket, PID)
-    Note over Daemon: Watcher aktif → tick instan<br/>Kunci vendor, terapkan profil, pasang eBPF
-    Daemon->>Comp: Tulis auriya_cmd (DnD, refresh rate)
-    Comp->>User: Eksekusi via API Framework Android
-
-    loop Setiap Tick (~500ms sesi game aktif)
-        Daemon->>Daemon: Ambil frame → keputusan penskalaan FAS
-        Daemon->>Kernel: Tulis ScalingAction (frekuensi CPU/GPU)
-        Daemon->>Daemon: Perbarui CurrentState (FPS, telemetri)
-        App->>Daemon: GET_STATS (Unix socket)
-        Daemon-->>App: JSON (FpsStats, suhu, baterai)
-        App->>App: Render kartu telemetri & benchmark
-    end
-
-    User->>Comp: Game keluar dari latar depan
-    Comp->>Daemon: Tulis system_status (home/launcher)
-    Note over Daemon: Tick instan → bersihkan status game,<br/>pulihkan profil default, lepas eBPF
-    App->>Daemon: GET_STATS
-    Daemon-->>App: JSON (fps: null, standby)
-```
-
-Worker eBPF hanya memproses frame saat ada PID game yang terpasang, sehingga tidak membebani sistem di luar sesi game. `GET_STATS` dihitung berdasarkan permintaan — lihat [API Stats](/id/reference/stats-api/).
-
-## Empat Saluran Komunikasi Secara Konkret
-
-| Arah Aliran | Mekanisme | Payload / Data | Referensi Terkait |
-| --- | --- | --- | --- |
-| Klien → daemon | Socket Unix, teks berbaris baru | Perintah: `STATUS`, `SET_PROFILE`, `ADD_GAME`, `GET_STATS`, … | [Protokol IPC](/id/internals/ipc-protocol/) |
-| Companion → daemon | File `system_status` (dipantau) | Aplikasi foreground/PID/UID, layar, penghemat baterai, Zen | di bawah ini |
-| Daemon → companion | File `auriya_cmd` (dipantau) | Filter DnD, refresh rate | [Tweak sistem → CmdWriter](/id/internals/system-tweaks/#actions-routed-through-android--cmdwriter) |
-| Daemon → kernel | Penulisan `/proc`, `/sys` | Governor, ceiling frekuensi, tweak sistem | [Tweak sistem](/id/internals/system-tweaks/) |
-
-Struktur struct dan field yang tepat dari payload ini didokumentasikan di [Model data](/id/architecture/data-model/).
-
-## File `system_status` — Companion → Daemon
-
-Companion menulis `/data/adb/.config/auriya/system_status` setiap kali terjadi perubahan aplikasi foreground, status layar, mode penghemat baterai, atau mode Zen. Format datanya berbasis baris teks (`src/core/system_status/mod.rs:8-11`):
-
-```text
-focused_app <package> <pid> <uid>
-screen_awake <0|1>
-battery_saver <0|1>
-zen_mode <0|1|2|3>
-```
-
-Watcher daemon memuat ulang file ini dan menggabungkannya ke snapshot `CurrentState` yang dibaca oleh klien IPC. Field bersifat opsional — penulisan parsial hanya memperbarui baris yang ada (`SystemStatus`, `mod.rs:27-56`). Daemon menggunakan `focused_app` + `focused_pid` untuk [deteksi game](/id/internals/game-detection/), serta `screen_awake` + `battery_saver` untuk memicu cabang hemat daya pada [penjadwal profil](/id/internals/profile-scheduler/#urutan-pengambilan-keputusan).
-
-## Alur Loop Tick
-
-Daemon menjalankan tick dengan interval yang adaptif (lihat [Ringkasan arsitektur → Event loop](/id/architecture/overview/#event-loop-dan-irama-eksekusi) untuk tabel event):
-
-- **≈ 500 ms** saat sesi game tervalidasi aktif,
-- **`daemon.check_interval_ms`** (default 2 detik) pada kondisi normal di latar depan,
-- **10 detik** saat layar mati / mode penghemat baterai aktif.
-
-Setiap tick membaca snapshot companion yang dicache, memproses cabang hemat daya terlebih dahulu, membaca paket/PID (atau override `INJECT`), lalu menjalankan FAS untuk game yang terdaftar atau menerapkan profil yang sesuai ([Penjadwal profil](/id/internals/profile-scheduler/)). Snapshot daftar game copy-on-write menghindari penahanan lock saat operasi asynchronous berlangsung. Tick juga dapat dipicu lebih cepat — di luar timer — oleh pembaruan status companion, perubahan konfigurasi, atau saat PID yang dilacak keluar ([deteksi game](/id/internals/game-detection/#pelacakan-keaktifan-dan-keluar-instan)).
-
-## Visibilitas Kesalahan (Failure Visibility)
-
-- Error IPC dikembalikan ke klien dalam format baris `ERR …` ([Protokol IPC → konvensi respons](/id/internals/ipc-protocol/#konvensi-respons)).
-- Kegagalan penulisan kernel bersifat best-effort dan dicatat ke log, bukan error fatal ([Tweak sistem](/id/internals/system-tweaks/#penulisan-best-effort-terproteksi)).
-- Companion yang mati dideteksi melalui `companion.lock`; pengaturan layar/DnD kemudian beralih ke fallback `settings put` Android ([ringkasan arsitektur](/id/architecture/overview/#jalur-kontrol-dan-status)).
+Saat sebuah aplikasi berpindah ke layar depan (foreground):
+1. **Ingest Event**: `IActivityManager` memanggil callback native Rust `ProcessObserver::onForegroundActivitiesChanged`.
+2. **Channel Dispatch**: Callback meneruskan event `ForegroundChanged(package, pid)` ke channel asynchronous Tokio `event_tx`.
+3. **Evaluasi Pipeline**: Langkah `decide` pada pipeline mencocokkan nama paket dengan konfigurasi `gamelist.toml`.
+4. **Penerapan Hardware**:
+   - Jika terdaftar sebagai game, daemon menerapkan profil target (Performance/Fast), mengatur batas frekuensi, mengaktifkan kunci Wi-Fi low-latency, menyalakan filter prioritas Jangan Ganggu (DnD) via `INotificationManager`, dan mengubah refresh rate via `IDisplayManager`.
+   - Jika tidak terdaftar, daemon mengembalikan governor seimbang (Balance) dan melepas konfigurasi khusus game.
+5. **Agregasi Telemetri**: Daemon menggabungkan data CPU, GPU, suhu, baterai, dan statistik frame FAS ke dalam format JSON `ApiResponse<Stats>`, yang langsung dialirkan ke aplikasi Compose Manager dan overlay HUD.

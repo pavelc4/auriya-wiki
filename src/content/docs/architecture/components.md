@@ -1,114 +1,111 @@
 ---
 title: "Components"
 ---
-Auriya is three runtime planes plus shared code. This page names each component,
-where it lives, and what it owns. For how they interact at runtime see
-[Data flow](/architecture/data-flow/); for the whole-system flow see
-[Architecture overview](/architecture/overview/).
-
-## Android manager — `android/app/`
-
-The user-facing app (package `dev.auriya.app`). Renders the Compose UI, persists
-appearance/onboarding preferences, requests root, edits `settings.toml` /
-`gamelist.toml`, and displays live daemon status. It is a **client** of the
-daemon over the Unix socket — it does not itself apply tweaks. Installed by
-`customize.sh` via `pm install` ([Installation](/getting-started/installation/)).
-
-## Companion service — `android/service/`
-
-A headless service (process `AuriyaSysMon`, launched via `app_process`, package
-identity `dev.auriya.service`). It bridges Android-only capabilities the root
-daemon cannot reach:
-
-- **Sensors** → writes the foreground app/PID, screen state, battery-saver, and
-  Zen/DnD state to `/data/adb/.config/auriya/system_status`.
-- **Actuators** → replays daemon-requested DnD and refresh-rate changes through
-  Android framework APIs, driven by the `auriya_cmd` file
-  ([System tweaks → CmdWriter](/internals/system-tweaks/#actions-routed-through-android--cmdwriter)).
-
-Its liveness is tracked via `companion.lock` (see
-[Architecture overview](/architecture/overview/#control-and-status-paths)). Full internals —
-sensors, actuators, atomic file IO — are documented in
-[Companion service](/internals/companion/).
-
-## Shared Kotlin — `android/shared/`
-
-Models and codecs used by both the app and the companion: the `Settings` /
-`GameProfile` / `SystemStatus` data classes, the TOML parser/serializer
-(`TomlParser.kt`), and the command/status wire formats. This is where the app's
-view of `settings.toml` is defined — and why config keys must stay in sync
-between here and the Rust `Settings` struct
-([settings reference](/reference/settings/#schema-sync-rust--app)).
-
-:::note `android/shared/bin/` is generated
-`android/shared/bin/` mirrors the shared Kotlin for tooling and is **not** the
-source of truth; edit `android/shared/src/`.
-:::
-
-## Rust daemon — `src/main.rs` + `src/daemon/` + `src/core/`
-
-The long-running root process (binary `auriya`). Loads config, runs the event/tick
-loop, serves the IPC socket, observes foreground/FPS/telemetry, selects a profile,
-and applies tweaks. Two binary targets are declared in `Cargo.toml`:
-
-| Binary | Entry | Role |
-| --- | --- | --- |
-| `auriya` | `src/main.rs` | The daemon. |
-| `auriyactl` | `src/ctl.rs` | The control CLI. |
-
-Core subsystems (`src/core/`): `config/` (settings + game profiles),
-`system_status/` (companion snapshot cache), `pid_tracker.rs` (foreground
-liveness), `fps_meter/` (FPS telemetry), `fas/` + `daemon/fas.rs` (frame-aware
-scheduling), `telemetry/` (CPU/GPU/thermal), `tweaks/` (kernel writes),
-`cmd_writer/` (companion command file), `display.rs` (supported modes).
-
-## Control CLI — `src/ctl.rs` + `src/cli/`
-
-`auriyactl` — a line-oriented client for the same Unix socket
-([Command reference](/reference/commands/)). As of this revision it is a
-secondary control surface; the app is primary.
-
-## Kernel/device boundary — `src/core/tweaks/`, telemetry, eBPF
-
-Best-effort reads and guarded writes to vendor-dependent `/proc` and `/sys`
-nodes, plus the eBPF frame probe. Missing nodes are skipped
-([System tweaks](/internals/system-tweaks/)).
-
-## Architecture tree
+Auriya is organized into two runtime planes (the Android Jetpack Compose Manager App and the aarch64 Rust Daemon) and structured into clean architectural layers with `mod.rs` facades. This page details each subsystem, where it lives in the repository, and what it owns.
 
 ```mermaid
 flowchart TD
-    root["Auriya Root Architecture"]
-    
-    subgraph android_plane ["Android Plane (android/)"]
-        app["Manager App (android/app)<br/>Compose UI, root cmds, overlay"]
-        comp["Companion Service (android/service)<br/>Sensors & actuators (app_process)"]
-        shared["Shared Module (android/shared)<br/>Models, TOML parser, types"]
+    subgraph UI ["User Plane (Android App)"]
+        app["android/app (Jetpack Compose UI)"]
+        overlay["Floating Overlay HUD"]
+        prefs["DataStore Preferences"]
     end
 
-    subgraph rust_plane ["Rust Plane (src/)"]
-        daemon["auriya Daemon (src/main.rs, src/daemon, src/core)<br/>Event loop, watchers, scheduler"]
-        fas["FAS & FPS Meter (src/core/fas, fps_meter)<br/>eBPF frame pacing & scaling"]
-        tweaks["System Tweaks (src/core/tweaks)<br/>Governors, frequencies, memory, vendor"]
-        ctl["auriyactl (src/ctl.rs, src/cli)<br/>Unix domain socket CLI client"]
+    subgraph CLI ["Client Plane (Terminal)"]
+        ctl["src/bin/auriyactl.rs (CLI Binary)"]
+        cli_lib["src/cli/ (App, Client, Executor)"]
     end
 
-    subgraph module_plane ["Module Plane (module/)"]
-        scripts["Root Lifecycle Scripts<br/>customize.sh, service.sh, uninstall.sh"]
+    subgraph Daemon ["Daemon Plane (Root Daemon)"]
+        subgraph L3 ["Layer 3: Orchestration (src/daemon)"]
+            ctx["DaemonContext (Shared State)"]
+            pipeline["Pipeline (Ingest -> Decide -> Apply)"]
+            engine["Engine (Tokio Event Loop)"]
+            ipc["IPC Socket Server (/dev/socket/auriya.sock)"]
+        end
+
+        subgraph L2 ["Layer 2: Core Domain (src/core)"]
+            fas["FAS (Controller, Buffer, Bottleneck)"]
+            profile["Profile State Machine"]
+            config["Config Engine (Settings & Gamelist)"]
+            stats["Telemetry & Stats (ApiResponse Envelope)"]
+            logger["Zero-Allocation Dmesg Logger"]
+        end
+
+        subgraph L1 ["Layer 1: Platform & Hardware (src/platform)"]
+            binder["Native Binder IPC (rsbinder)"]
+            cpu["CPU Topology & Governors"]
+            gpu["GPU Devfreq (Adreno / MediaTek)"]
+            thermal["Hybrid IThermalService & Sysfs"]
+            common["OS & Kernel Tweaks (IO, VM, Mem)"]
+        end
     end
 
-    subgraph doc_plane ["Documentation Plane (website/)"]
-        wiki["Docusaurus Technical Wiki"]
-    end
-
-    root --> android_plane
-    root --> rust_plane
-    root --> module_plane
-    root --> doc_plane
-
-    daemon --> fas
-    daemon --> tweaks
+    app <-->|Unix Domain Socket| ipc
+    ctl <-->|Unix Domain Socket| ipc
+    ipc --> ctx
+    engine --> pipeline
+    pipeline --> fas
+    pipeline --> profile
+    fas --> cpu
+    fas --> gpu
+    profile --> binder
+    profile --> common
 ```
 
-For the exact source-tree layout of files on disk, see
-[Project structure](/development/project-structure/).
+## Android Manager App — `android/app/`
+
+The user-facing management application (package `dev.auriya.app`):
+- **User Interface**: Built with modern Jetpack Compose and Material 3 Monet dynamic theming with lifted dark mode and AMOLED deep graphite contrast.
+- **Floating Overlay HUD**: Draggable real-time telemetry island with smooth sub-pixel float accumulation, orientation-aware screen margins, and dynamic layout adaptation (single-row island for $\le 3$ metrics, vertical stacked column for $> 3$ metrics).
+- **Compiler Stability**: All stats and telemetry models are annotated with `@Immutable` to ensure smart recomposition skipping.
+- **Data Persistence**: Settings are managed via AndroidX DataStore Preferences (`AppPrefs.kt`, `AutoRecordPrefs.kt`).
+- **Telemetry Streaming**: Connects as a client to the daemon's Unix domain socket (`/dev/socket/auriya.sock`) via root shell streaming, consuming the standardized `ApiResponse<Stats>` JSON envelope.
+
+## Shared Kotlin — `android/shared/`
+
+Shared data classes, TOML parser utilities, and root shell execution helpers (`RootShell.kt`) used across the Android app modules.
+
+## Rust Daemon — `src/main.rs` & `src/`
+
+The compiled root binary (`auriya`). Runs continuously in the background, consuming zero CPU cycles when idle. It is structured into three distinct layers:
+
+### Layer 1: Platform Adapters — `src/platform/`
+Encapsulates all direct hardware interactions, sysfs paths, and Android OS interfaces:
+- **`platform/binder/`**: Direct Native Binder IPC using `rsbinder`:
+  - `IActivityManager` (`ProcessObserver`): Real-time foreground event callbacks (`onForegroundActivitiesChanged`, `onProcessDied`).
+  - `INotificationManager`: Native Do Not Disturb actuator (`setInterruptionFilter`).
+  - `IDisplayManager`: Native refresh rate switching and display mode query.
+  - `IPowerManager`: Screen interactive state detection (`isInteractive`).
+  - `IWifiManager`: Low-latency Wi-Fi gaming lock (`acquireWifiLock`).
+  - `IActivityTaskManager`: Multi-window / freeform 30 FPS cap detection.
+  - `IThermalService`: Hybrid framework thermal query with sysfs fallback.
+- **`platform/cpu/`**: CPU cluster topology detection (Little/Big/Prime), governor switching, frequency scaling, and ceiling overrides.
+- **`platform/gpu/`**: Adreno (KGSL) and MediaTek (`gpufreq`) devfreq scaling and power mode toggles.
+- **`platform/thermal/`**: Thermal zone reader, throttling state detection, and multi-SoC temperature aggregation.
+- **`platform/common/`**: Kernel tweaks: I/O schedulers, virtual memory (`swappiness`, `vfs_cache_pressure`), touch panel boost, and kernel task scheduler optimizations.
+
+### Layer 2: Core Domain Logic — `src/core/`
+Implements hardware-independent decision engines and algorithms:
+- **`core/fas/`**: Frame-Aware Scheduling:
+  - `buffer.rs`: Frame-time history buffer and presentation-time tracking.
+  - `bottleneck.rs`: Real-time bottleneck classification (`CpuBound`, `GpuBound`, `Calm`).
+  - `controller.rs`: PID controller modulating frequencies to track target frame rates while maintaining thermal stability.
+- **`core/profile/`**: Profile definitions (`Powersave`, `Balance`, `Performance`, `Fast`) and transition logic.
+- **`core/config/`**: Configuration models (`settings.toml`, `gamelist.toml`) and inotify change detection.
+- **`core/stats/`**: Telemetry models, 0.1% low calculations, presentation-time weighted frame drops, and the standardized `ApiResponse<T>` envelope.
+- **`core/logger/`**: Zero-allocation dmesg-style direct file writer engine with boottime precision stamps, zero stderr heap overhead, and automatic log rotation.
+
+### Layer 3: Orchestration & Server — `src/daemon/`
+Coordinates the lifecycle and event-driven execution:
+- **`daemon/context.rs`**: Central `DaemonContext` holding atomic state, shared hardware handles, and channel senders.
+- **`daemon/engine.rs`**: Main Tokio event loop, graceful termination handler, and signal dispatcher.
+- **`daemon/pipeline.rs`**: Structured execution cycle: `ingest` $\rightarrow$ `decide` $\rightarrow$ `apply` $\rightarrow$ `fas_tick`.
+- **`daemon/ipc/`**: Unix domain socket server (`/dev/socket/auriya.sock`), parsing client commands and streaming structured JSON telemetry.
+
+## Control CLI — `src/bin/auriyactl.rs` & `src/cli/`
+
+Standalone command-line binary (`auriyactl`) compiled from the same repository:
+- Provides headless management without needing the Android application.
+- Supports commands: `auriyactl status`, `auriyactl profile <mode>`, `auriyactl restart`, and `auriyactl dump`.
+- Interacts with the daemon exclusively through `/dev/socket/auriya.sock`.

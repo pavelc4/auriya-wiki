@@ -18,33 +18,32 @@ There is no `pull_request`, branch-push, schedule, release-event, or matrix work
 
 Every invocation executes the same sequence ([source](https://github.com/pavelc4/auriya/blob/10fe7c6b56474a00513fec34ebac1376b30e95e6/.github/actions/setup-tools/action.yml)):
 
-1. `actions/setup-java@v4`: Temurin Java 26.
-2. `nttld/setup-ndk@v1`: Android NDK r29, added to `PATH` and exposed through the action's environment.
+1. `actions/setup-java@v6`: Temurin Java 26.
+2. `nttld/setup-ndk@v1.6.0`: Android NDK r29, added to `PATH` and exposed through the action's environment.
 3. `dtolnay/rust-toolchain@nightly`: nightly Rust, target `aarch64-linux-android`, component `rust-src`.
 4. `rustup default nightly-x86_64-unknown-linux-gnu`.
 5. `curl -sL <bpf-linker-v0.11.0.tar.zst> | tar --zstd -x -C "${HOME}/.cargo/bin"`.
 6. `cargo install cargo-ndk --locked`.
 7. `sudo apt-get update`, then `sudo apt-get install -y p7zip-full zstd`.
 
-Failure of any command/action stops the current job. Downloads and package installation access external systems. The `curl` pipeline does not enable `pipefail`, so a failed download can be masked if `tar` exits successfully.
+Failure of any command/action stops the current job. Downloads and package installation access external systems.
 
 ### `package-module`
 
-The composite action runs one Bash block with `set -e` ([source](https://github.com/pavelc4/auriya/blob/10fe7c6b56474a00513fec34ebac1376b30e95e6/.github/actions/package-module/action.yml)):
+The composite action runs one Bash block with `set -e` ([source](https://github.com/pavelc4/auriya/blob/main/.github/actions/package-module/action.yml)):
 
 1. Creates `build/release/module` and copies `module/*` into it.
 2. Copies repository-root `settings.toml` and `gamelist.toml`; failures are explicitly ignored with `|| true`.
 3. Attempts to copy `module/system`; failure is ignored.
-4. Searches the downloaded artifacts for the manager APK in this order: exact `app-arm64-v8a-release.apk`, any `*-arm64-v8a-*.apk`, then any APK under an `app` path.
-5. Searches for exact `service-release.apk`, then any APK under a `service` path.
-6. Missing APKs print warnings but do not fail packaging. Found APKs become `libs/companion/auriya-app.apk` and `libs/companion/service.apk`.
-7. Requires `target/aarch64-linux-android/release/auriya`; absence exits `1`. `auriyactl` is optional and only produces a warning when absent.
-8. Copies binaries into `libs/aarch64/` and runs `sha256sum * > checksums.sha256` there.
-9. Reads `VERSION` from the first `version =` line in `Cargo.toml`, `COMMIT_HASH` from `git rev-parse --short HEAD`, and `VERSION_CODE` from `git rev-list --count HEAD`.
-10. Rewrites `module.prop` version fields, removes `.placeholder` files, then runs `7z a -tzip -mm=Deflate -mx=9 -mfb=258 -mpass=15` from inside the module staging directory.
-11. Exposes `zip_name`, `version`, and `version_code` through `$GITHUB_OUTPUT`.
+4. Searches the downloaded artifacts for the manager APK in this order: exact `app-arm64-v8a-release.apk`, any `*-arm64-v8a-*.apk`, then any APK under an `app` path. Found APK becomes `libs/companion/auriya-app.apk`.
+5. Requires `target/aarch64-linux-android/release/auriya`; absence exits `1`. `auriyactl` is optional and only produces a warning when absent.
+6. Copies binaries into `libs/aarch64/` and runs `sha256sum * > checksums.sha256` there.
+7. Reads `VERSION` from the first `version =` line in `Cargo.toml`, `COMMIT_HASH` from `git rev-parse --short HEAD`, and `VERSION_CODE` from `git rev-list --count HEAD`.
+8. Rewrites `module.prop` version fields, removes `.placeholder` files, then runs `7z a -tzip -mm=Deflate -mx=9 -mfb=258 -mpass=15` from inside the module staging directory.
+9. Computes SHA-256 checksum of the resulting ZIP file via `sha256sum "$ZIP_NAME" > "$SHA_NAME"`.
+10. Exposes `zip_name`, `sha_name`, `version`, and `version_code` through `$GITHUB_OUTPUT`.
 
-Output name: `auriya-<Cargo version>-<git commit count>-<short SHA>-<build_type>.zip`. The input is `debug` in `build.yml` and `release` in `release.yml`; both workflows still compile Rust and Android with release build commands.
+Output name: `auriya-<Cargo version>-<git commit count>-<short SHA>-<build_type>.zip` and `.sha256`. The input is `debug` in `build.yml` and `release` in `release.yml`; both workflows compile Rust and Android with release build commands. The release workflow extracts the latest section from `CHANGELOG.md` via `awk` for release notes and attaches both the ZIP and checksum files to GitHub Releases.
 
 ### `telegram-notify`
 

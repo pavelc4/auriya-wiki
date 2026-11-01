@@ -87,7 +87,7 @@ and effective), **No** (parsed but unused).
 
 | Key | Type | Required | Default when omitted | Consumed | Meaning & evidence |
 | --- | --- | :---: | --- | :---: | --- |
-| `package` | string | **Yes** | — | Yes | Exact Android package name, e.g. `com.tencent.ig`. This is the whitelist key matched against the companion's focused package (`tick.rs:222`, `gamelist.find(pkg)`). No wildcards, no partial match. |
+| `package` | string | **Yes** | — | Yes | Exact Android package name, e.g. `com.tencent.ig`. This is the whitelist key matched against the active foreground package detected via Native Binder ProcessObserver (`gamelist.find(pkg)`). No wildcards, no partial match. |
 | `cpu_governor` | string | **Yes** | — | Yes | CPU governor applied for this game. Passed straight to the profile writer (`tick.rs:223-225`). An empty string falls back to the global `balance_governor` (`tick.rs:266-269`). Raw kernel governor name; not validated against the device. |
 | `enable_dnd` | bool | **Yes** | — | Yes | `true` → request Priority Do-Not-Disturb while foreground; `false` → All/normal notifications (`tick.rs:296-300`). If a client omits it during mutation, the daemon treats it as `true` (`tick.rs:226`). |
 | `target_fps` | integer **or** integer array | No | `None` (FAS keeps its current target) | Yes | FAS frame-rate target. Accepts **two shapes** — see [The `target_fps` field](#the-target_fps-field-single-value-or-array) below. Applied to the FAS controller when set (`tick.rs:159-170`). |

@@ -44,20 +44,19 @@ flowchart LR
     daemon -->|rewrites| gl[("gamelist.toml")]
     daemon -->|JSON| app
 
-    comp["Companion"] -->|"detects foreground,<br/>writes system_status"| daemon
-    play(("Play a game")) --> comp
+    binder["Native Binder IPC<br/>(IActivityManager)"] -->|"detects foreground task switch"| daemon
+    play(("Play a game")) --> binder
     daemon -->|"profile + FAS + eBPF attach"| kernel
 
-    boot(("Boot")) --> svc["service.sh starts<br/>Companion + Daemon (no user action)"]
+    boot(("Boot")) --> svc["service.sh starts<br/>Daemon directly (no user action)"]
 ```
 
 ## Flows
 
 ### UC-1 · Install & first run
 **Actor:** User → root manager → `customize.sh` → app.
-1. Flash the module ZIP; `customize.sh` verifies arch/checksum, installs daemon +
-   companion APK, `pm install`s the app, seeds default TOMLs.
-2. Reboot. `service.sh` starts companion + daemon automatically.
+1. Flash the module ZIP; `customize.sh` verifies arch/checksum, installs `auriya` daemon and `auriyactl` into `system/bin`, `pm install`s the manager app, seeds default TOMLs.
+2. Reboot. `service.sh` launches `auriya` daemon automatically.
 3. Open the app, grant root. See [Installation](/getting-started/installation/),
    [First run](/getting-started/first-run/).
 
@@ -84,13 +83,10 @@ flowchart LR
    daemon restart. See [Performance tuning](/getting-started/performance-tuning/).
 
 ### UC-5 · Play a game (automatic, no user action)
-**Actor:** Companion → Daemon → Kernel.
-1. Game enters foreground; companion writes `system_status`.
-2. Daemon watcher fires an instant tick; if the package is whitelisted with a live
-   PID it enters a game session: lock vendor nodes, apply profile, attach the eBPF
-   frame probe, request DnD/refresh via `auriya_cmd`.
-3. Each tick FAS reads frames and nudges CPU/GPU. On exit, state is cleared and the
-   default profile restored. See [Profile scheduler](/internals/profile-scheduler/),
+**Actor:** OS Framework → Daemon → Kernel.
+1. Game enters foreground; Android's `IActivityManager` invokes `ProcessObserver.onForegroundActivitiesChanged` via Native Binder IPC.
+2. Daemon engine receives event over Tokio channel; if the package is whitelisted with a live PID it enters a game session: locks vendor nodes, applies game profile, enables Wi-Fi low-latency lock, requests DnD/refresh rate via Native Binder RPC.
+3. Each tick FAS reads frame intervals and throttles/nudges CPU/GPU. On process exit (detected via `pidfd_open` or Binder death), state is cleared and default profile restored. See [Profile scheduler](/internals/profile-scheduler/),
    [Game detection](/internals/game-detection/).
 
 ### UC-6 · View live telemetry

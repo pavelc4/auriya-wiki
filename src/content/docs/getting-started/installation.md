@@ -37,19 +37,17 @@ at commit `10fe7c6`.
 4. **Install binaries** — copies the daemon to
    `/data/adb/modules/auriya/system/bin/auriya` (`0755`), and `auriyactl` if
    present.
-5. **Install the companion** — copies `service.apk` to
-   `system/etc/auriya/service.apk`. This is **required**; a missing companion APK
-   aborts the install.
-6. **Install the manager app** — `pm install -r -g` the bundled
+5. **Install the manager app** — `pm install -r -g` the bundled
    `auriya-app.apk` (`dev.auriya.app`). This is **best-effort**: if `pm install`
    fails or the APK is not bundled, it prints a manual `adb install` hint and
    continues (the daemon does not depend on the UI app).
-7. **Seed config** — moves `settings.toml` / `gamelist.toml` into
+6. **Seed config** — moves `settings.toml` / `gamelist.toml` into
    `/data/adb/.config/auriya/` **only if you have no existing config** there, so a
    reinstall never overwrites your settings.
-8. **Root-manager symlinks** — links the binaries into `/data/adb/ksu/bin`
+7. **Root-manager symlinks** — links the binaries into `/data/adb/ksu/bin`
    (KernelSU) or `/data/adb/ap/bin` (APatch) when those directories exist, so
    `auriya`/`auriyactl` are on `PATH`. Magisk needs no symlink.
+8. **Prune staging APKs** — removes the bundled APK from `libs/` to conserve storage space.
 
 Exact runtime and staging paths are in the
 [Filesystem reference](/reference/filesystem/).
@@ -58,13 +56,12 @@ Exact runtime and staging paths are in the
 
 The module does **not** launch the daemon from the app. At boot,
 `module/service.sh` (via the root manager's `service.d` hook) waits for
-`sys.boot_completed`, launches the companion with `app_process`, waits for its
-status file, then starts the daemon with explicit `--settings` / `--gamelist`
-paths. See
+`sys.boot_completed == 1`, unlocks kernel and cpufreq node permissions, and launches
+the daemon with explicit `--settings` / `--gamelist` paths via `nohup`. See
 [Architecture overview → Binary execution workflow](/architecture/overview/#binary-execution-workflow).
 
-If something is wrong, the daemon and companion logs are under
-`/data/adb/auriya/` (`daemon.log`, `companion.log`) — see
+If something is wrong, daemon logs formatted with boottime dmesg stamps are located at
+`/data/adb/auriya/daemon.log` — see
 [Debugging](/development/debugging/).
 
 ## Next

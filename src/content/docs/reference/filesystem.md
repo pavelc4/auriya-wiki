@@ -1,135 +1,62 @@
 ---
 title: "Filesystem Reference"
 ---
-Every path Auriya reads, writes, or installs, grouped by **when it exists**.
-This matters because the module archive's layout is *not* the installed layout:
-`customize.sh` copies files to their runtime locations and then deletes the
-staging directory.
+Every path Auriya reads, writes, or installs on an Android device, categorized by role and lifecycle stage.
 
 :::info Verified against source
-Traced to Auriya commit
-[`10fe7c6`](https://github.com/pavelc4/auriya/tree/10fe7c6b56474a00513fec34ebac1376b30e95e6).
-Path constants:
-[`src/common/constants.rs`](https://github.com/pavelc4/auriya/blob/10fe7c6b56474a00513fec34ebac1376b30e95e6/src/common/constants.rs)
-and
-[`src/core/config/path.rs`](https://github.com/pavelc4/auriya/blob/10fe7c6b56474a00513fec34ebac1376b30e95e6/src/core/config/path.rs).
-Install/boot layout: `module/customize.sh`, `module/service.sh`,
-`module/uninstall.sh`.
+Path constants defined in `src/platform/common/mod.rs` and `src/core/config/mod.rs`. Runtime scripts: `module/customize.sh`, `module/service.sh`, `module/uninstall.sh`.
 :::
 
-## Runtime paths (on an installed, running device)
+## Runtime Paths (Installed & Running Device)
 
-These exist after installation and boot.
-
-### Configuration and runtime state — `/data/adb/.config/auriya/`
-
-`CONFIG_DIR`, defined once in `src/common/constants.rs:3` and
-`src/core/config/path.rs:5`.
+### Configuration Directory — `/data/adb/.config/auriya/`
 
 | Path | Written by | Read by | Purpose |
-| --- | --- | --- | --- |
-| `settings.toml` | manager app | daemon (startup + watcher) | Global config. See [settings reference](/reference/settings/). `SETTINGS_FILE`, `constants.rs:4`. |
-| `gamelist.toml` | manager app **and** daemon (IPC mutations) | daemon (startup + watcher) | Per-app whitelist/profiles. See [gamelist reference](/reference/gamelist/). `GAMELIST_FILE`, `constants.rs:5`. |
-| `system_status` | companion service | daemon (`system_status` watcher) | Companion→daemon snapshot: focused app, screen/battery/zen state. Deleted at each boot by `service.sh` so the daemon only proceeds on fresh data. `STATUS_FILE`, `src/core/system_status`. |
-| `companion.lock` | companion service (flock) | daemon (`companion_lock` watcher) | Liveness lock; the daemon watches its release to detect a dead companion. `src/daemon/companion_lock.rs:31-32`. |
-| `current_profile` | daemon | external/legacy readers | Legacy status file holding `1`/`2`/`3`/`4` for Performance/Balance/Powersave/Fast. Best-effort compatibility output — **not** the authoritative UI state. `src/daemon/run.rs`. |
-| `gpu_type` | `customize.sh` (install-time) | — | Detected GPU (`adreno`/`mali`/`unknown`), written once at install. `module/customize.sh` (`make_node`). |
-| `arch` | `customize.sh` (install-time) | — | Detected device ABI, written once at install. |
+| :--- | :--- | :--- | :--- |
+| `settings.toml` | Manager App / User | Daemon | Global daemon configuration, default governors, tuning parameters, and feature toggles. Preserved across module updates. |
+| `gamelist.toml` | Manager App / User / Daemon IPC | Daemon | Per-game whitelists, target profiles, frequency ceilings, and refresh rate preferences. Preserved across module updates. |
 
-### Daemon socket
+### Daemon Unix Domain Socket
 
 | Path | Purpose |
-| --- | --- |
-| `/dev/socket/auriya.sock` | Local Unix socket for all IPC (app + `auriyactl`). Created by the daemon on startup, removed by `service.sh` before restart and by `uninstall.sh`. `SOCKET_PATH`, `constants.rs:1`; bound at `src/daemon/run.rs:417`. See [IPC protocol](/internals/ipc-protocol/). |
+| :--- | :--- |
+| `/dev/socket/auriya.sock` | Local Unix domain socket used for all client-daemon IPC (`GET_STATS`, `SET_PROFILE`, `INJECT_APP`). Created with permissions `0666` by the daemon upon startup; unlinked cleanly on termination. |
 
-### Logs — `/data/adb/auriya/`
+### Log Directory — `/data/adb/auriya/`
 
-| Path | Purpose |
-| --- | --- |
-| `daemon.log` | Daemon stdout/stderr, tee'd here by `service.sh`. `LOG_FILE`, `constants.rs:6`. |
-| `daemon.log.1`, `daemon.log.2` | Rotated daemon logs (rotate when `daemon.log` exceeds 1 MB). `service.sh`. |
-| `companion.log`, `companion.log.1` | Companion stdout/stderr and its single rotation. `service.sh`. |
-| `restart.log` | Output of `service.sh` when relaunched by `auriyactl restart`. `src/cli/executor.rs:155-159`. |
-| `daemon.log.old` | Previous boot's `daemon.log`, renamed once at install. `customize.sh`. |
+| Path | Written by | Purpose |
+| :--- | :--- | :--- |
+| `auriya.log` | DmesgLogger | Structured kernel-style logs with boottime precision stamps (`[   12.345678] [INFO] ...`). Automatically rotated when exceeding 1 MB. |
+| `auriya.log.1` | DmesgLogger | Previous rotated log archive. |
 
-### Installed module tree — `/data/adb/modules/auriya/`
+### Module Directory — `/data/adb/modules/auriya/`
 
-The module root after extraction. Runtime binaries live under `system/`, which
-the root manager mounts into the system image.
+Root module directory mounted into the Android overlay filesystem by KernelSU, Magisk, or APatch:
 
-| Path | Purpose |
-| --- | --- |
-| `system/bin/auriya` | **The daemon binary that actually runs.** Copied here from staging, `0755`. `customize.sh` (`cp "$DAEMON_BINARY" "$MODPATH/system/bin/auriya"`). |
-| `system/bin/auriyactl` | Control CLI, if bundled (optional). `customize.sh`. |
-| `system/etc/auriya/service.apk` | Installed companion APK; launched at boot via `app_process`. Required — the daemon refuses to start without the companion. `customize.sh`, `service.sh` (`COMPANION_APK`). |
-| `service.sh` | Boot script: starts companion, waits for its status file, starts the daemon. Runs on every boot via the root manager's `service.d` hook. |
-| `uninstall.sh` | Cleanup script (also invoked mid-run when a `remove` flag appears). |
-| `module.prop` | Module metadata (id, name, version, `updateJson` URL). `module/module.prop`. |
+| Path | Permissions | Purpose |
+| :--- | :--- | :--- |
+| `module.prop` | `0644` | Module metadata (`id=auriya`, `name`, `version`, `versionCode`, `author`, `description`). |
+| `icon.png` | `0644` | 192x192 PNG icon rendered in root manager interfaces. |
+| `service.sh` | `0755` | Late-start background service script executed at boot (`sys.boot_completed`). |
+| `action.sh` | `0755` | Action button trigger script executed when tapped in the root manager UI. |
+| `uninstall.sh` | `0755` | Cleanup script triggered when the module is removed. |
+| `system/bin/auriya` | `0755` | The compiled aarch64 Rust daemon binary. |
+| `system/bin/auriyactl` | `0755` | The compiled aarch64 Rust CLI control client. |
 
-### Root-manager symlinks (conditional)
+### Symlinks for Shell Integration
 
-`customize.sh` symlinks the binaries into the active root manager's `bin`
-directory **only if that directory exists**, so the binary is on `PATH`:
+| Source Path | Symlink Destination | Purpose |
+| :--- | :--- | :--- |
+| `/data/adb/modules/auriya/system/bin/auriya` | `/data/adb/ksu/bin/auriya`<br/>`/data/adb/ap/bin/auriya` | Allows invoking `auriya` directly from any root shell without specifying full paths. |
+| `/data/adb/modules/auriya/system/bin/auriyactl` | `/data/adb/ksu/bin/auriyactl`<br/>`/data/adb/ap/bin/auriyactl` | Allows invoking `auriyactl` directly from any terminal. |
 
-| Path | Condition |
-| --- | --- |
-| `/data/adb/ksu/bin/auriya`, `/data/adb/ksu/bin/auriyactl` | KernelSU present (`/data/adb/ksu/bin` exists) |
-| `/data/adb/ap/bin/auriya`, `/data/adb/ap/bin/auriyactl` | APatch present (`/data/adb/ap/bin` exists) |
+## Staging Paths (Inside Flashable ZIP Only)
 
-Magisk does not get symlinks; `system/bin` is already on `PATH` via the mounted
-overlay. All four are removed by `uninstall.sh`.
+These paths exist temporarily inside the flashable ZIP archive and are purged immediately by `customize.sh` after deployment:
 
-## Kernel interfaces (read/written by tweaks)
-
-Device-dependent; probed before use and skipped when absent. See
-[System tweaks](/internals/system-tweaks/).
-
-| Path root | Purpose |
-| --- | --- |
-| `/proc` | Kernel/process telemetry and a few control nodes. |
-| `/sys` | CPU/GPU/scheduler/memory/thermal control and telemetry nodes. |
-
-## ZIP-staging paths (inside the archive / during install only)
-
-These exist **only** inside the flashable ZIP and during `customize.sh`. The
-staging `libs/` directory is deleted after install (`rm -rf "$MODPATH/libs"`),
-and the root TOMLs are *moved* into `CONFIG_DIR` on first install.
-
-| Path (relative to ZIP root) | Fate on install |
-| --- | --- |
-| `libs/aarch64/auriya` | Verified (SHA256), copied to `system/bin/auriya`, then `libs/` removed. |
-| `libs/aarch64/auriyactl` | Copied to `system/bin/auriyactl` if present, then removed. |
-| `libs/aarch64/checksums.sha256` | Used for integrity check, then removed. |
-| `libs/companion/service.apk` | Copied to `system/etc/auriya/service.apk`, then removed. |
-| `libs/companion/auriya-app.apk` | `pm install`ed (manager app `dev.auriya.app`), then removed. Not required for the daemon. |
-| `settings.toml` (ZIP root) | Moved to `CONFIG_DIR/settings.toml` **only if none exists**; otherwise the user's copy is kept. |
-| `gamelist.toml` (ZIP root) | Same move-if-absent behavior. |
-
-:::warning Do not point tools at `libs/…` on a running device
-A common mistake: the release ZIP and older docs show `libs/aarch64/auriya`, but
-that path **does not exist after installation**. The running daemon is
-`/data/adb/modules/auriya/system/bin/auriya` (or the root-manager symlink).
-:::
-
-## Installed packages
-
-| Package | Role | Removed by |
-| --- | --- | --- |
-| `dev.auriya.app` | Manager UI (Compose). `pm install`ed from staging. | `uninstall.sh` (`pm uninstall`) |
-| `dev.auriya.service` | Companion service package identity. | `uninstall.sh` |
-| `dev.auriya.app.debug` | Debug-variant manager, if installed. | `uninstall.sh` |
-
-## What uninstall removes
-
-`uninstall.sh` stops `auriya` and the `AuriyaSysMon` companion, `pm uninstall`s
-the packages above, then deletes: `/dev/socket/auriya.sock`,
-`/data/adb/.config/auriya` (all config + runtime state), `/data/adb/auriya` (all
-logs), and the ksu/ap symlinks. The module directory itself is removed by the
-root manager.
-
-## Likely to drift first
-
-Log rotation filenames, the conditional symlink paths, and the staging layout —
-they live in shell scripts (`module/*.sh`) that change independently of the Rust
-constants. Re-verify against `module/customize.sh`, `module/service.sh`,
-`module/uninstall.sh`, and `src/common/constants.rs`.
+| ZIP Path | Destination during Flash | Purpose |
+| :--- | :--- | :--- |
+| `libs/aarch64/auriya` | `/data/adb/modules/auriya/system/bin/auriya` | Staged daemon binary; deleted after copying. |
+| `libs/aarch64/auriyactl` | `/data/adb/modules/auriya/system/bin/auriyactl` | Staged CLI binary; deleted after copying. |
+| `libs/aarch64/checksums.sha256` | Verified in memory | SHA256 checksums used to verify binary integrity. |
+| `libs/app/auriya-app.apk` | Installed via `pm install -r -g` | User-facing manager app; deleted from module directory after installation. |

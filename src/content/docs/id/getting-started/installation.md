@@ -23,18 +23,18 @@ Dilacak ke [`module/customize.sh`](https://github.com/pavelc4/auriya/blob/10fe7c
 2. **Ekstraksi** isi ZIP ke direktori `/data/adb/modules/auriya`.
 3. **Verifikasi Integritas** — mencocokkan hash SHA-256 binary daemon dengan `checksums.sha256`; ketidakcocokan akan **membatalkan** instalasi.
 4. **Pemasangan Binary** — menyalin daemon ke `/data/adb/modules/auriya/system/bin/auriya` (`0755`), serta CLI `auriyactl` jika disertakan.
-5. **Pemasangan Companion** — menyalin `service.apk` ke `system/etc/auriya/service.apk`. Ini adalah komponen **wajib**; ketiadaan companion akan membatalkan instalasi.
-6. **Pemasangan Aplikasi Manajer** — menjalankan `pm install -r -g` untuk memasang `auriya-app.apk` (`dev.auriya.app`). Bersifat **best-effort**: jika gagal, installer menampilkan petunjuk instalasi manual dan tetap melanjutkan proses.
-7. **Penyemaian Konfigurasi** — memindahkan `settings.toml` / `gamelist.toml` ke `/data/adb/.config/auriya/` **hanya jika belum ada konfigurasi sebelumnya**, sehingga pembaruan modul tidak pernah menimpa setelan Anda.
-8. **Symlink Root Manager** — membuat symlink ke `/data/adb/ksu/bin` (KernelSU) atau `/data/adb/ap/bin` (APatch) jika direktori tersebut ditemukan, agar perintah `auriya`/`auriyactl` langsung tersedia di `PATH`.
+5. **Pemasangan Aplikasi Manajer** — menjalankan `pm install -r -g` untuk memasang `auriya-app.apk` (`dev.auriya.app`). Bersifat **best-effort**: jika gagal, installer menampilkan petunjuk instalasi manual dan tetap melanjutkan proses.
+6. **Penyemaian Konfigurasi** — memindahkan `settings.toml` / `gamelist.toml` ke `/data/adb/.config/auriya/` **hanya jika belum ada konfigurasi sebelumnya**, sehingga pembaruan modul tidak pernah menimpa setelan Anda.
+7. **Symlink Root Manager** — membuat symlink ke `/data/adb/ksu/bin` (KernelSU) atau `/data/adb/ap/bin` (APatch) jika direktori tersebut ditemukan, agar perintah `auriya`/`auriyactl` langsung tersedia di `PATH`.
+8. **Pembersihan APK Staging** — menghapus file APK dari direktori `libs/` untuk menghemat ruang penyimpanan.
 
 Rincian jalur runtime dan staging lengkap didokumentasikan di [Referensi sistem file](/id/reference/filesystem/).
 
 ## Setelah Reboot Perangkat
 
-Modul **tidak** menjalankan daemon melalui aplikasi UI. Saat booting, skrip `module/service.sh` (melalui hook `service.d`) menunggu sinyal `sys.boot_completed`, menjalankan companion dengan `app_process`, menunggu file status terbentuk, lalu menjalankan daemon dengan parameter `--settings` / `--gamelist` eksplisit. Lihat [Ringkasan arsitektur → Alur eksekusi binary](/id/architecture/overview/#alur-eksekusi-binary).
+Modul **tidak** menjalankan daemon melalui aplikasi UI. Saat booting, skrip `module/service.sh` (melalui hook `service.d`) menunggu sinyal `sys.boot_completed == 1`, membuka hak akses node kernel dan cpufreq, lalu menjalankan daemon `auriya` secara langsung di latar belakang (`nohup`) dengan parameter `--settings` / `--gamelist` eksplisit. Lihat [Ringkasan arsitektur → Alur eksekusi binary](/id/architecture/overview/#alur-eksekusi-binary).
 
-Jika terjadi kendala, file log daemon dan companion tersedia di `/data/adb/auriya/` (`daemon.log`, `companion.log`) — lihat [Debugging](/id/development/debugging/).
+Jika terjadi kendala, file log daemon dengan format presisi timestamp dmesg tersedia di `/data/adb/auriya/daemon.log` — lihat [Debugging](/id/development/debugging/).
 
 ## Langkah Selanjutnya
 

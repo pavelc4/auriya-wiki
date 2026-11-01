@@ -1,82 +1,111 @@
 ---
 title: "Komponen"
 ---
-Auriya terdiri dari tiga lapisan runtime ditambah kode bersama (shared code). Halaman ini menjelaskan setiap komponen, lokasinya dalam repositori, serta tanggung jawabnya masing-masing. Untuk memahami cara interaksinya saat runtime, lihat [Aliran data](/id/architecture/data-flow/); untuk alur sistem secara menyeluruh, lihat [Ringkasan arsitektur](/id/architecture/overview/).
-
-## Aplikasi Manajer Android — `android/app/`
-
-Aplikasi berbasis UI untuk pengguna (paket `dev.auriya.app`). Merender antarmuka Jetpack Compose, menyimpan preferensi tampilan/onboarding, meminta izin root, mengedit file `settings.toml` / `gamelist.toml`, serta menampilkan status daemon secara real-time. Aplikasi ini bertindak sebagai **klien** dari daemon melalui Unix domain socket — aplikasi itu sendiri tidak menerapkan tweak langsung ke kernel. Diinstal oleh `customize.sh` melalui perintah `pm install` ([Instalasi](/id/getting-started/installation/)).
-
-## Companion Service — `android/service/`
-
-Layanan latar belakang tanpa UI / headless (proses `AuriyaSysMon`, dijalankan via `app_process`, identitas paket `dev.auriya.service`). Layanan ini menjembatani kapabilitas spesifik Android yang tidak dapat diakses langsung oleh daemon root:
-
-- **Sensor** → Menulis aplikasi/PID yang sedang aktif di latar depan (foreground), status layar (on/off), penghemat baterai, dan mode Zen/DnD ke `/data/adb/.config/auriya/system_status`.
-- **Aktuator** → Menjalankan perubahan mode DnD dan refresh rate yang diminta daemon melalui framework API Android, dipicu oleh file `auriya_cmd` ([Tweak sistem → CmdWriter](/id/internals/system-tweaks/#actions-routed-through-android--cmdwriter)).
-
-Status keaktifannya dipantau melalui `companion.lock` (lihat [Ringkasan arsitektur](/id/architecture/overview/#jalur-kontrol-dan-status)). Rincian internal selengkapnya — sensor, aktuator, dan I/O file atomik — didokumentasikan di [Companion service](/id/internals/companion/).
-
-## Kode Bersama Kotlin — `android/shared/`
-
-Model data dan codec yang digunakan bersama oleh aplikasi manajer dan companion: data class `Settings`, `GameProfile`, dan `SystemStatus`, parser/serializer TOML (`TomlParser.kt`), serta format wire perintah dan status. Di sinilah struktur representasi `settings.toml` di sisi aplikasi ditentukan — alasan utama mengapa kunci konfigurasi harus selalu sinkron antara modul ini dan struct `Settings` di Rust ([referensi settings](/id/reference/settings/#sinkronisasi-skema-rust--aplikasi)).
-
-:::note Direktori `android/shared/bin/` dibuat secara otomatis
-`android/shared/bin/` merupakan hasil kompilasi/cermin untuk kebutuhan tooling dan **bukan** sumber kode utama; lakukan perubahan pada `android/shared/src/`.
-:::
-
-## Daemon Rust — `src/main.rs` + `src/daemon/` + `src/core/`
-
-Proses root utama yang berjalan terus-menerus (binary `auriya`). Bertugas memuat konfigurasi, menjalankan event/tick loop, melayani socket IPC, memantau foreground/FPS/telemetri, memilih profil kerja, dan menerapkan tweak ke kernel. Dua target binary dideklarasikan dalam `Cargo.toml`:
-
-| Binary | Entry Point | Peran |
-| --- | --- | --- |
-| `auriya` | `src/main.rs` | Daemon utama sistem. |
-| `auriyactl` | `src/ctl.rs` | Antarmuka baris perintah (CLI) untuk kontrol. |
-
-Subsistem inti (`src/core/`): `config/` (pengaturan + profil game), `system_status/` (cache snapshot companion), `pid_tracker.rs` (pelacakan keaktifan proses), `fps_meter/` (telemetri FPS), `fas/` + `daemon/fas.rs` (penjadwalan berbasis frame pacing), `telemetry/` (metrik CPU/GPU/termal), `tweaks/` (penulisan ke kernel node), `cmd_writer/` (file perintah companion), dan `display.rs` (mode tampilan yang didukung).
-
-## CLI Kontrol — `src/ctl.rs` + `src/cli/`
-
-`auriyactl` — klien baris perintah berbasis teks untuk Unix socket yang sama ([Referensi perintah](/id/reference/commands/)). Pada rilis ini, CLI berfungsi sebagai antarmuka sekunder; aplikasi manajer adalah kontrol utama.
-
-## Batas Kernel / Perangkat — `src/core/tweaks/`, Telemetri, eBPF
-
-Pembacaan best-effort dan penulisan terproteksi ke node `/proc` dan `/sys` yang bergantung pada vendor SoC, ditambah probe frame eBPF. Node kernel yang tidak ditemukan akan dilewati dengan aman ([Tweak sistem](/id/internals/system-tweaks/)).
-
-## Diagram Arsitektur Komponen
+Auriya diatur ke dalam dua bidang runtime utama (Aplikasi Android Jetpack Compose dan Daemon Rust aarch64) dengan arsitektur 3-lapis terstruktur menggunakan `mod.rs` facades. Halaman ini menjelaskan setiap subsistem, lokasinya di dalam repositori, dan tanggung jawabnya.
 
 ```mermaid
 flowchart TD
-    root["Arsitektur Utama Auriya"]
-    
-    subgraph android_plane ["Lapisan Android (android/)"]
-        app["Aplikasi Manajer (android/app)<br/>Compose UI, perintah root, overlay"]
-        comp["Companion Service (android/service)<br/>Sensor & aktuator (app_process)"]
-        shared["Modul Bersama (android/shared)<br/>Model data, parser TOML, tipe"]
+    subgraph UI ["Bidang Antarmuka (Aplikasi Android)"]
+        app["android/app (Jetpack Compose UI)"]
+        overlay["Floating Overlay HUD"]
+        prefs["DataStore Preferences"]
     end
 
-    subgraph rust_plane ["Lapisan Rust (src/)"]
-        daemon["Daemon auriya (src/main.rs, src/daemon, src/core)<br/>Event loop, watcher, scheduler"]
-        fas["FAS & FPS Meter (src/core/fas, fps_meter)<br/>Frame pacing eBPF & penskalaan"]
-        tweaks["Tweak Sistem (src/core/tweaks)<br/>Governor, frekuensi, memori, vendor"]
-        ctl["auriyactl (src/ctl.rs, src/cli)<br/>Klien CLI Unix domain socket"]
+    subgraph CLI ["Bidang Client (Terminal)"]
+        ctl["src/bin/auriyactl.rs (Biner CLI)"]
+        cli_lib["src/cli/ (App, Client, Executor)"]
     end
 
-    subgraph module_plane ["Lapisan Modul Magisk/KSU (module/)"]
-        scripts["Skrip Siklus Hidup Root<br/>customize.sh, service.sh, uninstall.sh"]
+    subgraph Daemon ["Bidang Daemon (Root Daemon)"]
+        subgraph L3 ["Layer 3: Orkestrasi (src/daemon)"]
+            ctx["DaemonContext (Shared State)"]
+            pipeline["Pipeline (Ingest -> Decide -> Apply)"]
+            engine["Engine (Tokio Event Loop)"]
+            ipc["IPC Socket Server (/dev/socket/auriya.sock)"]
+        end
+
+        subgraph L2 ["Layer 2: Core Domain (src/core)"]
+            fas["FAS (Controller, Buffer, Bottleneck)"]
+            profile["State Machine Profil"]
+            config["Engine Konfigurasi (Settings & Gamelist)"]
+            stats["Telemetri & Statistik (Amplop ApiResponse)"]
+            logger["Dmesg Logger Zero-Allocation"]
+        end
+
+        subgraph L1 ["Layer 1: Platform & Hardware (src/platform)"]
+            binder["Native Binder IPC (rsbinder)"]
+            cpu["Topologi CPU & Governor"]
+            gpu["Devfreq GPU (Adreno / MediaTek)"]
+            thermal["Hybrid IThermalService & Sysfs"]
+            common["Tweaks OS & Kernel (IO, VM, Mem)"]
+        end
     end
 
-    subgraph doc_plane ["Lapisan Dokumentasi (website/)"]
-        wiki["Wiki Teknis Docusaurus / Starlight"]
-    end
-
-    root --> android_plane
-    root --> rust_plane
-    root --> module_plane
-    root --> doc_plane
-
-    daemon --> fas
-    daemon --> tweaks
+    app <-->|Unix Domain Socket| ipc
+    ctl <-->|Unix Domain Socket| ipc
+    ipc --> ctx
+    engine --> pipeline
+    pipeline --> fas
+    pipeline --> profile
+    fas --> cpu
+    fas --> gpu
+    profile --> binder
+    profile --> common
 ```
 
-Untuk tata letak struktur file fisik di repositori, lihat [Struktur proyek](/id/development/project-structure/).
+## Android Manager App — `android/app/`
+
+Aplikasi manajemen antarmuka pengguna (paket `dev.auriya.app`):
+- **User Interface**: Dibangun dengan Jetpack Compose modern dan tema dinamis Material 3 Monet dengan kontras tinggi AMOLED deep graphite.
+- **Floating Overlay HUD**: Overlay metrik real-time yang bisa digeser dengan akumulasi koordinat sub-pixel float yang sangat mulus, batas layar adaptif, dan layout dinamis (baris tunggal jika $\le 3$ metrik, kolom vertikal jika $> 3$ metrik).
+- **Stabilitas Compiler Compose**: Semua model statistik dianotasi dengan `@Immutable` agar compiler melewati recomposition yang tidak diperlukan.
+- **Persistensi Data**: Seluruh preferensi dikelola via AndroidX DataStore Preferences (`AppPrefs.kt`, `AutoRecordPrefs.kt`).
+- **Streaming Telemetri**: Berfungsi sebagai client soket domain Unix daemon (`/dev/socket/auriya.sock`), mengonsumsi amplop data JSON terstandarisasi `ApiResponse<Stats>`.
+
+## Shared Kotlin — `android/shared/`
+
+Model data bersama, utilitas parser TOML, dan helper eksekusi root shell (`RootShell.kt`) yang digunakan di modul aplikasi Android.
+
+## Rust Daemon — `src/main.rs` & `src/`
+
+Biner root yang terkompilasi (`auriya`). Berjalan terus-menerus di latar belakang dengan konsumsi daya minimal. Terbagi rapi ke dalam 3 lapisan arsitektur:
+
+### Layer 1: Platform Adapters — `src/platform/`
+Mengisolasi seluruh interaksi hardware langsung, sysfs, dan antarmuka OS Android:
+- **`platform/binder/`**: Native Binder IPC langsung via `rsbinder`:
+  - `IActivityManager` (`ProcessObserver`): Callback event aplikasi foreground secara real-time (`onForegroundActivitiesChanged`, `onProcessDied`).
+  - `INotificationManager`: Aktuator mode Jangan Ganggu / DnD (`setInterruptionFilter`).
+  - `IDisplayManager`: Pengaturan refresh rate dan query resolusi layar.
+  - `IPowerManager`: Deteksi status layar menyala/interaktif (`isInteractive`).
+  - `IWifiManager`: Kunci Wi-Fi low-latency saat bermain game (`acquireWifiLock`).
+  - `IActivityTaskManager`: Deteksi window floating/freeform untuk membatasi 30 FPS.
+  - `IThermalService`: Query suhu sistem operasi dengan fallback dinamis ke sysfs.
+- **`platform/cpu/`**: Deteksi topologi cluster CPU (Little/Big/Prime), governor switching, dan batas frekuensi.
+- **`platform/gpu/`**: Kontrol devfreq Adreno (KGSL) dan MediaTek (`gpufreq`).
+- **`platform/thermal/`**: Pembaca thermal zone, deteksi status throttling, dan penggabungan suhu multi-sensor.
+- **`platform/common/`**: Optimasi kernel: I/O schedulers, virtual memory (`swappiness`, `vfs_cache_pressure`), touch panel boost, dan scheduler task kernel.
+
+### Layer 2: Core Domain Logic — `src/core/`
+Mengimplementasikan algoritma dan mesin keputusan yang independen dari platform:
+- **`core/fas/`**: Frame-Aware Scheduling:
+  - `buffer.rs`: Buffer frame-time dan pelacakan durasi presentasi frame.
+  - `bottleneck.rs`: Klasifikasi bottleneck secara real-time (`CpuBound`, `GpuBound`, `Calm`).
+  - `controller.rs`: Pengontrol PID yang menyesuaikan frekuensi untuk mengejar target FPS tanpa kepanasan.
+- **`core/profile/`**: Definisi profil (`Powersave`, `Balance`, `Performance`, `Fast`) dan logika peralihannya.
+- **`core/config/`**: Parser konfigurasi (`settings.toml`, `gamelist.toml`) dengan pemuatan ulang inotify.
+- **`core/stats/`**: Perhitungan 0.1% low, dropped frame berbasis waktu presentasi, dan amplop JSON `ApiResponse<T>`.
+- **`core/logger/`**: Engine logging format dmesg zero-allocation dengan timestamp boottime presisi langsung ke file disk.
+
+### Layer 3: Orkestrasi & Server — `src/daemon/`
+Mengatur siklus hidup dan eksekusi event-driven:
+- **`daemon/context.rs`**: `DaemonContext` terpusat yang menyimpan state thread-safe dan handle hardware.
+- **`daemon/engine.rs`**: Event loop utama berbasis Tokio dan handler sinyal terminasi bersih.
+- **`daemon/pipeline.rs`**: Siklus eksekusi terstruktur: `ingest` $\rightarrow$ `decide` $\rightarrow$ `apply` $\rightarrow$ `fas_tick`.
+- **`daemon/ipc/`**: Server soket domain Unix (`/dev/socket/auriya.sock`) untuk melayani perintah client dan streaming telemetri.
+
+## Control CLI — `src/bin/auriyactl.rs` & `src/cli/`
+
+Biner baris perintah mandiri (`auriyactl`):
+- Memungkinkan manajemen modul secara headless tanpa membuka aplikasi Android.
+- Mendukung perintah: `auriyactl status`, `auriyactl profile <mode>`, `auriyactl restart`, dan `auriyactl dump`.
+- Berkomunikasi dengan daemon secara eksklusif lewat soket `/dev/socket/auriya.sock`.

@@ -51,7 +51,7 @@ target_fps = 120
 
 | Kunci | Tipe Data | Wajib | Default Saat Dikosongkan | Keterangan & Makna |
 | --- | --- | :---: | --- | --- |
-| `package` | string | **Ya** | — | Nama paket Android persis, misalnya `com.tencent.ig`. Dicocokkan dengan paket foreground companion (`tick.rs:222`). Tanpa wildcard. |
+| `package` | string | **Ya** | — | Nama paket Android persis, misalnya `com.tencent.ig`. Dicocokkan dengan paket foreground yang dideteksi via ProcessObserver Native Binder (`gamelist.find(pkg)`). Tanpa wildcard. |
 | `cpu_governor` | string | **Ya** | — | CPU governor untuk game ini. Diteruskan langsung ke kernel (`tick.rs:223-225`). Jika string kosong, fallback ke `balance_governor` global. |
 | `enable_dnd` | bool | **Ya** | — | `true` → mengaktifkan mode Priority Do-Not-Disturb; `false` → notifikasi normal (`tick.rs:296-300`). |
 | `target_fps` | int **atau** int[] | Tidak | `None` (FAS mempertahankan target saat ini) | Target frame rate FAS. Menerima nilai tunggal atau array nilai (adaptif). |

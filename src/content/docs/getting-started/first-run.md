@@ -21,7 +21,7 @@ to be useful.
 2. **The daemon is already running.** Unlike many modules, Auriya's daemon is
    **not** started by the app — it is launched at boot by `module/service.sh`
    (see [Installation → After reboot](/getting-started/installation/#after-reboot)). By the time you
-   open the app, the daemon and companion should already be up.
+   open the app, the daemon should already be up.
 3. **Appearance/onboarding preferences** are stored by the app for subsequent
    launches.
 
@@ -43,7 +43,7 @@ Daemon: Running
 ```
 
 `Daemon: Not running` means the boot sequence failed — check
-`/data/adb/auriya/daemon.log` and `companion.log`
+`/data/adb/auriya/daemon.log`
 ([Debugging](/development/debugging/)). See the full command set in
 [Command reference](/reference/commands/).
 

@@ -1,29 +1,27 @@
 ---
 title: "Tweak Sistem"
 ---
-Lapisan tweak adalah tempat di mana daemon berinteraksi langsung dengan perangkat: penulisan terproteksi ke `/proc` dan `/sys`, ditambah sejumlah tindakan framework yang dialirkan melalui companion Android. Seluruh operasi di sini bersifat **best-effort dan bergantung pada perangkat** — node yang tidak ada akan dilewati dengan aman tanpa menyebabkan error fatal.
+Lapisan tweak adalah tempat di mana daemon berinteraksi langsung dengan perangkat: penulisan terproteksi ke `/proc` dan `/sys`, ditambah tindakan framework yang dieksekusi langsung ke sistem Android melalui Native Binder IPC. Seluruh operasi di sini bersifat **best-effort dan bergantung pada perangkat** — node yang tidak ada akan dilewati dengan aman tanpa menyebabkan error fatal.
 
 :::info Diverifikasi langsung terhadap kode sumber
-Dilacak ke commit Auriya [`10fe7c6`](https://github.com/pavelc4/auriya/tree/10fe7c6b56474a00513fec34ebac1376b30e95e6), [`src/core/tweaks/`](https://github.com/pavelc4/auriya/tree/10fe7c6b56474a00513fec34ebac1376b30e95e6/src/core/tweaks) dan [`src/core/cmd_writer/mod.rs`](https://github.com/pavelc4/auriya/blob/10fe7c6b56474a00513fec34ebac1376b30e95e6/src/core/cmd_writer/mod.rs).
+Dilacak ke Auriya v2.2.0. File terkait:
+- [`src/platform/`](file:///home/sineva/prjkt/rust/auriya/src/platform/) (Adapter subsistem perangkat keras dan kernel)
+- [`src/platform/binder/actuators.rs`](file:///home/sineva/prjkt/rust/auriya/src/platform/binder/actuators.rs) (Aktuator Native Binder IPC)
+- [`src/core/profile/apply.rs`](file:///home/sineva/prjkt/rust/auriya/src/core/profile/apply.rs) (Mesin eksekusi profil)
 :::
 
 ## Peta Modul
 
-`src/core/tweaks/` (`tweaks/mod.rs`) membagi modul berdasarkan fungsinya:
+Adapter perangkat keras berada di dalam `src/platform/`:
 
 | Modul | Tanggung Jawab |
 | --- | --- |
-| `paths.rs` | Memindai dan **menyimpan cache** jalur sysfs (governor CPU, online status, Snapdragon KGSL). |
-| `cpu.rs` | Governor, CPU boost, online core, dan afinitas per-core. |
-| `gpu.rs` | Mode performa/seimbang GPU. |
-| `sched.rs` | Parameter scheduler kernel. |
-| `memory.rs` | Manajemen memori / swappiness / pembersihan cache (drop caches). |
-| `storage.rs` | Parameter Block-I/O penyimpanan. |
-| `touchpanel.rs` | Mode game panel sentuh (touchscreen). |
-| `ceiling.rs` | Pengontrol batas atas frekuensi CPU/GPU (Low/Balance). |
-| `init.rs` | Tweak umum satu kali yang diterapkan bersama profil Performance. |
-| `vendor/` (`detect.rs`, `mtk.rs`, `snapdragon.rs`) | Deteksi SoC + hook khusus vendor. |
-| `vendor_lock.rs` | Mengunci node perfmgr vendor agar service bawaan tidak menimpa nilai Auriya. |
+| `cpu/` (`governor.rs`, `ceiling.rs`, `topology.rs`) | Governor CPU, batas frekuensi (ceiling), boost, dan deteksi topologi core. |
+| `gpu/` (`adreno.rs`, `devfreq.rs`) | Mode performa/seimbang GPU Adreno KGSL dan devfreq umum. |
+| `thermal/` (`zones.rs`, `sconfig.rs`) | Pemantauan sensor termal multi-SoC dan kontrol mode thermal Xiaomi sconfig. |
+| `vendor/` (`detect.rs`, `snapdragon.rs`, `mtk.rs`) | Deteksi SoC dinamis dan kait optimasi khusus vendor. |
+| `common/` (`init.rs`, `memory.rs`, `sched.rs`, `storage.rs`, `touchpanel.rs`) | Tweak umum OS Android (block-I/O, swappiness/memori, scheduler, panel sentuh). |
+| `binder/` (`actuators.rs`, `client.rs`, `observer.rs`) | Klien RPC Native Binder, aktuator (DnD, refresh rate, lock Wi-Fi), dan observer proses. |
 
 Daftar perubahan yang dipicu oleh setiap profil dapat dilihat di [Ringkasan arsitektur → Perubahan statis setiap profil](/id/architecture/overview/#perubahan-yang-dilakukan-oleh-setiap-profil-statis).
 
@@ -59,25 +57,16 @@ for (path, value) in [
 
 `apply_general_tweaks` juga mengatur parameter block-I/O per `/sys/block/*/queue` (`iostats=0`, `add_random=0`, `read_ahead_kb=32`, `nr_requests=32`), memilih algoritma TCP congestion control terbaik yang tersedia (`bbr3 → bbr2 → bbrplus → bbr → westwood → cubic`), menerapkan parameter memori virtual/scheduler, serta menonaktifkan modul "assist" bawaan vendor.
 
-## Aksi Melalui Android — `CmdWriter`
+## Aksi Melalui Android — Aktuator Native Binder
 
-Dua keputusan memerlukan API framework Android (`NotificationManager` untuk DnD dan `DisplayManager` untuk refresh rate). Daemon menserialisasikan perintah ini ke file kecil yang dipantau oleh companion service (`cmd_writer/mod.rs`):
+Pengaturan sistem di tingkat framework tidak dapat diubah hanya melalui node `/sys` atau `/proc` karena dikelola langsung oleh service sistem Android (`notification`, `display`, `wifi`, `activity_task`). Auriya berinteraksi langsung dengan service ini via **Native Binder IPC** (`src/platform/binder/actuators.rs`), mengeliminasi service perantara dan penulisan file disk:
 
-- File: `/data/adb/.config/auriya/auriya_cmd` (`CMD_FILE`).
-- Format teks (sesuai `CmdFormat.kt` milik companion):
+- **Do Not Disturb (DnD)**: Menjalankan RPC Binder `INotificationManager.setInterruptionFilter` (`1` = `INTERRUPTION_FILTER_ALL` untuk memulihkan notifikasi normal; `2` = `INTERRUPTION_FILTER_PRIORITY` saat bermain game).
+- **Refresh Rate**: Menjalankan konfigurasi display `IDisplayManager` via Binder RPC, dengan fallback otomatis ke perintah `settings put system min_refresh_rate` / `peak_refresh_rate`.
+- **Lock Wi-Fi Latensi Rendah**: Memanggil `IWifiManager.acquireWifiLock` dengan mode `WIFI_MODE_FULL_LOW_LATENCY` (`4`) saat sesi game aktif, mencegah power-saving throttling dan packet coalescing pada Wi-Fi agar ping stabil.
+- **Deteksi Jendela Mengambang (Floating Window)**: Mengueri `IActivityTaskManager.getAllRootTaskInfos` untuk mendeteksi apakah game yang aktif berjalan dalam mode freeform atau picture-in-picture, membatasi target frame ke 30 FPS untuk menghemat daya.
 
-  ```text
-  seq 42
-  dnd 1              # 0 = Normal/All, 1 = Priority
-  refresh_rate 90    # Hz; 0 berarti "kembalikan ke default"
-  ```
-
-- **Pancaran Ulang Penuh (Stateful Re-emit)**: Writer selalu mengingat status terakhir dari seluruh field dan menulis ulang **seluruh** status pada setiap penulisan (`CmdWriter::write`).
-- **Pengiriman Atomik**: Ditulis ke `.auriya_cmd.tmp` lalu di-`rename` agar watcher inotify companion hanya membaca payload yang utuh.
-
-:::note Fallback Saat Companion Tidak Aktif
-Jika companion mati, permintaan refresh rate dan DnD beralih ke perintah `settings put` Android langsung dari daemon (lihat [Ringkasan arsitektur → Jalur kontrol dan status](/id/architecture/overview/#jalur-kontrol-dan-status)).
-:::
+Seluruh panggilan RPC Binder berjalan langsung di dalam memori tanpa penulisan disk, menghasilkan kecepatan eksekusi sub-milidetik.
 
 ## Deteksi SoC
 

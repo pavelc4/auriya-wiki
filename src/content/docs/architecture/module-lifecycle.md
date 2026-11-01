@@ -1,80 +1,71 @@
 ---
 title: "Module Lifecycle"
 ---
-From CI build to boot to uninstall — the life of the module payload. Each stage
-cites the script that implements it. For install *details* see
-[Installation](/getting-started/installation/); for the boot *execution* see
-[Architecture overview](/architecture/overview/#binary-execution-workflow).
+From CI packaging to flash time, boot, and clean uninstallation: this document traces the complete lifecycle of the Auriya root module payload.
 
 :::info Verified against source
-Traced to commit `10fe7c6`: `module/customize.sh`, `module/service.sh`,
-`module/uninstall.sh`, and `.github/actions/package-module`
-([CI/CD workflows](/development/ci-cd/)).
+`module/customize.sh`, `module/service.sh`, `module/uninstall.sh`, and `.github/actions/package-module/action.yml`.
 :::
 
-## 1. Package (CI)
+## 1. Package (CI / CD)
 
-CI builds **one** self-contained ZIP: lifecycle scripts, `module.prop`, the
-default `settings.toml` / `gamelist.toml`, the aarch64 `auriya` (+ optional
-`auriyactl`) with a `checksums.sha256`, and both APKs under `libs/companion/`.
-Nothing is fetched at boot. The exact packaging (APK search order, versioning,
-7-zip invocation) is documented in
-[CI/CD → package-module](/development/ci-cd/#package-module). The ZIP name is
-`auriya-<version>-<commit-count>-<sha>-<build_type>.zip`.
+GitHub Actions builds a self-contained, immutable flashable ZIP:
+1. Compiles `auriya` daemon and `auriyactl` CLI for `aarch64-linux-android` with full symbol stripping.
+2. Compiles `auriya-app.apk` (Jetpack Compose manager app) via `./gradlew :app:assembleRelease`.
+3. Packages files into `build/release/module/`:
+   - `module.prop` (populated with release version and commit hash).
+   - `icon.png` (192x192 module icon for KernelSU / Magisk / APatch).
+   - `service.sh`, `customize.sh`, `action.sh`, `uninstall.sh`.
+   - `settings.toml`, `gamelist.toml`.
+   - `libs/aarch64/` (`auriya`, `auriyactl`, `checksums.sha256`).
+   - `libs/app/` (`auriya-app.apk`).
+4. Strips `.placeholder` files and compresses the archive using 7-Zip (`Deflate -mx=9`).
+5. Generates an accompanying `.sha256` checksum asset.
 
-## 2. Extract (root manager)
+The release artifact is named `auriya-<version>-<commit-count>-<hash>-release.zip`.
 
-Magisk / KernelSU / APatch extracts the ZIP into `/data/adb/modules/auriya`. The
-repository's `module/` directory **is** the ZIP root, so there is no nested
-`module/module/` on device.
+## 2. Extraction (Root Manager)
 
-## 3. Install (`customize.sh`)
+When flashed in KernelSU, Magisk, or APatch, the root manager extracts the ZIP archive directly into `$MODPATH` (`/data/adb/modules/auriya`).
 
-Runs at flash time (see
-[Installation → what the installer does](/getting-started/installation/#what-the-installer-actually-does)):
+## 3. Installation (`customize.sh`)
 
-1. Abort unless `$ARCH` is `arm64`.
-2. Verify the daemon binary against `checksums.sha256` (mismatch aborts).
-3. Copy the daemon → `system/bin/auriya`, CLI → `system/bin/auriyactl` (if
-   present).
-4. Copy the companion APK → `system/etc/auriya/service.apk` (**required**; missing
-   aborts).
-5. `pm install` the manager app `auriya-app.apk` (**best-effort**; failure warns
-   and continues).
-6. Delete the staging `libs/` directory.
-7. Move `settings.toml` / `gamelist.toml` into `/data/adb/.config/auriya`
-   **only if absent** (never overwrites user config).
-8. Create KernelSU/APatch `bin` symlinks where those managers are present.
+Executed during the flashing process:
+1. **Architecture Check**: Verifies that `$ARCH == "arm64"`; aborts on unsupported architectures.
+2. **Integrity Verification**: Checks SHA256 checksums of `auriya` and `auriyactl` against `checksums.sha256`.
+3. **Binary Deployment**:
+   - Copies `auriya` to `$MODPATH/system/bin/auriya` (mode `0755`).
+   - Copies `auriyactl` to `$MODPATH/system/bin/auriyactl` (mode `0755`).
+4. **Manager App Installation**:
+   - Installs `libs/app/auriya-app.apk` directly via `pm install -r -g`.
+5. **Staging Cleanup**:
+   - Runs `rm -rf "$MODPATH/libs"` to delete the temporary staging directory, leaving zero leftover install files.
+6. **Configuration Deployment**:
+   - Creates `/data/adb/.config/auriya/`.
+   - Moves default `settings.toml` and `gamelist.toml` into `/data/adb/.config/auriya/` **only if they do not already exist**, preserving existing user customizations across updates.
+   - Removes config templates from `$MODPATH`.
+7. **Root Manager PATH Integration**:
+   - Symlinks `auriya` and `auriyactl` into `/data/adb/ksu/bin` and `/data/adb/ap/bin` for direct shell execution without full paths.
+8. **Permission Hardening**:
+   - Sets recursive permissions `0755` / `0644` across `$MODPATH`.
 
-The runtime-vs-staging path distinction is in the
-[Filesystem reference](/reference/filesystem/#zip-staging-paths-inside-the-archive--during-install-only).
+## 4. Boot Startup (`service.sh`)
 
-## 4. Boot (`service.sh`)
+Executed on every device boot by the root manager's late-start service trigger:
+1. **Removal Check**: Verifies if the module is flagged for removal. If so, triggers `uninstall.sh` and exits immediately.
+2. **Boot Synchronization**: Polls `sys.boot_completed` until Android initialization finishes, followed by a 3-second grace period.
+3. **Instance Cleanup**: Terminates any lingering `auriya` processes and unlinks stale socket files `/dev/socket/auriya.sock`.
+4. **Daemon Launch**: Launches the daemon non-blocking in the background:
+   ```sh
+   nohup "$AURIYA_BIN" --settings "$SETTINGS_CFG" --gamelist "$GAMELIST_CFG" >/dev/null 2>&1 &
+   ```
+5. **Readiness Probe**: Waits up to 5 seconds to verify that `pidof auriya` is running and `/dev/socket/auriya.sock` is open and responsive.
 
-On every boot, via the root manager's `service.d` hook: wait for
-`sys.boot_completed`, stop any stale companion/daemon, remove stale
-socket/status/lock files, launch the companion with `app_process`, wait up to
-10 s for its `system_status`, then start the daemon with explicit
-`--settings` / `--gamelist` paths, teeing output to logcat and
-`/data/adb/auriya/daemon.log`. The full boot sequence is in
-[Architecture overview → Binary execution workflow](/architecture/overview/#binary-execution-workflow).
+## 5. Uninstallation (`uninstall.sh`)
 
-## 5. Run
-
-The daemon's tick loop selects profiles and publishes status; clients connect
-over the socket. See [Data flow](/architecture/data-flow/) and
-[Profile scheduler](/internals/profile-scheduler/).
-
-## 6. Update
-
-`update.json` (committed to `main` by the release workflow) advertises the latest
-version, `versionCode`, release-asset URL, and changelog URL; `module.prop`'s
-`updateJson` points root managers at it. See
-[CI/CD → release.yml](/development/ci-cd/#releaseyml).
-
-## 7. Uninstall (`uninstall.sh`)
-
-Stops `auriya` and `AuriyaSysMon`, `pm uninstall`s the packages, and deletes the
-socket, `/data/adb/.config/auriya`, `/data/adb/auriya`, and the symlinks. Can also
-be triggered at boot by a `remove` flag. Details:
-[Uninstall](/getting-started/uninstall/).
+Executed when the module is deleted from the root manager:
+1. Stops the `auriya` daemon process gracefully (`SIGTERM`, escalating to `SIGKILL` if unresponsive).
+2. Force-stops and uninstalls `dev.auriya.app` via `pm uninstall`.
+3. Removes `/dev/socket/auriya.sock`.
+4. Cleans `/data/adb/.config/auriya` and runtime log directory `/data/adb/auriya`.
+5. Removes symlinks from `/data/adb/ksu/bin` and `/data/adb/ap/bin`.
