@@ -21,9 +21,13 @@ cargo fmt --all -- --check
 cargo clippy --all-targets --all-features -- -D warnings
 cargo test
 
-# Aplikasi Android & Companion
+# Aplikasi Manager Android
 cd android && ./gradlew test
 ```
+
+## Melaporkan Masalah & Bug
+
+Jika Anda menemukan bug, penurunan performa, atau ketidakcocokan perangkat, silakan buka issue baru sesuai [Panduan Pelaporan Masalah](/id/development/debugging/#panduan-pelaporan-masalah-issue-reporting-guide). Menjalankan perintah diagnostik satu baris dan menyalin template laporan memastikan seluruh informasi penting seperti kernel, versi Android, root manager, dan log daemon tersedia lengkap.
 
 ## Standar Kode & Format Commit
 - **Rust**: Mengikuti format standar `rustfmt` (indentasi 4 spasi), `snake_case` untuk fungsi/modul, `CamelCase` untuk struct/enum.

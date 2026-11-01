@@ -1,73 +1,341 @@
 ---
 title: "Debugging & Pemecahan Masalah"
 ---
-Panduan diagnostik perbatasan (boundary-first) untuk menemukan dan menyelesaikan masalah pada Auriya di perangkat Android fisik. Auriya menjangkau empat perbatasan: antarmuka UI aplikasi manajer, Unix domain socket, Native Binder IPC dengan framework sistem Android, serta penulisan node kernel `/sys` dan `/proc`.
+Panduan diagnostik perbatasan (boundary-first) dan petunjuk pelaporan masalah untuk Auriya di perangkat Android fisik. Arsitektur modern Auriya menjangkau empat perbatasan:
+1. **Aplikasi Manager Android**: Antarmuka Jetpack Compose dan overlay HUD mengambang.
+2. **Unix Domain Socket**: Saluran kontrol IPC lokal di `/dev/socket/auriya.sock`.
+3. **Native Binder IPC**: Panggilan RPC langsung ke framework Android (`IActivityManager`, `IPowerManager`, `IDisplayManager`, `IWifiManager`, `INotificationManager`, `IWindowManager`).
+4. **Adapter Kernel & Hardware**: Node sysfs, pembaca procfs, dan Kala kernel eBPF Uprobes.
 
-## File Log Utama
+Saat terjadi kendala, identifikasi perbatasannya terlebih dahulu, lalu gunakan panduan dan perintah diagnostik di bawah ini.
 
-| Log | Jalur File | Keterangan Format |
+## Toolset Diagnostik Modern (`auriyactl`)
+
+Auriya menyediakan serangkaian perintah CLI lengkap melalui `auriyactl` untuk memeriksa, memonitor, dan menganalisis status daemon secara langsung di terminal root perangkat.
+
+### 1. Status Umum & Informasi Perangkat
+
+#### `auriyactl status`
+Menampilkan ringkasan status operasional daemon, PID, paket aplikasi yang aktif, profil performa yang diterapkan, dan target FPS:
+
+```bash
+auriyactl status
+```
+
+Contoh output:
+```text
+Daemon: Running (PID: 14210)
+Active App: com.miHoYo.GenshinImpact (PID: 15302)
+Profile: Performance (Auto)
+Target FPS: 60 (Measured: 59.8 FPS)
+```
+
+Jika menghasilkan `Daemon: Not running`, berarti proses daemon gagal berjalan atau mengalami crash saat inisialisasi boot. Periksa file log di `/data/adb/auriya/daemon.log`.
+
+#### `auriyactl info`
+Menjalankan audit mendalam terhadap kapabilitas hardware, platform SoC, topologi cluster CPU, backend GPU devfreq/KGSL, kesiapan subsistem eBPF kernel, serta penggunaan memori RSS daemon:
+
+```bash
+auriyactl info
+```
+
+Contoh output:
+```text
+Hardware & Platform:
+  Brand:          Xiaomi
+  Codename:       marble
+  Android:        14 (API 34)
+  SoC Board:      taro
+  CPU Topology:   1x Cortex-X3 + 4x Cortex-A715 + 3x Cortex-A510
+  GPU:            Adreno 725
+  GPU Driver:     kgsl-3d0
+  Vulkan:         Supported
+  Active Render:  SkiaVK
+  Display:        120Hz [Supported: 60Hz, 120Hz]
+  Root Manager:   KernelSU
+  SELinux:        Enforcing
+  Kernel:         Linux 5.10.198-android12-9-00045-g84e491295b92 aarch64
+
+Kernel eBPF Diagnostics:
+  BPF Mount:      Mounted (/sys/fs/bpf)
+  BPF Syscall:    Available
+  JIT Compiler:   Enabled
+  Kala Probe:     Available
+  Active Engine:  Kala eBPF
+
+Daemon Runtime:
+  PID:            14210 (Running)
+  Memory (RSS):   5.4 MB
+  CPU Load:       0.3%
+  Workers:        2
+```
+
+### 2. Manajemen Log & Streaming Langsung
+
+Auriya menggunakan logger file langsung berkinerja tinggi (zero-allocation) dengan format timestamp presisi boottime dmesg tanpa perantara subshell.
+
+#### Daftar File Log Utama
+
+| Berkas Log | Lokasi | Keterangan |
 | :--- | :--- | :--- |
-| Daemon | `/data/adb/auriya/daemon.log` (+ `.1`, `.2`) | Penulis file langsung (zero-allocation) dengan format timestamp presisi boottime dmesg: `[ 1234.567890] [info] ...`. Auto-rotasi saat ukuran mencapai 2 MB. |
-| Restart | `/data/adb/auriya/restart.log` | Output saat proses restart dijalankan oleh `service.sh`. |
-| Logcat | `logcat -s auriya` | Tag logcat sistem untuk startup daemon dan hook instalasi. |
+| **Log Aktif Daemon** | `/data/adb/auriya/daemon.log` | Log runtime aktif dengan timestamp boottime kernel (`[ 1234.567890] [info] ...`). |
+| **Log Rotasi Daemon** | `/data/adb/auriya/daemon.log.old` | Segmen log sebelumnya yang otomatis dirotasi saat ukuran mencapai 2 MB. |
+| **Log Restart** | `/data/adb/auriya/restart.log` | Output tangkapan saat proses restart dijalankan oleh `service.sh`. |
+| **Log Sistem Android** | `logcat -s auriya` | Tag logcat sistem untuk proses bootup daemon dan hook instalasi modul. |
 
-## Mengubah Tingkat Detail Log (Verbosity)
-
-Untuk mengubah level log **secara live tanpa restart daemon**, gunakan perintah CLI berikut:
-
-```bash
-auriyactl set-log debug     # pilihan: trace | debug | info | warn | error
-```
-
-`log_level` tidak dibaca ulang saat reload konfigurasi biasa — `set-log` adalah jalur perubahan live saat runtime ([Settings → reload behavior](/id/reference/settings/#perilaku-reload-tanpa-restart)).
-
-## Pemeriksaan Langkah demi Langkah
-
-### 1. Apakah Daemon Berjalan?
+#### `auriyactl log`
+Membaca, memantau secara langsung, atau membersihkan file log daemon langsung dari terminal:
 
 ```bash
-auriyactl ping        # Menghasilkan "Daemon is alive (PONG)"
-auriyactl status      # Menampilkan status, atau "Daemon: Not running"
+# Menampilkan 30 baris log terakhir (default)
+auriyactl log
+
+# Menampilkan 100 baris log terakhir
+auriyactl log -n 100
+
+# Mengikuti aliran log secara live (mirip tail -f)
+auriyactl log -f
+
+# Mengosongkan file log daemon
+auriyactl log --clear
 ```
 
-Jika `Daemon: Not running`, berarti urutan boot mengalami kendala. Periksa `/data/adb/auriya/daemon.log`. Penyebab umum mencakup file konfigurasi yang hilang, checksum biner SHA256 yang tidak cocok, atau kendala hak akses socket Unix.
-
-### 2. Memeriksa Socket IPC Secara Mentah
+#### Mengubah Level Log Saat Runtime (`auriyactl set-log`)
+Ubah tingkat verbositas pencatatan log daemon tanpa perlu melakukan restart:
 
 ```bash
-printf 'STATUS\nQUIT\n' | nc -U /dev/socket/auriya.sock
-printf 'GET_STATS\nQUIT\n' | nc -U /dev/socket/auriya.sock
+auriyactl set-log debug     # Pilihan: trace | debug | info | warn | error
 ```
 
-Format respons selengkapnya didokumentasikan di [Protokol IPC](/id/internals/ipc-protocol/). Seluruh query modern mengembalikan envelope berstandar `ApiResponse<T>`.
+`log_level` tidak dibaca ulang dari file konfigurasi TOML saat reload biasa; `set-log` adalah perintah IPC live untuk keperluan debugging mendalam.
 
-### 3. Deteksi Game & Aplikasi Foreground
+### 3. Telemetri & Monitoring Real-Time
 
-Jika game tidak terdeteksi secara otomatis:
+#### `auriyactl monitor`
+Membuka dashboard interaktif langsung di terminal yang memantau frame rate, frame time, frekuensi dan beban cluster CPU, frekuensi GPU, temperatur baterai dan SoC, laju arus baterai, serta aplikasi yang sedang aktif:
 
 ```bash
-auriyactl get-pid                      # Paket dan PID yang aktif
-auriyactl get-stats                    # Periksa data.binder dan data.session
-auriyactl inject com.nama.game         # Memaksa paket tertentu untuk pengujian
+# Dashboard interaktif in-place (refresh setiap 1000ms)
+auriyactl monitor
+
+# Menyesuaikan interval refresh (misal: 500ms)
+auriyactl monitor -i 500
+
+# Format 1 baris terus-menerus (cocok untuk pencatatan log atau non-TTY)
+auriyactl monitor -1
 ```
 
-Auriya menerima perubahan aktivitas foreground langsung dari `IActivityManager` Android melalui Native Binder IPC (`ProcessObserver`). Jika `data.binder.operational` bernilai `false`, periksa pesan peringatan inisialisasi Binder di `daemon.log`.
-
-### 4. Profil Tidak Diterapkan
-
-- Pastikan paket terdaftar di whitelist (`auriyactl list-games`).
-- Ingat [urutan keputusan penjadwal](/id/internals/profile-scheduler/#urutan-pengambilan-keputusan): layar mati atau penghemat baterai selalu mengesampingkan mode game.
-- Daemon hanya menulis ke kernel jika profil target berbeda dari profil saat ini ([perlindungan idempotensi](/id/internals/profile-scheduler/#perlindungan-idempotensi-idempotence-guard)).
-- Periksa `data.daemon.active_profile` pada `auriyactl get-stats` untuk memverifikasi profil yang sedang aktif.
-
-### 5. Node Kernel / Tweak Tidak Berubah
-
-Tweak sistem bersifat **best-effort**: node yang tidak ada pada kernel tertentu akan dilewati tanpa pesan error fatal ([Tweak Sistem](/id/internals/system-tweaks/#penulisan-terproteksi-best-effort)). Ubah level log ke `debug` (`auriyactl set-log debug`) untuk melihat jalur sysfs mana saja yang ditemukan dan ditulis. Jika service game turbo bawaan vendor terus menimpa nilai setelan, periksa apakah node [Vendor Lock](/id/internals/system-tweaks/#penguncian-vendor-vendor-lock) tersedia pada perangkat Anda.
-
-## Melakukan Restart Bersih
+#### `auriyactl stats`
+Mengambil snapshot telemetri pada saat perintah dijalankan:
 
 ```bash
-auriyactl restart
+# Ringkasan teks yang mudah dibaca
+auriyactl stats
+
+# Envelope API JSON mentah (ApiResponse<StatsSnapshot>)
+auriyactl stats --json
+
+# Streaming snapshot telemetri terus-menerus
+auriyactl stats --stream --interval-ms 1000
 ```
 
-`auriyactl restart` adalah perintah native Rust yang menghentikan proses daemon lama secara aman via sinyal `SIGTERM`, membersihkan socket usang, dan menjalankan ulang `service.sh`. Lihat [Referensi Perintah](/id/reference/commands/#restart-bersifat-lokal-bukan-perintah-ipc).
+### 4. Diagnostik Native Android Binder IPC
+
+Auriya berkomunikasi langsung dengan framework Android melalui Native Binder IPC tanpa menjalankan proses helper Java di latar belakang.
+
+#### `auriyactl binder probe`
+Memeriksa status `servicemanager` Android dan memastikan konektivitas dengan seluruh layanan sistem terkait:
+
+```bash
+auriyactl binder probe
+```
+
+Contoh output:
+```text
+Native Android Binder Probe:
+  Binder IPC Status:          Operational
+  PowerManager.isInteractive: true
+  Foreground App:             com.miHoYo.GenshinImpact (PID: 15302) [Fullscreen]
+  Display Mode (Binder):      120Hz
+  Wi-Fi Low-Latency Lock:     Active (Held)
+  Status Bar Lock:            Inactive (Unlocked)
+  High Touch Polling Rate:    Supported (Ready)
+  Battery Saver (Native):     Disabled
+  Display Rotation:           Thawed (Unlocked)
+```
+
+#### `auriyactl binder test`
+Menjalankan pengujian otomatis menyeluruh (self-test) terhadap seluruh aktuator Binder:
+
+```bash
+auriyactl binder test
+```
+
+#### Perintah Manual Aktuator Binder
+Menguji fungsionalitas aktuator hardware satu per satu:
+
+```bash
+# Mengatur mode Do Not Disturb
+auriyactl binder dnd priority         # atau 'all'
+
+# Mengatur override refresh rate layar (0 untuk kembali ke otomatis)
+auriyactl binder rate 120
+auriyactl binder rate 0
+
+# Mengaktifkan/menonaktifkan Wi-Fi Low-Latency Lock (WIFI_MODE_FULL_LOW_LATENCY)
+auriyactl binder wifi on
+auriyactl binder wifi off
+auriyactl binder wifi status
+
+# Mengaktifkan boost laju sampling sentuhan (High Touch Polling Rate)
+auriyactl binder touch on
+auriyactl binder touch status
+
+# Mengunci/membuka panel status bar notifikasi
+auriyactl binder statusbar lock
+auriyactl binder statusbar unlock
+```
+
+### 5. Pengujian Runtime & Simulasi
+
+#### Simulasi Paket Game (`auriyactl inject`)
+Menguji penjadwalan profil dan aturan game tanpa harus membuka game 3D yang berat:
+
+```bash
+# Masukkan nama paket game tiruan
+auriyactl inject com.miHoYo.GenshinImpact
+
+# Periksa apakah profil otomatis berpindah ke Performance
+auriyactl status
+
+# Hapus simulasi dan kembalikan ke sensor Binder langsung
+auriyactl clear-inject
+```
+
+#### Perintah Kontrol Lainnya
+
+```bash
+auriyactl ping            # Memeriksa respons soket IPC ("PONG")
+auriyactl get-pid         # Mengetahui PID proses daemon yang sedang berjalan
+auriyactl get-fps         # Melihat FPS terukur dan target saat ini
+auriyactl get-rates       # Menampilkan refresh rate layar yang didukung sistem
+auriyactl reload          # Memuat ulang file settings.toml dan gamelist.toml
+auriyactl restart         # Menghentikan daemon secara bersih (SIGTERM) dan menyalakan ulang
+```
+
+---
+
+## Pemecahan Masalah per Perbatasan (Troubleshooting)
+
+### 1. Daemon Tidak Berjalan / Crash Saat Boot
+
+**Gejala**: `auriyactl status` menghasilkan `Daemon: Not running`, atau `auriyactl ping` gagal terkoneksi.
+
+1. Buka dan periksa `/data/adb/auriya/daemon.log` dan `/data/adb/auriya/restart.log`.
+2. Jalankan `logcat -s auriya` untuk melihat pesan crash awal kernel atau script instalasi.
+3. Kemungkinan penyebab utama:
+   - **Kerusakan Biner**: Checksum SHA256 biner tidak cocok saat instalasi. Flash ulang modul ZIP.
+   - **Penolakan SELinux**: SELinux memblokir pembuatan file soket di `/dev/socket/auriya.sock`. Periksa log audit via `dmesg | grep -i avc`.
+   - **Soket Usang**: Sisa berkas soket lama belum terhapus. Jalankan `auriyactl restart` untuk membersihkan dan memulai ulang.
+
+### 2. Game Tidak Terdeteksi / Profil Tidak Berpindah
+
+**Gejala**: Game sedang berjalan di layar, tetapi status Auriya tetap di `Powersave` atau `Balanced`.
+
+1. Jalankan `auriyactl binder probe` untuk memeriksa bagian `Foreground App`. Jika bernilai `None`, periksa pesan peringatan `ProcessObserver` di `daemon.log`.
+2. Pastikan paket game terdaftar di konfigurasi:
+   ```bash
+   auriyactl list-games
+   ```
+   Jika belum ada, tambahkan via `auriyactl add-game <nama_paket>`.
+3. Ingat [urutan keputusan penjadwal](/id/internals/profile-scheduler/#urutan-pengambilan-keputusan):
+   - Apakah layar dalam kondisi mati? (PowerManager Interactive = `false`).
+   - Apakah mode Penghemat Baterai Android aktif? Penghemat baterai selalu memaksa profil `Powersave`.
+4. Uji dengan simulasi: `auriyactl inject <nama_paket>`. Jika profil berhasil berubah saat inject, masalah hanya terletak pada sensor deteksi foreground.
+
+### 3. FPS Selalu 0 atau Tidak Berubah
+
+**Gejala**: Game berjalan lancar, namun FPS terbaca `0` atau `N/A`.
+
+1. Jalankan `auriyactl info` dan periksa bagian **Kernel eBPF Diagnostics**:
+   - Jika `BPF Mount` belum mounted, periksa keberadaan `/sys/fs/bpf`.
+   - Jika `BPF Syscall` tidak tersedia, kernel perangkat tidak mengaktifkan `CONFIG_BPF_SYSCALL=y`.
+   - Jika `Kala Probe` tidak aktif, periksa `daemon.log` untuk melihat apakah Kala gagal menemukan fungsi `android::Surface::queueBuffer` di `/system/lib64/libgui.so`.
+2. Auriya secara otomatis menggunakan fallback sysfs jika eBPF tidak didukung kernel. Jika node sysfs terkait juga tidak disediakan oleh vendor, FPS tidak dapat dipantau.
+
+### 4. Override Refresh Rate Layar / DND Gagal Berfungsi
+
+**Gejala**: Membuka game tidak mengubah refresh rate ke nilai yang ditentukan di profil atau DND tidak menyala.
+
+1. Jalankan `auriyactl binder probe` untuk memastikan status `Display Mode (Binder)` aktif.
+2. Jalankan `auriyactl binder test` untuk melihat log eksekusi aktuator langkah demi langkah.
+3. Jalankan `auriyactl get-rates` untuk memastikan refresh rate yang ditargetkan memang didukung oleh panel layar perangkat.
+4. Pada ROM kustom OEM yang dimodifikasi berat (MIUI, HyperOS, ColorOS), framework display bawaan vendor terkadang mengabaikan panggilan Binder standar `IDisplayManager`.
+
+---
+
+## Panduan Pelaporan Masalah (Issue Reporting Guide)
+
+Jika Anda menemukan bug, perilaku tidak terduga, atau ketidakcocokan pada kernel/perangkat tertentu, silakan laporkan masalah melalui [GitHub Issues Auriya](https://github.com/pavelc4/auriya/issues).
+
+### Langkah 1: Jalankan Perintah Diagnostik Satu Baris
+
+Jalankan perintah berikut di Termux, ADB Shell, atau terminal root apa pun. Perintah ini akan mengumpulkan seluruh informasi perangkat, kernel, root manager, dan diagnostik Auriya secara otomatis dalam satu blok teks:
+
+```bash
+su -c 'echo "=== Auriya Issue Diagnostics ===" && \
+echo "Manufacturer: $(getprop ro.product.manufacturer)" && \
+echo "Model: $(getprop ro.product.model) ($(getprop ro.product.device))" && \
+echo "Board: $(getprop ro.board.platform) / Hardware: $(getprop ro.hardware)" && \
+echo "Android: $(getprop ro.build.version.release) (SDK $(getprop ro.build.version.sdk))" && \
+echo "ROM: $(getprop ro.build.display.id)" && \
+echo "Kernel: $(uname -a)" && \
+echo "Root Manager: $([ -n "$KSU" ] || which ksud >/dev/null 2>&1 && echo "KernelSU ($(ksud -V 2>/dev/null || echo unknown))" || ([ -n "$MAGISK_VER" ] || which magisk >/dev/null 2>&1 && echo "Magisk ($(magisk -v 2>/dev/null || echo unknown))" || ([ -n "$APATCH" ] || which ap >/dev/null 2>&1 && echo "APatch ($(ap -v 2>/dev/null || echo unknown))" || echo "Other/Unknown")))" && \
+echo "Auriya: $(auriyactl --version 2>/dev/null || grep -E "^version=" /data/adb/modules/auriya/module.prop 2>/dev/null)" && \
+echo -e "\n=== auriyactl status ===" && auriyactl status 2>&1 && \
+echo -e "\n=== auriyactl info ===" && auriyactl info 2>&1 && \
+echo -e "\n=== auriyactl binder probe ===" && auriyactl binder probe 2>&1'
+```
+
+### Langkah 2: Gunakan Format Template Masalah
+
+Salin dan isi template Markdown berikut saat membuat issue baru di GitHub:
+
+```markdown
+### Ringkasan Masalah
+[Jelaskan secara singkat dan jelas masalah atau bug yang terjadi]
+
+### Informasi Perangkat & Sistem
+- **Model Perangkat**: [contoh: Xiaomi POCO F5 (marble)]
+- **Platform SoC**: [contoh: Snapdragon 7+ Gen 2 (SM7475)]
+- **Versi Android**: [contoh: Android 14 (API 34)]
+- **ROM / OS**: [contoh: HyperOS 1.0.8.0.UMRMIXM / LineageOS 21]
+- **Versi Kernel**: [contoh: Linux 5.10.198-android12-9-00045-g84e491295b92 aarch64]
+- **Root Manager & Versi**: [contoh: KernelSU v0.9.5 / Magisk v27.0 / APatch v10763]
+- **Versi Auriya**: [contoh: v2.2.0 (release)]
+
+### Output Perintah Diagnostik
+```text
+[Tempelkan seluruh hasil dari perintah diagnostik satu baris di sini]
+```
+
+### Aplikasi / Game yang Terpengaruh
+- **Nama Paket**: [contoh: com.miHoYo.GenshinImpact atau N/A jika masalah umum]
+- **Profil yang Dikonfigurasi**: [contoh: Performance / Balanced]
+
+### Langkah-langkah Mereproduksi Masalah
+1. [Langkah pertama]
+2. [Langkah kedua]
+3. [Langkah ketiga]
+
+### Perilaku yang Diharapkan
+[Apa yang seharusnya terjadi]
+
+### Perilaku yang Terjadi
+[Apa yang sebenarnya terjadi, sertakan pesan error jika ada]
+
+### Cuplikan Log Daemon (`/data/adb/auriya/daemon.log`)
+```text
+[Tempelkan 50-100 baris terakhir dari /data/adb/auriya/daemon.log saat masalah berlangsung]
+```
+```

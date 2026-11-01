@@ -23,9 +23,13 @@ cargo fmt --all -- --check
 cargo clippy --all-targets --all-features -- -D warnings
 cargo test
 
-# Android Manager & Companion
+# Android Manager App
 cd android && ./gradlew test
 ```
+
+## Reporting Issues & Bugs
+
+If you find a bug, regression, or hardware incompatibility, please open an issue following the [Issue Reporting Guide](/development/debugging/#issue-reporting-guide). Using the structured template and running the one-liner diagnostic command ensures your report has all necessary kernel, device, root manager, and daemon log details.
 
 ## Coding Conventions
 
