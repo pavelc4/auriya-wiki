@@ -97,12 +97,12 @@ Profile set: OK SET_PROFILE Performance
 
 $ auriyactl stats
 Auriya Live Telemetry (Ctrl+C to quit):
-  FPS:            2.0 FPS (1% low: 0.1, 0.1% low: 0.1, peak: 98, σ: 1575.68ms)
-  CPU Load:       17%
-  GPU Load:       1% (20 MHz)
-  Temperature:    CPU: 40°C, Bat: 36°C
-  Battery:        19% (-252 mA)
-  Active App:     com.whatsapp (performance)
+  FPS:            59.8 FPS (1% low: 56.4, 0.1% low: 52.1, peak: 60, σ: 1.24ms)
+  CPU Load:       42%
+  GPU Load:       68% (540 MHz)
+  Temperature:    CPU: 42°C, Bat: 37°C
+  Battery:        78% (-612 mA)
+  Active App:     com.miHoYo.GenshinImpact (performance)
 
 $ auriyactl monitor
 # Membuka dashboard interaktif telemetri real-time di terminal

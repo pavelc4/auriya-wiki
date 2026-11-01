@@ -139,12 +139,12 @@ auriyactl stats
 Contoh output:
 ```text
 Auriya Live Telemetry (Ctrl+C to quit):
-  FPS:            2.0 FPS (1% low: 0.1, 0.1% low: 0.1, peak: 98, σ: 1575.68ms)
-  CPU Load:       17%
-  GPU Load:       1% (20 MHz)
-  Temperature:    CPU: 40°C, Bat: 36°C
-  Battery:        19% (-252 mA)
-  Active App:     com.whatsapp (performance)
+  FPS:            59.8 FPS (1% low: 56.4, 0.1% low: 52.1, peak: 60, σ: 1.24ms)
+  CPU Load:       42%
+  GPU Load:       68% (540 MHz)
+  Temperature:    CPU: 42°C, Bat: 37°C
+  Battery:        78% (-612 mA)
+  Active App:     com.miHoYo.GenshinImpact (performance)
 ```
 
 ```bash
@@ -171,7 +171,7 @@ Contoh output:
 Native Android Binder Probe:
   Binder IPC Status:          Operational
   PowerManager.isInteractive: true
-  Foreground App:             com.whatsapp (PID: 13087) [Fullscreen]
+  Foreground App:             com.miHoYo.GenshinImpact (PID: 15302) [Fullscreen]
   Display Mode (Binder):      null (dynamic)
   Wi-Fi Low-Latency Lock:     Inactive
   Status Bar Lock:            Inactive (Unlocked)
@@ -208,7 +208,7 @@ Contoh output:
 Native Binder Hardware Test:
 [1/13] Binder Servicemanager: PASS
 [2/13] PowerManager.isInteractive (true): PASS
-[3/13] Native Binder Foreground (com.whatsapp | PID: 13087 | fullscreen): PASS
+[3/13] Native Binder Foreground (com.miHoYo.GenshinImpact | PID: 15302 | fullscreen): PASS
 [4/13] Testing DnD actuator (Priority)...
        zen_mode is 1 (expected: 1)
        Restoring DnD actuator (All)...
