@@ -167,7 +167,7 @@ export default defineConfig({
             { label: 'IPC Protocol', slug: 'internals/ipc-protocol' },
             { label: 'Native Binder IPC', slug: 'internals/binder-ipc' },
             { label: 'FPS Detection', slug: 'internals/fps-detection' },
-            { label: 'Kala Frame Probe', slug: 'internals/kala-research' },
+            { label: 'Kala', slug: 'internals/kala-research' },
             { label: 'Game Detection', slug: 'internals/game-detection' },
             { label: 'Profile Scheduler', slug: 'internals/profile-scheduler' },
             { label: 'System Tweaks', slug: 'internals/system-tweaks' },

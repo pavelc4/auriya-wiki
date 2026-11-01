@@ -31,7 +31,7 @@ Frame-Aware Scheduling (FAS) watches real frame timing and nudges CPU/GPU up or
 down to hold your target FPS with the least power. It only runs for **whitelisted
 games** and only when the eBPF frame probe is available (see
 [FPS detection](/internals/fps-detection/) and
-[Kala eBPF frame probe](/internals/kala-research/)).
+[Kala](/internals/kala-research/)).
 
 ### Enabling FAS
 

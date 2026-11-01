@@ -21,7 +21,7 @@ capability-gated**:
 - FAS uses an eBPF uprobe (Kala) that needs a kernel with **uprobe + ring-buffer
   support (5.8+, tested on 5.10)**, root or `CAP_SYS_ADMIN` + `CAP_BPF`, and a
   real Android image containing `/system/lib64/libgui.so`
-  ([Kala eBPF frame probe → Auriya integration](/internals/kala-research/#auriya-integration)).
+  ([Kala → Auriya integration](/internals/kala-research/#auriya-integration)).
 - If any of that is missing, the daemon **continues with sysfs-only FPS and FAS
   disabled** — it does not fail to start
   ([FPS detection](/internals/fps-detection/)).

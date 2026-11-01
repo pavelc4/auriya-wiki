@@ -18,7 +18,7 @@ Override per-game memiliki prioritas tertinggi saat game tersebut aktif di latar
 
 ## Frame-Aware Scheduling (FAS)
 
-FAS mengamati timing frame secara real-time melalui eBPF Kala dan secara dinamis menyesuaikan frekuensi CPU/GPU untuk mempertahankan target FPS dengan konsumsi daya seefisien mungkin. FAS hanya berjalan untuk **game yang terdaftar di whitelist** dan saat probe eBPF tersedia (lihat [Deteksi FPS](/id/internals/fps-detection/) dan [Probe frame eBPF Kala](/id/internals/kala-research/)).
+FAS mengamati timing frame secara real-time melalui eBPF Kala dan secara dinamis menyesuaikan frekuensi CPU/GPU untuk mempertahankan target FPS dengan konsumsi daya seefisien mungkin. FAS hanya berjalan untuk **game yang terdaftar di whitelist** dan saat probe eBPF tersedia (lihat [Deteksi FPS](/id/internals/fps-detection/) dan [Kala](/id/internals/kala-research/)).
 
 ### Mode FAS (Parameter `margin`)
 

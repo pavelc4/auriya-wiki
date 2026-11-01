@@ -87,7 +87,7 @@ mapping (`BoostGpu`, `BoostCpu`, `BoostBalanced`, `Maintain`, `Reduce`) is
 documented in
 [Architecture overview → FAS dynamic changes](/architecture/overview/#fas-dynamic-changes-inside-the-same-game).
 The frame-measurement mechanism itself is in
-[Kala eBPF frame probe](/internals/kala-research/).
+[Kala](/internals/kala-research/).
 
 ## Leaving a game / no foreground
 

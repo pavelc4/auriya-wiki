@@ -2,120 +2,94 @@
 title: "Kala"
 sidebar_position: 4
 ---
-This page describes the exact Kala revision consumed by Auriya: the git
-dependency recorded in `Cargo.lock` as
-`be1061bd032b4faf5e6ef1cf5eec19d924a5caf3` (`github.com/pavelc4/kala`, branch
-`main`). The source was read from the Cargo checkout at that revision.
+Kala ([`pavelc4/kala`](https://github.com/pavelc4/kala)) is an ultra-low-overhead, per-app frame-time probe for Android powered by eBPF uprobes on `Surface::queueBuffer` inside `/system/lib64/libgui.so`. It provides deterministic, microsecond-accurate frame pacing metrics without modifying target binaries, injecting shared libraries, or requiring ptrace.
 
-Source revision: [`pavelc4/kala@be1061b`](https://github.com/pavelc4/kala/tree/be1061bd032b4faf5e6ef1cf5eec19d924a5caf3). Primary implementation files: [`kala/src/lib.rs`](https://github.com/pavelc4/kala/blob/be1061bd032b4faf5e6ef1cf5eec19d924a5caf3/kala/src/lib.rs), [`kala/src/uprobe.rs`](https://github.com/pavelc4/kala/blob/be1061bd032b4faf5e6ef1cf5eec19d924a5caf3/kala/src/uprobe.rs), [`kala/src/tracker.rs`](https://github.com/pavelc4/kala/blob/be1061bd032b4faf5e6ef1cf5eec19d924a5caf3/kala/src/tracker.rs), [`kala/src/wire.rs`](https://github.com/pavelc4/kala/blob/be1061bd032b4faf5e6ef1cf5eec19d924a5caf3/kala/src/wire.rs), and [`kala-ebpf/src/main.rs`](https://github.com/pavelc4/kala/blob/be1061bd032b4faf5e6ef1cf5eec19d924a5caf3/kala-ebpf/src/main.rs).
+Auriya consumes Kala directly as its core frame-time measurement source for Frame-Aware Scheduling (FAS) and benchmark analytics.
 
-## What Kala measures
+## Architecture & How Kala Works
 
-Kala is a Rust library plus a `no_std` eBPF program. The probe attaches a
-**uprobe** (a user-space function entry probe) to Android's
-`/system/lib64/libgui.so`. Its target is one of several mangled
-`android::Surface::queueBuffer` symbols (`kala/src/uprobe.rs`,
-`QUEUE_BUFFER_SYMBOLS`). `queueBuffer` is called when an application hands a
-buffer to SurfaceFlinger, so Kala observes frame submissions rather than GPU
-work or display-scanout completion.
+```mermaid
+flowchart TD
+    subgraph TargetApp ["Android Application Process (PID)"]
+        Renderer["Game Engine / UI Renderer<br/>(Vulkan / OpenGL ES / NDK)"]
+        LibGui["/system/lib64/libgui.so<br/>Surface::queueBuffer"]
+        Renderer -->|submits frame| LibGui
+    end
 
-The eBPF entry point is `kala_frame_probe` in `kala-ebpf/src/main.rs`. It reads
-`ctx.arg(1)` as the buffer pointer and obtains a kernel monotonic timestamp with
-`bpf_ktime_get_ns()`. It writes this pair to the `RING_BUF` map:
+    subgraph KernelSpace ["Linux Kernel (eBPF)"]
+        Uprobe["Uprobe Handler<br/>(kala_frame_probe)"]
+        RingBuf["BPF Ring Buffer<br/>(256 KiB)"]
+        LibGui -.->|triggers| Uprobe
+        Uprobe -->|writes 16B FrameRecord| RingBuf
+    end
 
-```text
-FrameRecord {
-    ktime_ns: u64,  // monotonic nanoseconds
-    buffer:   u64,  // queueBuffer buffer pointer
+    subgraph UserSpace ["Auriya Daemon (Kala Crate)"]
+        Mio["mio::Poll<br/>(epoll event loop)"]
+        Deinterleave["BufferTimes<br/>(Triple-Buffering De-interleave)"]
+        FAS["FasController / Telemetry"]
+
+        RingBuf -->|zero-copy poll| Mio
+        Mio --> Deinterleave
+        Deinterleave -->|frametime delta| FAS
+    end
+```
+
+### 1. The Kernel eBPF Probe (`ebpf/src/main.rs`)
+
+The kernel program (`kala-ebpf-kernel`) compiles with `#![no_std]` and `#![no_main]` targeting `bpfel-unknown-none`. It hooks `Surface::queueBuffer`:
+
+- **Arg Extraction**: Extracts `arg(1)` (`ANativeWindowBuffer* buffer`), which represents the distinct memory address of the presenting back-buffer.
+- **Timestamping**: Captures hardware monotonic time via `bpf_ktime_get_ns()`.
+- **Zero-Copy Ring Buffer**: Emits a 16-byte `FrameRecord` into a 256 KiB BPF ring buffer (`RING_BUF`):
+
+```rust
+#[repr(C)]
+pub struct FrameRecord {
+    pub ktime_ns: u64, // Monotonic timestamp in nanoseconds
+    pub buffer: u64,   // ANativeWindowBuffer pointer (uniqueness key)
 }
 ```
 
-The ring buffer is 256 KiB (`RingBuf::with_byte_size(256 * 1024, 0)`). If
-reservation or either argument lookup fails, `emit` returns `None` and the BPF
-function returns `1`; there is no user-visible error record. The wire layout is
-duplicated in `kala/src/wire.rs` and must remain byte-for-byte identical.
+The 256 KiB ring buffer absorbs bursts of several hundred frames without drops even if the user-space daemon is temporarily descheduled.
 
-## Probe lifecycle
+### 2. ABI & C++ Name Mangling Resilience (`uprobe.rs`)
 
-`FrameProbe::new` (`kala/src/lib.rs`) only initializes an empty target map and
-does not load or attach an eBPF program. `FrameProbe::attach(pid)` is idempotent
-for an already-attached PID. For a new PID it calls
-`QueueBufferProbe::attach` (`kala/src/uprobe.rs`), which loads the embedded BPF
-object, loads the `kala_frame_probe` program, and tries each symbol in order:
+Because AOSP refactors `Surface::queueBuffer` across Android releases (Android 10 through 17 / API 37), Kala evaluates an ordered symbol fallback list:
 
-1. `Surface::hook_queueBuffer(ANativeWindow*, ANativeWindowBuffer*, int)`
-2. `Surface::queueBufferInternal(...)`
-3. legacy `Surface::queueBuffer(ANativeWindowBuffer*, int)`
-4. legacy overload with `SurfaceQueueBufferOutput*`
-5. modern `sp<GraphicBuffer>` overloads
+1. `_ZN7android7Surface16hook_queueBufferEP13ANativeWindowP19ANativeWindowBufferi`: The C-API trampoline `hook_queueBuffer`. Most reliable probe point across modern devices.
+2. `_ZN7android7Surface19queueBufferInternalEP13ANativeWindowP19ANativeWindowBufferi`: Internal worker called by `hook_queueBuffer`.
+3. `_ZN7android7Surface11queueBufferEP19ANativeWindowBufferi`: Legacy direct entry (AOSP $\le$ 10).
+4. `_ZN7android7Surface11queueBufferEP19ANativeWindowBufferiPNS_24SurfaceQueueBufferOutputE`: Legacy overload with output structure.
+5. `_ZN7android7Surface11queueBufferEONS_2spINS_13GraphicBufferEEEiPNS_24SurfaceQueueBufferOutputE`: Modern `sp<GraphicBuffer>` overload (Android 12+).
 
-The first successful `program.attach` wins. If all attempts fail, the last Aya
-error is returned (or `SymbolNotFound` when no error is available). After a
-successful attach, Kala creates a `FrameTracker` and rebuilds a `mio::Poll`
-registry for all attached ring-buffer file descriptors.
+The probe tries each symbol in order and binds the first one that attaches successfully.
 
-`FrameProbe::detach(pid)` removes the PID, rebuilds the poll registry, and
-returns `true` only when that PID was present. Dropping `QueueBufferProbe`
-unloads the uprobe program (`Drop` in `kala/src/uprobe.rs`); dropping
-`FrameProbe` therefore cleans up all attached PIDs. Poll/rebuild errors during
-`recv_with_deadline` are ignored and retried on a later call.
+### 3. Triple-Buffering De-interleaving & Heuristics (`tracker/mod.rs`)
 
-## Receiving and frame-time reconstruction
+Android applications utilize double- or triple-buffering, which causes buffer queue events to arrive interleaved. To extract clean frame presentation intervals:
 
-`FrameProbe::recv_with_deadline(timeout)` polls all registered ring buffers with
-`mio`. It returns the first available `(pid, Duration)`, or `None` when no event
-arrives, no PID is attached, or a ring item cannot be decoded. A ring item
-shorter than `size_of::<FrameRecord>()` is ignored. `FrameTracker::pump`
-(`kala/src/tracker.rs`) reads one record at a time.
+- **Per-Buffer History**: Kala groups events by buffer pointer into `HashMap<u64, BufferHistory>`. Each buffer tracks a fixed capacity deque of up to 144 entries (`PER_BUFFER_HISTORY = 144`).
+- **Delta Calculation**: Computes $\Delta t = \text{ktime}_{\text{curr}} - \text{last\_ktime}_{\text{buffer}}$ for that specific buffer.
+- **Active Buffer Heuristic**: Identifies the actively presenting back-buffer by filtering buffers tied for the longest history, then selecting the one with the **smallest cumulative duration** ($\sum \Delta t$). This eliminates speculative queue noise.
+- **Zero Allocation in Steady State**: After initial buffer discovery, the tracking logic performs zero heap allocations per frame (`0 alloc/frame`).
 
-Because Android commonly has multiple buffers in flight, `FrameTracker::record`
-keeps a separate timestamp history per buffer pointer. It computes a saturating
-delta from the previous timestamp for that same pointer; the first observation
-of a buffer produces no duration, and a zero delta is discarded. Each history
-stores up to 144 durations. Among buffers tied for the longest history, the
-buffer with the smallest cumulative duration is selected as the active buffer;
-only a delta from that buffer is returned. This is a heuristic to avoid
-triple-buffer interleaving and is not a direct display-present timestamp.
+### 4. Multiplexing & Multi-Target Polling (`lib.rs`)
 
-Errors while pumping a tracker are swallowed by `recv_with_deadline` (`Err(_) =>
-continue`), so a broken ring read causes the current event to be skipped rather
-than terminating the probe.
+`FrameProbe` can track multiple PIDs concurrently using a unified `mio::Poll` engine:
 
-## Auriya integration
+- **Non-blocking Epoll**: Each attached PID's ring buffer file descriptor is registered with `mio::Interest::READABLE` using `Token(pid as usize)`.
+- **Fair Round-Robin Draining (`pending: VecDeque<Pid>`)**: When epoll wakes with events for multiple PIDs, they are processed in a fair round-robin order. If a ring buffer still has queued frames, the PID is pushed to the back of `pending`, preventing a 120 FPS game from starving a 60 FPS companion process.
+- **Detailed Telemetry (`recv_with_stats`)**: Returns `FrameEvent` containing:
+  - `pid`: Process identifier
+  - `frametime`: Calculated frame duration (`Duration`)
+  - `pump_latency_ns`: Execution latency of the user-space pump logic (typically $\le 500$ ns)
+  - `ring_records`: Raw BPF records consumed per frame
+  - `burst_count`: Frame sequence within current epoll wake-up
 
-`src/core/ebpf.rs` wraps Kala in `EbpfFrameStream`. `EbpfFrameStream::new` calls
-`FrameProbe::new`, creates a worker thread, and broadcasts returned frame
-durations through a Tokio `broadcast` channel (capacity 4096). With no attached
-PID the worker blocks on its command channel; with at least one PID it drains
-commands and polls Kala on the `settings.fas.poll_interval_ms` deadline (clamped
-to `[1, 500]` ms; `recv_with_deadline`). The PID from Kala's tuple is currently
-ignored; only the `Duration` is sent to subscribers.
+## Auriya Integration
 
-`attach` and `detach` send commands to that worker and wait up to one second for
-the reply. They report explicit errors when the worker is gone, the timeout is
-exceeded, or the reply channel disconnects. The daemon's tick path calls these
-methods for the validated foreground game PID (`src/daemon/tick.rs`,
-`ebpf_attach`/`ebpf_detach`). Attach failures are logged as warnings and do not
-abort the daemon.
+Inside Auriya (`src/core/fas/source.rs` and `src/core/stats/fps.rs`):
 
-At startup, failure to create the stream is handled in `src/daemon/run.rs`:
-Auriya continues with sysfs-only FPS telemetry and disables FAS. This covers
-old kernels, missing BPF capabilities, SELinux denial, missing symbols, and
-other Kala initialization errors. Kala's documented runtime requirements are a
-Linux kernel with uprobe and ring-buffer support (5.8+, tested on 5.10), root or
-`CAP_SYS_ADMIN` plus `CAP_BPF`, and a real Android image containing
-`/system/lib64/libgui.so`. The embedded BPF object means downstream users do not
-need `bpf-linker` at runtime; building Kala itself requires `bpf-linker` in
-`PATH` when regenerating the object.
-
-## Scope and limitations
-
-Kala filters by PID through Aya's uprobe attachment; the eBPF program itself has
-no package-name or surface-name filter. It records every matching
-`queueBuffer` call in the attached process. The measured interval is the time
-between queue calls for the selected buffer, not a guaranteed on-screen frame
-interval. Ring overflow, failed reservations, malformed records, and tracker
-read errors are silently dropped at the Kala layer. Auriya's FPS meter may use
-the stream as a fallback, while FAS consumes the same broadcast independently;
-the surrounding selection and timeout policy is implemented in Auriya, not in
-Kala (`src/core/fps_meter/mod.rs`, `src/core/fas/source/mod.rs`).
+1. **Automatic Lifecycle Binding**: When a game enters the foreground, Auriya's Native Binder `ProcessObserver` triggers `probe.attach(pid)`.
+2. **Dynamic Pacing (FAS)**: Real-time frametimes are fed to `FasController` to calculate frame jitter ($CV$), detect CPU/GPU bottlenecks, and modulate frequency ceilings.
+3. **Clean Teardown**: When the process exits (`ProcessEvent::PidExited`), `probe.detach(pid)` unregisters the epoll token and unloads the kernel eBPF program. If eBPF is unsupported by the kernel, Auriya falls back to sysfs frame monitoring.

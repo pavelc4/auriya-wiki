@@ -68,7 +68,7 @@ CI uses **nightly** Rust with `edition = "2024"` and installs `rust-src`
 ([CI/CD → setup-tools](/development/ci-cd/#setup-tools)). The Kala eBPF dependency is a git
 dependency (`Cargo.toml`); its own eBPF object is prebuilt, so you do not need
 `bpf-linker` to build Auriya
-([Kala eBPF frame probe](/internals/kala-research/#auriya-integration)).
+([Kala](/internals/kala-research/#auriya-integration)).
 :::
 
 ## Lints and formatting

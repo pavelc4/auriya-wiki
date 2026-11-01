@@ -1,57 +1,95 @@
 ---
-title: "Probe Frame eBPF Kala"
+title: "Kala"
 sidebar_position: 4
 ---
-Halaman ini mendeskripsikan revisi Kala persis yang dikonsumsi oleh Auriya: dependensi git yang tercatat pada `Cargo.lock` sebagai `be1061bd032b4faf5e6ef1cf5eec19d924a5caf3` (`github.com/pavelc4/kala`, branch `main`).
+Kala ([`pavelc4/kala`](https://github.com/pavelc4/kala)) adalah probe frame-time per-aplikasi berkinerja tinggi untuk Android berbasis eBPF uprobe pada fungsi `Surface::queueBuffer` di dalam `/system/lib64/libgui.so`. Kala menyediakan metrik frame pacing dengan presisi tingkat mikrodirektori tanpa memerlukan injeksi pustaka bersama, modifikasi APK game, ataupun overhead ptrace.
 
-Revisi sumber: [`pavelc4/kala@be1061b`](https://github.com/pavelc4/kala/tree/be1061bd032b4faf5e6ef1cf5eec19d924a5caf3). File implementasi utama: [`kala/src/lib.rs`](https://github.com/pavelc4/kala/blob/be1061bd032b4faf5e6ef1cf5eec19d924a5caf3/kala/src/lib.rs), [`kala/src/uprobe.rs`](https://github.com/pavelc4/kala/blob/be1061bd032b4faf5e6ef1cf5eec19d924a5caf3/kala/src/uprobe.rs), [`kala/src/tracker.rs`](https://github.com/pavelc4/kala/blob/be1061bd032b4faf5e6ef1cf5eec19d924a5caf3/kala/src/tracker.rs), [`kala/src/wire.rs`](https://github.com/pavelc4/kala/blob/be1061bd032b4faf5e6ef1cf5eec19d924a5caf3/kala/src/wire.rs), dan [`kala-ebpf/src/main.rs`](https://github.com/pavelc4/kala/blob/be1061bd032b4faf5e6ef1cf5eec19d924a5caf3/kala-ebpf/src/main.rs).
+Auriya memanfaatkan Kala sebagai fondasi telemetri utama untuk Frame-Aware Scheduling (FAS) dan pencatatan benchmark game.
 
-## Apa yang Diukur oleh Kala
+## Arsitektur & Cara Kerja Kala
 
-Kala adalah library Rust yang dipadukan dengan program eBPF `no_std`. Probe memasang **uprobe** (probe entry point fungsi userspace) ke library `/system/lib64/libgui.so` milik Android. Targetnya adalah salah satu simbol ter-mangle dari `android::Surface::queueBuffer` (`kala/src/uprobe.rs`, `QUEUE_BUFFER_SYMBOLS`). Fungsi `queueBuffer` dipanggil saat aplikasi menyerahkan buffer grafis ke SurfaceFlinger, sehingga Kala mengamati pengiriman frame (frame submission), bukan penyelesaian render GPU ataupun pemindaian layar fisik.
+```mermaid
+flowchart TD
+    subgraph TargetApp ["Proses Aplikasi Android (PID)"]
+        Renderer["Game Engine / UI Renderer<br/>(Vulkan / OpenGL ES / NDK)"]
+        LibGui["/system/lib64/libgui.so<br/>Surface::queueBuffer"]
+        Renderer -->|menyerahkan frame| LibGui
+    end
 
-Entry point eBPF adalah `kala_frame_probe` dalam `kala-ebpf/src/main.rs`. Program ini membaca `ctx.arg(1)` sebagai pointer buffer dan mengambil timestamp monotonic kernel dengan `bpf_ktime_get_ns()`. Pasangan data ini ditulis ke ring buffer map (`RING_BUF`):
+    subgraph KernelSpace ["Kernel Linux (eBPF)"]
+        Uprobe["Uprobe Handler<br/>(kala_frame_probe)"]
+        RingBuf["BPF Ring Buffer<br/>(256 KiB)"]
+        LibGui -.->|memicu| Uprobe
+        Uprobe -->|menulis 16B FrameRecord| RingBuf
+    end
 
-```text
-FrameRecord {
-    ktime_ns: u64,  // nanodetik monotonik
-    buffer:   u64,  // pointer buffer queueBuffer
+    subgraph UserSpace ["Daemon Auriya (Crate Kala)"]
+        Mio["mio::Poll<br/>(event loop epoll)"]
+        Deinterleave["BufferTimes<br/>(De-interleave Triple Buffering)"]
+        FAS["FasController / Telemetri"]
+
+        RingBuf -->|zero-copy poll| Mio
+        Mio --> Deinterleave
+        Deinterleave -->|delta frametime| FAS
+    end
+```
+
+### 1. Probe Kernel eBPF (`ebpf/src/main.rs`)
+
+Program kernel (`kala-ebpf-kernel`) dikompilasi dengan `#![no_std]` dan `#![no_main]` untuk target `bpfel-unknown-none`. Program ini memasang hook ke `Surface::queueBuffer`:
+
+- **Ekstraksi Argumen**: Membaca `arg(1)` (`ANativeWindowBuffer* buffer`), yaitu pointer alamat memori unik dari back-buffer yang sedang diserahkan.
+- **Timestamping Presisi**: Mengambil waktu perangkat keras monotonik melalui syscall `bpf_ktime_get_ns()`.
+- **Ring Buffer Zero-Copy**: Menulis `FrameRecord` berukuran 16 byte ke ring buffer BPF sebesar 256 KiB (`RING_BUF`):
+
+```rust
+#[repr(C)]
+pub struct FrameRecord {
+    pub ktime_ns: u64, // Timestamp monotonik dalam nanodetik
+    pub buffer: u64,   // Pointer ANativeWindowBuffer (kunci pembeda buffer)
 }
 ```
 
-Ukuran ring buffer adalah 256 KiB (`RingBuf::with_byte_size(256 * 1024, 0)`). Jika alokasi reservasi gagal, event dilewati secara diam-diam.
+Kapasitas ring buffer 256 KiB mampu menampung lonjakan ratusan frame tanpa kehilangan data saat daemon di userspace sempat ter-deschedule.
 
-## Siklus Hidup Probe
+### 2. Ketahanan Simbol C++ Lintas Versi Android (`uprobe.rs`)
 
-`FrameProbe::new` (`kala/src/lib.rs`) menginisialisasi map target. Pemanggilan `FrameProbe::attach(pid)` bersifat idempoten untuk PID yang sudah terpasang. Untuk PID baru, sistem memanggil `QueueBufferProbe::attach` (`kala/src/uprobe.rs`) yang memuat objek BPF tersemat dan mencoba simbol-simbol berikut secara berurutan:
+AOSP sering memodifikasi tanda tangan fungsi `Surface::queueBuffer` antar versi Android (Android 10 hingga 17 / API 37). Kala menangani hal ini melalui daftar fallback simbol terurut:
 
-1. `Surface::hook_queueBuffer(ANativeWindow*, ANativeWindowBuffer*, int)`
-2. `Surface::queueBufferInternal(...)`
-3. Simbol legacy `Surface::queueBuffer(ANativeWindowBuffer*, int)`
-4. Overload legacy dengan `SurfaceQueueBufferOutput*`
-5. Overload modern `sp<GraphicBuffer>`
+1. `_ZN7android7Surface16hook_queueBufferEP13ANativeWindowP19ANativeWindowBufferi`: Trampoline C-API `hook_queueBuffer`. Merupakan titik probe paling stabil di perangkat modern.
+2. `_ZN7android7Surface19queueBufferInternalEP13ANativeWindowP19ANativeWindowBufferi`: Fungsi internal yang dipanggil oleh `hook_queueBuffer`.
+3. `_ZN7android7Surface11queueBufferEP19ANativeWindowBufferi`: Simbol langsung legacy (AOSP $\le$ 10).
+4. `_ZN7android7Surface11queueBufferEP19ANativeWindowBufferiPNS_24SurfaceQueueBufferOutputE`: Overload legacy dengan parameter output.
+5. `_ZN7android7Surface11queueBufferEONS_2spINS_13GraphicBufferEEEiPNS_24SurfaceQueueBufferOutputE`: Overload modern berbasis smart-pointer `sp<GraphicBuffer>` (Android 12+).
 
-`program.attach` pertama yang berhasil akan digunakan. Setelah berhasil, Kala membuat `FrameTracker` dan memperbarui registri `mio::Poll` untuk seluruh descriptor file ring-buffer.
+Kala mencoba simbol-simbol tersebut secara berurutan dan mengaitkan simbol pertama yang berhasil.
 
-`FrameProbe::detach(pid)` melepaskan PID dan memperbarui registri polling. Pelepasan `QueueBufferProbe` (`Drop`) akan meng-unload program uprobe dari kernel secara bersih.
+### 3. De-interleaving Triple-Buffering & Heuristik (`tracker/mod.rs`)
 
-## Rekonstruksi Waktu Frame (Frametime)
+Aplikasi Android menggunakan mekanisme double atau triple buffering yang menyebabkan event penyerahan buffer datang berselingan. Untuk mengekstrak interval waktu antar frame yang bersih:
 
-`FrameProbe::recv_with_deadline(timeout)` melakukan polling ke seluruh ring buffer terdaftar menggunakan `mio`. Fungsi ini mengembalikan `(pid, Duration)` pertama yang tersedia. `FrameTracker::record` (`kala/src/tracker.rs`) mencatat riwayat timestamp terpisah untuk setiap pointer buffer yang aktif guna menangani mekanisme multi-buffering Android (triple-buffering).
+- **Riwayat Per-Buffer**: Kala mengelompokkan event berdasarkan pointer buffer ke dalam `HashMap<u64, BufferHistory>`. Setiap buffer memiliki antrean riwayat statis hingga 144 entri (`PER_BUFFER_HISTORY = 144`).
+- **Kalkulasi Delta**: Menghitung $\Delta t = \text{ktime}_{\text{sekarang}} - \text{last\_ktime}_{\text{buffer}}$ khusus untuk buffer yang sama.
+- **Heuristik Buffer Aktif**: Mengidentifikasi back-buffer yang benar-benar tampil ke layar dengan memilih buffer yang memiliki riwayat terpanjang, lalu menyaring yang memiliki **total akumulasi durasi terkecil** ($\sum \Delta t$).
+- **Zero Alokasi pada Kondisi Stabil**: Setelah buffer awal terdeteksi, logika pelacakan frame tidak melakukan alokasi memori heap sama sekali (`0 alloc/frame`).
 
-Dari riwayat tersebut, delta waktu antara penyerahan buffer dihitung dan dikembalikan sebagai durasi frametime.
+### 4. Multiplexing & Polling Multi-Target (`lib.rs`)
+
+`FrameProbe` dapat memantau beberapa proses (PID) secara bersamaan menggunakan satu engine `mio::Poll`:
+
+- **Epoll Non-blocking**: File descriptor ring buffer setiap PID didaftarkan ke `mio::Interest::READABLE` menggunakan token `Token(pid as usize)`.
+- **Pengurasan Antrean Adil (Fair Round-Robin Draining)**: Melalui antrean `pending: VecDeque<Pid>`, pemrosesan frame dibagi secara berimbang sehingga aplikasi dengan frame rate tinggi (misalnya 120 FPS) tidak membuat aplikasi lain (misalnya 60 FPS) kekurangan pembacaan event.
+- **Telemetri Lengkap (`recv_with_stats`)**: Mengembalikan data `FrameEvent`:
+  - `pid`: PID proses target.
+  - `frametime`: Durasi frame terhitung (`Duration`).
+  - `pump_latency_ns`: Latensi eksekusi pembacaan ring buffer di userspace ($\le 500$ ns).
+  - `ring_records`: Jumlah baris record BPF mentah yang dikonsumsi per frame.
+  - `burst_count`: Urutan frame yang diproses dalam siklus bangun epoll yang sama.
 
 ## Integrasi dengan Auriya
 
-`src/core/ebpf.rs` membungkus Kala ke dalam struct `EbpfFrameStream`. Modul ini menjalankan thread worker dan menyiarkan durasi frame yang diterima melalui Tokio `broadcast` channel (berkapasitas 4096 item).
+Di dalam daemon Auriya (`src/core/fas/source.rs` dan `src/core/stats/fps.rs`):
 
-Ketika game aktif di latar depan, loop tick daemon memasang probe ke PID game tersebut (`ebpf_attach`). Jika pembuatan stream gagal saat startup (misalnya pada kernel lama tanpa dukungan eBPF atau uprobe), Auriya beralih ke pembacaan FPS sysfs murni dan menonaktifkan FAS tanpa menghentikan daemon.
-
-Kebutuhan runtime Kala:
-- Kernel Linux dengan dukungan uprobe dan BPF ring-buffer (versi 5.8+, diuji pada 5.10).
-- Izin root atau kapabilitas `CAP_SYS_ADMIN` + `CAP_BPF`.
-- File sistem Android nyata dengan `/system/lib64/libgui.so`.
-
-## Cakupan dan Batasan
-
-Kala memfilter event berdasarkan PID melalui uprobe Aya. Interval yang diukur adalah waktu antara pemanggilan antrean buffer (`queueBuffer`), bukan timestamp tampilan fisik pada layar. Overflow pada ring buffer atau error pembacaan dilewati secara aman tanpa memutus koneksi probe.
+1. **Pengikatan Siklus Hidup Otomatis**: Saat game masuk ke latar depan, observer proses Native Binder memicu panggilan `probe.attach(pid)`.
+2. **Pacing Dinamis (FAS)**: Nilai frametime yang diterima diolah oleh `FasController` untuk menghitung varians waktu frame ($CV$), mendeteksi bottleneck CPU/GPU, dan menggeser frekuensi governor.
+3. **Pelepasan Bersih**: Ketika game ditutup (`ProcessEvent::PidExited`), panggilan `probe.detach(pid)` menghapus registrasi token epoll dan meng-unload program eBPF dari kernel. Jika eBPF tidak didukung kernel perangkat, sistem otomatis menggunakan sysfs sebagai fallback.

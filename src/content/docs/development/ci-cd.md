@@ -10,7 +10,7 @@ Verified against Auriya commit `10fe7c6b56474a00513fec34ebac1376b30e95e6`. Workf
 | `.github/workflows/build.yml` | `workflow_dispatch` only. No branch, tag, or path filter. |
 | `.github/workflows/release.yml` | Push of any tag matching `v*`, or `workflow_dispatch`. No branch/path filter. |
 
-There is no `pull_request`, branch-push, schedule, release-event, or matrix workflow. `.github/dependabot.yml` is separate weekly dependency-update automation for Cargo `/`, Gradle `/android`, and GitHub Actions `/`; it does not execute either workflow.
+There is no `pull_request`, branch-push, schedule, release-event, or matrix workflow. `.github/dependabot.yml` automates weekly dependency updates across four ecosystems: Cargo (`/`), Gradle (`/android`), GitHub Actions (`/`), and composite actions (`/.github/actions/setup-tools`); it does not execute build or release workflows.
 
 ## Shared composite actions
 
@@ -35,7 +35,7 @@ The composite action runs one Bash block with `set -e` ([source](https://github.
 1. Creates `build/release/module` and copies `module/*` into it.
 2. Copies repository-root `settings.toml` and `gamelist.toml`; failures are explicitly ignored with `|| true`.
 3. Attempts to copy `module/system`; failure is ignored.
-4. Searches the downloaded artifacts for the manager APK in this order: exact `app-arm64-v8a-release.apk`, any `*-arm64-v8a-*.apk`, then any APK under an `app` path. Found APK becomes `libs/companion/auriya-app.apk`.
+4. Searches the downloaded artifacts for the manager APK in this order: exact `app-arm64-v8a-release.apk`, any `*-arm64-v8a-*.apk`, then any APK under an `app` path. Found APK becomes `libs/app/auriya-app.apk`.
 5. Requires `target/aarch64-linux-android/release/auriya`; absence exits `1`. `auriyactl` is optional and only produces a warning when absent.
 6. Copies binaries into `libs/aarch64/` and runs `sha256sum * > checksums.sha256` there.
 7. Reads `VERSION` from the first `version =` line in `Cargo.toml`, `COMMIT_HASH` from `git rev-parse --short HEAD`, and `VERSION_CODE` from `git rev-list --count HEAD`.
@@ -84,8 +84,8 @@ flowchart LR
 | --- | --- | --- | --- |
 | `setup` | `ubuntu-latest` | none | optional start notification, writes Git credentials, verifies the shared tool setup can complete |
 | `rust-binary` | `ubuntu-latest` | `setup` | cross-compiles and strips two arm64 Android Rust binaries |
-| `android-apk` | `ubuntu-latest` | `setup` | checks out private signing material and builds two signed release APKs |
-| `package` | `ubuntu-latest` | `rust-binary`, `android-apk` | downloads both artifact sets and builds the flashable ZIP |
+| `android-apk` | `ubuntu-latest` | `setup` | checks out private signing material and builds the signed manager release APK |
+| `package` | `ubuntu-latest` | `rust-binary`, `android-apk` | downloads both artifact sets and builds the flashable ZIP and SHA256 checksum |
 | `notify` | `ubuntu-latest` | `setup`, `package` | sends success ZIP or failure notification when a start message exists |
 
 ### Steps per job
@@ -116,8 +116,8 @@ The credential file contains `GH_PAT` in plaintext for the lifetime of the hoste
 1. Checkout Auriya and execute `setup-tools`.
 2. Checkout private repository `pavelc4/keystores` into `keystores-private` using `KEYSTORES_SSH_KEY` as the checkout token.
 3. Generate `android/signing.properties` containing `KEYSTORE_PATH`, `KEYSTORE_PASSWORD`, `KEY_ALIAS`, and `KEY_PASSWORD` from secrets.
-4. From `android/`, run `chmod +x gradlew` and `./gradlew :app:assembleRelease :service:assembleRelease`.
-5. Upload artifact `android-apks` from both modules' `build/outputs/apk/release/*.apk` paths.
+4. From `android/`, run `chmod +x gradlew` and `./gradlew :app:assembleRelease`.
+5. Upload artifact `android-apks` from `android/app/build/outputs/apk/release/*.apk`.
 
 #### `package`
 
@@ -125,7 +125,7 @@ The credential file contains `GH_PAT` in plaintext for the lifetime of the hoste
 2. Download `rust-binary` into `target/aarch64-linux-android/release/`.
 3. Download `android-apks` into the workspace root.
 4. Run `package-module` with `build_type: debug`.
-5. Upload `build/release/*.zip` as artifact `auriya-aarch64` with artifact compression disabled (`compression-level: 0`) because the file is already ZIP-compressed.
+5. Upload `build/release/*.zip` and `build/release/*.sha256` as artifact `auriya-aarch64` with artifact compression disabled (`compression-level: 0`) because the file is already ZIP-compressed.
 
 #### `notify`
 
@@ -141,8 +141,8 @@ If the initial Telegram call returned no parsed message ID, neither final notifi
 | Name | Source path | Destination |
 | --- | --- | --- |
 | `rust-binary` | `target/aarch64-linux-android/release/auriya*` | GitHub Actions artifact store; consumed by `package` |
-| `android-apks` | Android app/service release APK output directories | GitHub Actions artifact store; consumed by `package` |
-| `auriya-aarch64` | `build/release/*.zip` | GitHub Actions artifact store; downloaded by `notify` and optionally uploaded to Telegram |
+| `android-apks` | `android/app/build/outputs/apk/release/*.apk` | GitHub Actions artifact store; consumed by `package` |
+| `auriya-aarch64` | `build/release/*.zip` and `build/release/*.sha256` | GitHub Actions artifact store; downloaded by `notify` and optionally uploaded to Telegram |
 
 ### Secrets and environment
 
@@ -185,28 +185,27 @@ The first four jobs execute the same commands and dependencies as `build.yml`, e
 | --- | --- | --- | --- |
 | `setup` | `ubuntu-latest` | none | start notification, credential setup, tool installation |
 | `rust-binary` | `ubuntu-latest` | `setup` | build/strip/checksum arm64 Rust binaries |
-| `android-apk` | `ubuntu-latest` | `setup` | build signed release APKs |
-| `package` | `ubuntu-latest` | both build jobs | build release-labelled module ZIP |
-| `release` | `ubuntu-latest` | `setup`, `package` | publish GitHub Release asset, push `update.json`, notify Telegram |
+| `android-apk` | `ubuntu-latest` | `setup` | build signed manager release APK (`:app:assembleRelease`) |
+| `package` | `ubuntu-latest` | both build jobs | build release-labelled module ZIP and SHA256 checksum |
+| `release` | `ubuntu-latest` | `setup`, `package` | publish GitHub Release assets (ZIP + SHA256), push `update.json`, notify Telegram |
 
 ### Steps per job
 
-`setup`, `rust-binary`, and `android-apk` execute the same ordered commands documented for `build.yml`. `package` also matches except `package-module` receives `build_type: release` and exports `zip_name`, `version`, and `version_code`.
+`setup`, `rust-binary`, and `android-apk` execute the same ordered commands documented for `build.yml`. `package` also matches except `package-module` receives `build_type: release` and exports `zip_name`, `sha_name`, `version`, and `version_code`.
 
 #### `release`
 
-1. Checkout full history and download `auriya-aarch64` into `build/release/`.
-2. Resolve tag: for a tag-triggered run, write `github.ref_name`; for manual dispatch, require a non-empty packaged Cargo version and synthesize `v<VERSION>`.
-3. **High-risk publish:** `softprops/action-gh-release@v3` creates/updates that GitHub Release and uploads the exact packaged ZIP using `GITHUB_TOKEN`.
-4. Build variables from package outputs. Extract up to 20 non-empty lines from the first version section of `CHANGELOG.md` through `awk`, multiple `sed` filters, `head`, and `jq`; the resulting `CHANGELOG` variable is calculated but never inserted into `update.json`.
-5. Overwrite `update.json` with version, numeric commit-count versionCode, release asset URL, and the raw `main/CHANGELOG.md` URL.
-6. Configure the bot identity, stage `update.json`, commit it (commit failure is suppressed with `|| echo "No changes"`), then **high-risk publish** with `git push origin HEAD:main`.
-7. On normal step success and non-empty initial message ID, send the ZIP to Telegram with a custom release caption and delete the start message.
-8. If an earlier step in this job failed and the message ID is non-empty, send the failure message and delete the start message.
+1. Checkout full history (`fetch-depth: 0`) and download `auriya-aarch64` into `build/release/`.
+2. Resolve tag and release notes: for a tag-triggered run, write `github.ref_name`; for manual dispatch, require a non-empty packaged Cargo version and synthesize `v<VERSION>`. Extract the latest version section from `CHANGELOG.md` via `awk '/^## /{if(p)exit;p=1;next} p' CHANGELOG.md > build/release/RELEASE_NOTES.md`.
+3. **Publish to GitHub Release:** `softprops/action-gh-release@v3` creates/updates that GitHub Release, passes `body_path: build/release/RELEASE_NOTES.md`, sets `make_latest: true`, and uploads both the release ZIP (`build/release/${{ needs.package.outputs.zip_name }}`) and SHA256 checksum (`build/release/${{ needs.package.outputs.sha_name }}`).
+4. Overwrite `update.json` with version, numeric commit-count versionCode, release asset URL, and the raw `main/CHANGELOG.md` URL.
+5. Configure the bot identity, stage `update.json`, commit it (commit failure is suppressed with `|| echo "No changes"`), run `git pull --rebase origin main`, then publish with `git push origin HEAD:main`.
+6. On normal step success and non-empty initial message ID, send the ZIP to Telegram with a custom release caption and delete the start message.
+7. If an earlier step in this job failed and the message ID is non-empty, send the failure message and delete the start message.
 
 ### Artifacts produced
 
-The intermediate Actions artifacts are identical to `build.yml`. The final ZIP is additionally uploaded as a GitHub Release asset under the resolved tag. `update.json` is committed and pushed directly to branch `main`. Telegram receives the same ZIP only when the initial notification produced a message ID.
+The intermediate Actions artifacts are identical to `build.yml`. The final ZIP and SHA256 files are additionally uploaded as GitHub Release assets under the resolved tag. `update.json` is committed and pushed directly to branch `main`. Telegram receives the same ZIP only when the initial notification produced a message ID.
 
 ### Secrets and environment
 
@@ -222,6 +221,44 @@ All `build.yml` secrets plus `GITHUB_TOKEN`. `contents: write` is required for t
 - Telegram API rejection can remain green because the composite action does not validate it.
 - A successful run changes external state: GitHub Release assets, branch `main`, `update.json`, and Telegram messages/documents. Review those steps before modifying permissions, tags, artifact names, or notification inputs.
 
+## KernelSU Modules Catalog Specification (`module.yaml`)
+
+Auriya publishes its module metadata to the official [KernelSU-Modules repository](https://github.com/KernelSU-Modules) via the repository-root `module.yaml` manifest ([source](https://github.com/pavelc4/auriya/blob/main/module.yaml)):
+
+```yaml
+# yaml-language-server: $schema=https://raw.githubusercontent.com/KernelSU-Modules/tools/main/schemas/module.schema.json
+schemaVersion: 1
+id: auriya
+name: Auriya
+summary: Yet Another Android Performance Optimizer
+description: README.md
+icon: doc/asset/icon.png
+license: GPL-3.0
+homepage: https://github.com/pavelc4/auriya
+support: https://github.com/pavelc4/auriya/issues
+authors:
+  - name: Pavelc4
+    url: https://github.com/pavelc4
+tags:
+  - performance
+  - gaming
+  - optimizer
+  - telemetry
+  - system
+compatibility:
+  androidMinApi: 26
+  architectures:
+    - arm64-v8a
+release:
+  assetPattern: "auriya-*-release.zip"
+```
+
+### Schema & Verification Constraints
+
+1. **Schema Validation**: The manifest validates against the canonical KernelSU schema `https://raw.githubusercontent.com/KernelSU-Modules/tools/main/schemas/module.schema.json`.
+2. **Asset Pattern Matching**: The `release.assetPattern` is set to `"auriya-*-release.zip"`. When new tags are pushed, the catalog automation automatically discovers the release asset matching this pattern, extracts `module.prop`, and verifies compatibility.
+3. **Compatibility**: Minimum Android API 26 (Android 8.0 Oreo) and `arm64-v8a` target architecture only. 32-bit devices and architectures prior to API 26 are rejected.
+
 ## Reproduction checklist
 
-There are no matrix combinations. The only compiled target/configuration is `aarch64-linux-android`, Android API 26, Rust `--release`, and Gradle `assembleRelease` for `app` plus `service`. The workflow's `package` checkout does not request full history; with the default shallow checkout, `git rev-list --count HEAD` normally produces the shallow history count (typically `1`), not the repository's lifetime commit count. A manual reproduction that needs a full historical commit count must explicitly use `git fetch --unshallow` before running `package-module`, which will change the generated `versionCode` and ZIP filename from the workflow result.
+There are no matrix combinations. The only compiled target/configuration is `aarch64-linux-android`, Android API 26, Rust `--release`, and Gradle `assembleRelease` for `:app` (the legacy companion service APK was removed in favor of direct Native Binder IPC). The workflow's `package` checkout does not request full history; with the default shallow checkout, `git rev-list --count HEAD` normally produces the shallow history count (typically `1`), not the repository's lifetime commit count. A manual reproduction that needs a full historical commit count must explicitly use `git fetch --unshallow` before running `package-module`, which will change the generated `versionCode` and ZIP filename from the workflow result.
