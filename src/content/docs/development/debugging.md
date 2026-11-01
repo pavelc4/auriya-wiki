@@ -24,10 +24,13 @@ auriyactl status
 
 Output:
 ```text
-Daemon: Running (PID: 14210)
-Active App: com.miHoYo.GenshinImpact (PID: 15302)
-Profile: Performance (Auto)
-Target FPS: 60 (Measured: 59.8 FPS)
+       Auriya Daemon Status     
+  Daemon:      Running
+  Enabled:     true
+  Binder IPC:  OPERATIONAL
+  Games:       1 configured
+  FPS:         42.8 (sysfs)
+  Log Level:   Info
 ```
 
 If it prints `Daemon: Not running`, the daemon process failed to start or crashed during initialization. Inspect `/data/adb/auriya/daemon.log`.
@@ -44,30 +47,30 @@ Output:
 Hardware & Platform:
   Brand:          Xiaomi
   Codename:       marble
-  Android:        14 (API 34)
-  SoC Board:      taro
-  CPU Topology:   1x Cortex-X3 + 4x Cortex-A715 + 3x Cortex-A510
+  Android:        17 (API 37)
+  SoC Board:      SM7475 (qcom)
+  CPU Topology:   8 cores (4 Little, 3 Mid, 1 Prime)
   GPU:            Adreno 725
-  GPU Driver:     kgsl-3d0
-  Vulkan:         Supported
-  Active Render:  SkiaVK
-  Display:        120Hz [Supported: 60Hz, 120Hz]
+  GPU Driver:     v@0863.1 (kgsl)
+  Vulkan:         Supported (v1.1)
+  Active Render:  OpenGL ES (GLES)
+  Display:        120Hz (1080x2400) [Supported: 60Hz, 90Hz, 120Hz]
   Root Manager:   KernelSU
   SELinux:        Enforcing
-  Kernel:         Linux 5.10.198-android12-9-00045-g84e491295b92 aarch64
+  Kernel:         5.10.269-Chandelier-prjkt+ (aarch64)
 
 Kernel eBPF Diagnostics:
   BPF Mount:      Mounted (/sys/fs/bpf)
-  BPF Syscall:    Available
-  JIT Compiler:   Enabled
-  Kala Probe:     Available
-  Active Engine:  Kala eBPF
+  BPF Syscall:    Available (SYS_bpf)
+  JIT Compiler:   Enabled (bpf_jit_enable = 1)
+  Kala Probe:     Supported & Ready
+  Active Engine:  sysfs DRM Fallback
 
 Daemon Runtime:
-  PID:            14210 (Running)
+  PID:            11783 (Running)
   Memory (RSS):   5.4 MB
-  CPU Load:       0.3%
-  Workers:        2
+  CPU Load:       19.0%
+  Workers:        7
 ```
 
 ### 2. Log Management & Live Streaming
@@ -131,7 +134,20 @@ Queries a point-in-time telemetry snapshot:
 ```bash
 # Plain text human-readable summary
 auriyactl stats
+```
 
+Output:
+```text
+Auriya Live Telemetry (Ctrl+C to quit):
+  FPS:            2.0 FPS (1% low: 0.1, 0.1% low: 0.1, peak: 98, σ: 1575.68ms)
+  CPU Load:       17%
+  GPU Load:       1% (20 MHz)
+  Temperature:    CPU: 40°C, Bat: 36°C
+  Battery:        19% (-252 mA)
+  Active App:     com.whatsapp (performance)
+```
+
+```bash
 # Raw JSON API envelope (ApiResponse<StatsSnapshot>)
 auriyactl stats --json
 
@@ -155,13 +171,29 @@ Output:
 Native Android Binder Probe:
   Binder IPC Status:          Operational
   PowerManager.isInteractive: true
-  Foreground App:             com.miHoYo.GenshinImpact (PID: 15302) [Fullscreen]
-  Display Mode (Binder):      120Hz
-  Wi-Fi Low-Latency Lock:     Active (Held)
+  Foreground App:             com.whatsapp (PID: 13087) [Fullscreen]
+  Display Mode (Binder):      null (dynamic)
+  Wi-Fi Low-Latency Lock:     Inactive
   Status Bar Lock:            Inactive (Unlocked)
   High Touch Polling Rate:    Supported (Ready)
   Battery Saver (Native):     Disabled
-  Display Rotation:           Thawed (Unlocked)
+  Display Rotation:           Frozen (Locked)
+  Animation Scales:           [1.0, 1.0, 1.0]
+  Vibrator HAL Caps:          0x0027
+  PowerHAL Sustained:         Supported
+  PowerHAL Expensive:         Supported
+  Service 'power                         ': Available
+  Service 'notification                  ': Available
+  Service 'activity                      ': Available
+  Service 'activity_task                 ': Available
+  Service 'display                       ': Available
+  Service 'statusbar                     ': Available
+  Service 'window                        ': Available
+  Service 'wifi                          ': Available
+  Service 'thermalservice                ': Available
+  Service 'android.hardware.power.IPower/default': Available
+  Service 'android.hardware.vibrator.IVibrator/default': Available
+  Service 'vendor.lineage.touch.IHighTouchPollingRate/default': Available
 ```
 
 #### `auriyactl binder test`
@@ -169,6 +201,51 @@ Executes an end-to-end automated self-test across all registered actuators:
 
 ```bash
 auriyactl binder test
+```
+
+Output:
+```text
+Native Binder Hardware Test:
+[1/13] Binder Servicemanager: PASS
+[2/13] PowerManager.isInteractive (true): PASS
+[3/13] Native Binder Foreground (com.whatsapp | PID: 13087 | fullscreen): PASS
+[4/13] Testing DnD actuator (Priority)...
+       zen_mode is 1 (expected: 1)
+       Restoring DnD actuator (All)...
+       zen_mode restored to 0 (expected: 0)
+[5/13] Testing Display Refresh Rate actuator (120Hz)...
+       Native Binder mode: Some(120.0)
+       peak_refresh_rate is 120 (expected: 120.0)
+       Restoring Display Refresh Rate (0Hz / dynamic)...
+       Native Binder mode restored to None
+       peak_refresh_rate restored to 120
+[6/13] Testing Wi-Fi Low-Latency lock actuator...
+       Acquire Wi-Fi Low-Latency result: Ok(true) (Active: true)
+       Restoring Wi-Fi Low-Latency lock...
+       Release Wi-Fi Low-Latency result: Ok(false) (Active: false)
+[7/13] Testing Status Bar lock actuator...
+       Lock Status Bar result: Ok(true) (Active: true)
+       Restoring Status Bar lock...
+       Unlock Status Bar result: Ok(false) (Active: false)
+[8/13] Testing PowerHAL modes actuator...
+       Set ExpensiveRendering=true: Ok(())
+       Trigger Interaction boost: Ok(())
+[9/13] Testing Vibrator HAL actuator...
+       Vibrator HAL capabilities: Ok(39)
+       Pulse vibrator (30ms): Ok(())
+       Silence vibrator: Ok(())
+[10/13] Testing WindowManager actuator...
+        Freeze rotation: Ok(()) (is_frozen: Ok(true))
+        Thaw rotation: Ok(())
+        Animation scales: Ok([1.0, 1.0, 1.0])
+[11/13] Testing Battery Saver actuator...
+        Battery Saver active: Ok(false)
+[12/13] Testing Native Toast actuator...
+        Show toast result: Ok(true)
+[13/13] Testing Direct Binder Broadcast actuator...
+        Broadcast result: Ok(())
+
+Native Binder self-test completed successfully (all 13 checks passed).
 ```
 
 #### Manual Binder Actuator Commands
