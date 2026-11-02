@@ -35,6 +35,9 @@ default_governor = "schedutil"
 [dnd]
 default_enable = true
 
+[window]
+auto_rotation = false
+
 [fas]
 enabled = true
 default_mode = "balance"
@@ -77,6 +80,7 @@ thermal_threshold = 95.0
 | `[daemon]` | Opsional | Memiliki `#[serde(default)]` pada setiap kunci (`settings.rs:20-30`) |
 | `[cpu]` | **Wajib** | Tidak ada serde default (`settings.rs:33-35`) |
 | `[dnd]` | **Wajib** | Tidak ada serde default (`settings.rs:38-40`) |
+| `[window]` | Opsional | `#[serde(default)]` + `impl Default` (`auto_rotation: false`) |
 | `[fas]` | **Wajib** | Tidak ada serde default (`settings.rs:43-49`) |
 | `[dynamic_governor]` | Opsional | `#[serde(default)]` (`settings.rs:67-75`) |
 | `[ceiling]` | Opsional | `#[serde(default)]` (`settings.rs:85-93`) |
@@ -103,6 +107,12 @@ thermal_threshold = 95.0
 | Kunci | Tipe Data | Default | Keterangan & Makna |
 | --- | --- | --- | --- |
 | `default_enable` | bool | tidak ada (**wajib**) | Status default mode Do-Not-Disturb saat game baru ditambahkan melalui `ADD_GAME`. |
+
+### `[window]`
+
+| Kunci | Tipe Data | Default | Keterangan & Makna |
+| --- | --- | --- | --- |
+| `auto_rotation` | bool | `false` | Mengontrol apakah sensor rotasi layar otomatis Android diizinkan aktif. Nilai default `false` mengunci orientasi layar ke mode Portrait (`freeze_display_rotation(0, 0)`), mencegah layar mendadak miring saat HP digunakan sambil berbaring/tiduran. Jika disetel `true`, sensor accelerometer Android dibiarkan berotasi otomatis (`thaw_display_rotation(0)`). |
 
 ### `[fas]`
 

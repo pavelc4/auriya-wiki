@@ -93,3 +93,14 @@ Di dalam daemon Auriya (`src/core/fas/source.rs` dan `src/core/stats/fps.rs`):
 1. **Pengikatan Siklus Hidup Otomatis**: Saat game masuk ke latar depan, observer proses Native Binder memicu panggilan `probe.attach(pid)`.
 2. **Pacing Dinamis (FAS)**: Nilai frametime yang diterima diolah oleh `FasController` untuk menghitung varians waktu frame ($CV$), mendeteksi bottleneck CPU/GPU, dan menggeser frekuensi governor.
 3. **Pelepasan Bersih**: Ketika game ditutup (`ProcessEvent::PidExited`), panggilan `probe.detach(pid)` menghapus registrasi token epoll dan meng-unload program eBPF dari kernel. Jika eBPF tidak didukung kernel perangkat, sistem otomatis menggunakan sysfs sebagai fallback.
+
+## Interaksi dengan RASP / Anti-Tamper & Blacklist Dinamis
+
+Karena uprobe Linux menyuntikkan software breakpoint (`BRK #0x0004` pada ARM64) ke segmen `.text` pada `/system/lib64/libgui.so`, halaman memori tersebut berubah menjadi halaman anonim privat Copy-on-Write (COW).
+
+Aplikasi dengan perlindungan Runtime Application Self-Protection (RASP) seperti DexGuard atau Promon SHIELD (pada aplikasi perbankan) mendeteksi segmen memori yang termodifikasi melalui `dl_iterate_phdr` dan sengaja menghentikan aplikasi (`RuntimeException: 229570587`).
+
+Untuk mengatasi hal ini, Auriya mengimplementasikan mekanisme blacklist dinamis ([`blacklist.toml`](/id/reference/blacklist/)):
+- Saat aplikasi di blacklist masuk ke foreground, Auriya secara proaktif melepas seluruh probe eBPF melalui `ebpf_detach_all()`, mengembalikan segmen memori ke kondisi bersih tanpa modifikasi.
+- Pengukuran FPS otomatis beralih ke hardware sysfs display controller (Qualcomm DPU CRTC `measured_fps`).
+- Saat pengguna keluar dari aplikasi blacklist, probe eBPF otomatis dipasang kembali untuk aplikasi reguler dan game.

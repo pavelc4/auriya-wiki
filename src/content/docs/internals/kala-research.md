@@ -93,3 +93,14 @@ Inside Auriya (`src/core/fas/source.rs` and `src/core/stats/fps.rs`):
 1. **Automatic Lifecycle Binding**: When a game enters the foreground, Auriya's Native Binder `ProcessObserver` triggers `probe.attach(pid)`.
 2. **Dynamic Pacing (FAS)**: Real-time frametimes are fed to `FasController` to calculate frame jitter ($CV$), detect CPU/GPU bottlenecks, and modulate frequency ceilings.
 3. **Clean Teardown**: When the process exits (`ProcessEvent::PidExited`), `probe.detach(pid)` unregisters the epoll token and unloads the kernel eBPF program. If eBPF is unsupported by the kernel, Auriya falls back to sysfs frame monitoring.
+
+## RASP / Anti-Tamper Interaction & Dynamic Blacklist
+
+Because Linux uprobes patch software breakpoints (`BRK #0x0004` on ARM64) into the `.text` segment of `/system/lib64/libgui.so`, the underlying memory pages turn into private dirty Copy-on-Write (COW) anonymous pages.
+
+Applications with Runtime Application Self-Protection (RASP) engines (such as DexGuard or Promon SHIELD in banking and security apps) detect modified memory segments via `dl_iterate_phdr` and intentionally abort the process (`RuntimeException: 229570587`).
+
+To prevent this without disabling eBPF globally, Auriya introduces a dynamic blacklist mechanism ([`blacklist.toml`](/reference/blacklist/)):
+- When a blacklisted package enters the foreground, Auriya proactively detaches all eBPF probes via `ebpf_detach_all()`, restoring the original unmodified memory segment.
+- FPS calculation automatically falls back to hardware Qualcomm DPU CRTC sysfs counters.
+- When the user exits the blacklisted app, Auriya automatically re-attaches the eBPF probes for regular applications and games.

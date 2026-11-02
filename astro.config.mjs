@@ -179,6 +179,7 @@ export default defineConfig({
           items: [
             { label: 'Settings Configuration', slug: 'reference/settings' },
             { label: 'Game List Profile', slug: 'reference/gamelist' },
+            { label: 'Blacklist Configuration', slug: 'reference/blacklist' },
             { label: 'Command Reference', slug: 'reference/commands' },
             { label: 'Telemetry Protocol', slug: 'reference/stats-api' },
             { label: 'Filesystem Layout', slug: 'reference/filesystem' },

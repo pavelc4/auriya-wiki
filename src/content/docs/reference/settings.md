@@ -50,6 +50,9 @@ default_governor = "schedutil"
 [dnd]
 default_enable = true
 
+[window]
+auto_rotation = false
+
 [fas]
 enabled = true
 default_mode = "balance"
@@ -98,6 +101,7 @@ both verified:
 | `[daemon]` | Optional | field-level `#[serde(default)]` on every key | `settings.rs:8-9`, `20-30` |
 | `[cpu]` | **Required** | no serde default on the field or struct | `settings.rs:11`, `33-35` |
 | `[dnd]` | **Required** | no serde default | `settings.rs:11`, `38-40` |
+| `[window]` | Optional | `#[serde(default)]` + `impl Default` (`auto_rotation: false`) | `settings.rs` |
 | `[fas]` | **Required** | no serde default | `settings.rs:12`, `43-49` |
 | `[dynamic_governor]` | Optional | `#[serde(default)]` + `impl Default` | `settings.rs:13-14`, `67-75` |
 | `[ceiling]` | Optional | `#[serde(default)]` + `impl Default` | `settings.rs:15-16`, `85-93` |
@@ -142,6 +146,14 @@ Defined by `DndConfig`, `settings.rs:38-40`.
 | Key | Type | Default | Consumed | Meaning & evidence |
 | --- | --- | --- | :---: | --- |
 | `default_enable` | bool | none (**required**) | Yes | Default `enable_dnd` for a game created via IPC `ADD_GAME` (`src/daemon/ipc/handlers.rs`). Per-game DnD in `gamelist.toml` overrides it once a game has an explicit value. |
+
+### `[window]`
+
+Defined by `WindowConfig`, `settings.rs`.
+
+| Key | Type | Default | Consumed | Meaning & evidence |
+| --- | --- | --- | :---: | --- |
+| `auto_rotation` | bool | `false` | Yes | Controls whether Android's automatic display orientation sensor is enabled. When `false` (default), Auriya enforces portrait orientation lock (`freeze_display_rotation(0, 0)`), preventing unintended screen rotation while using the device lying down. When `true`, Auriya allows Android accelerometer-based auto-rotation (`thaw_display_rotation(0)`). |
 
 ### `[fas]`
 

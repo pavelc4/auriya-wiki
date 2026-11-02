@@ -9,8 +9,9 @@ Di balik layar, Auriya membaca dua file TOML di bawah direktori `/data/adb/.conf
 
 | File Konfigurasi | Cakupan Pengaturan | Referensi Lengkap |
 | --- | --- | --- |
-| `settings.toml` | Nilai default **global** untuk daemon dan scheduler | [Referensi settings.toml](/id/reference/settings/) |
+| `settings.toml` | Nilai default **global** untuk daemon, window/rotasi, dan scheduler | [Referensi settings.toml](/id/reference/settings/) |
 | `gamelist.toml` | Whitelist dan override **per-aplikasi** | [Referensi gamelist.toml](/id/reference/gamelist/) |
+| `blacklist.toml` | Daftar **pengecualian** probe eBPF (mencegah crash RASP aplikasi perbankan) | [Referensi blacklist.toml](/id/reference/blacklist/) |
 
 ## Dynamic Reload & Directory Watcher
 

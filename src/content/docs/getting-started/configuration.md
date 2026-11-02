@@ -10,13 +10,13 @@ and power-user fallback only a normal setup never touches a terminal or a text
 editor. For which values to choose, see [Performance tuning](/getting-started/performance-tuning/).
 :::
 
-Under the hood Auriya reads two TOML files, both under `/data/adb/.config/auriya/`
-(the app writes these — you don't have to):
+Under the hood Auriya reads TOML files under `/data/adb/.config/auriya/`:
 
 | File | Scope | Full reference |
 | --- | --- | --- |
-| `settings.toml` | **Global** daemon and scheduler defaults | [settings.toml reference](/reference/settings/) |
+| `settings.toml` | **Global** daemon, window, and scheduler defaults | [settings.toml reference](/reference/settings/) |
 | `gamelist.toml` | **Per-app** whitelist and overrides | [gamelist.toml reference](/reference/gamelist/) |
+| `blacklist.toml` | **Exclusion** list bypassing eBPF uprobe hooks (anti-tamper/RASP) | [blacklist.toml reference](/reference/blacklist/) |
 
 This page is the orientation; the reference pages are the source of truth for
 every key (type, default, whether the daemon actually consumes it, and evidence).
